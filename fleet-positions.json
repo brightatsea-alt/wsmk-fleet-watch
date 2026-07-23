@@ -1,0 +1,122 @@
+/**
+ * WSMK Fleet Position Collector
+ * - AISStream WebSocket에 짧게 접속해 선대 MMSI의 최신 위치를 수집
+ * - 기존 fleet-positions.json 데이터는 보존하고 새 수신분만 갱신 (merge)
+ * - AISStream의 MMSI 필터는 구독당 최대 50척이므로 50척 단위로 나눠 순차 구독
+ *
+ * 환경변수:
+ *   AISSTREAM_API_KEY  (필수) aisstream.io API 키
+ *   COLLECT_SECONDS    (선택) 총 수집 시간, 기본 150초
+ */
+const fs = require("fs");
+const WebSocket = require("ws");
+
+const API_KEY = process.env.AISSTREAM_API_KEY;
+const TOTAL_SECONDS = parseInt(process.env.COLLECT_SECONDS || "150", 10);
+const FLEET_FILE = "fleet.json";
+const POS_FILE = "fleet-positions.json";
+
+if (!API_KEY) {
+  console.error("ERROR: AISSTREAM_API_KEY is not set.");
+  process.exit(1);
+}
+
+// --- 선대 명부 로드 ---
+const fleet = JSON.parse(fs.readFileSync(FLEET_FILE, "utf8"));
+const mmsiList = fleet.vessels.filter(v => v.mmsi).map(v => v.mmsi);
+const nameByMmsi = {};
+fleet.vessels.forEach(v => { if (v.mmsi) nameByMmsi[v.mmsi] = v.name; });
+
+// --- 기존 위치 데이터 로드 (없으면 새로 시작) ---
+let store = { updated: null, vessels: {} };
+try {
+  store = JSON.parse(fs.readFileSync(POS_FILE, "utf8"));
+  if (!store.vessels) store.vessels = {};
+} catch (e) {
+  console.log("No existing position file. Starting fresh.");
+}
+
+// --- MMSI를 50척 단위로 분할 (AISStream 구독 제한) ---
+const chunks = [];
+for (let i = 0; i < mmsiList.length; i += 50) {
+  chunks.push(mmsiList.slice(i, i + 50));
+}
+const secondsPerChunk = Math.floor(TOTAL_SECONDS / chunks.length);
+console.log(`Fleet: ${mmsiList.length} vessels with MMSI, ${chunks.length} subscription chunk(s), ${secondsPerChunk}s each.`);
+
+let received = 0;
+
+function collectChunk(mmsis, seconds) {
+  return new Promise((resolve) => {
+    const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
+    let timer = null;
+
+    const finish = () => {
+      if (timer) clearTimeout(timer);
+      try { ws.close(); } catch (e) {}
+      resolve();
+    };
+
+    ws.on("open", () => {
+      console.log(`Subscribed: ${mmsis.length} MMSIs for ${seconds}s`);
+      ws.send(JSON.stringify({
+        APIKey: API_KEY,
+        BoundingBoxes: [[[-90, -180], [90, 180]]],
+        FiltersShipMMSI: mmsis,
+        FilterMessageTypes: ["PositionReport", "ShipStaticData"]
+      }));
+      timer = setTimeout(finish, seconds * 1000);
+    });
+
+    ws.on("message", (raw) => {
+      let msg;
+      try { msg = JSON.parse(raw.toString()); } catch (e) { return; }
+
+      const meta = msg.MetaData || {};
+      const mmsi = String(meta.MMSI || "");
+      if (!nameByMmsi[mmsi]) return;
+
+      if (!store.vessels[mmsi]) store.vessels[mmsi] = { mmsi, name: nameByMmsi[mmsi] };
+      const v = store.vessels[mmsi];
+      v.name = nameByMmsi[mmsi];
+
+      if (msg.MessageType === "PositionReport" && msg.Message && msg.Message.PositionReport) {
+        const p = msg.Message.PositionReport;
+        v.lat = p.Latitude;
+        v.lon = p.Longitude;
+        v.sog = p.Sog;                      // knots
+        v.cog = p.Cog;                      // degrees
+        v.heading = p.TrueHeading;
+        v.navStatus = p.NavigationalStatus; // 0 underway, 1 anchor, 5 moored ...
+        v.lastReceived = meta.time_utc || new Date().toISOString();
+        received++;
+      }
+
+      if (msg.MessageType === "ShipStaticData" && msg.Message && msg.Message.ShipStaticData) {
+        const s = msg.Message.ShipStaticData;
+        if (s.Destination) v.destination = String(s.Destination).trim();
+        if (s.Eta) v.eta = s.Eta; // {Month, Day, Hour, Minute}
+      }
+    });
+
+    ws.on("error", (err) => {
+      console.error("WebSocket error:", err.message);
+      finish();
+    });
+
+    ws.on("close", () => resolve());
+  });
+}
+
+(async () => {
+  for (const chunk of chunks) {
+    await collectChunk(chunk, secondsPerChunk);
+  }
+
+  store.updated = new Date().toISOString();
+  fs.writeFileSync(POS_FILE, JSON.stringify(store, null, 1));
+
+  const withPos = Object.values(store.vessels).filter(v => v.lat != null).length;
+  console.log(`Done. Position reports this run: ${received}. Vessels with stored position: ${withPos}/${mmsiList.length}.`);
+  process.exit(0);
+})();
