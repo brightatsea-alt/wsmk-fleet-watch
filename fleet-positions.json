@@ -1,4 +1,16 @@
 {
- "updated": null,
- "vessels": {}
+ "updated": "2026-07-24T01:54:49.709Z",
+ "vessels": {
+  "372802000": {
+   "mmsi": "372802000",
+   "name": "Morning Lucy",
+   "lat": 50.518159999999995,
+   "lon": -0.6864116666666666,
+   "sog": 2,
+   "cog": 98.6,
+   "heading": 123,
+   "navStatus": 0,
+   "lastReceived": "2026-07-24 01:53:01.266764962 +0000 UTC"
+  }
+ }
 }
