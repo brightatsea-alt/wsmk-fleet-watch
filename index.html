@@ -1,61 +1,272 @@
-{
-  "fleet": "WSM Korea Managed Fleet",
-  "vessels": [
-    { "no": 0,  "name": "Arctic Tern",                  "mmsi": "538012533" },
-    { "no": 1,  "name": "Asian Captain",                "mmsi": "440371000" },
-    { "no": 2,  "name": "Asian Dynasty",                "mmsi": "440058000" },
-    { "no": 3,  "name": "Asian Emperor",                "mmsi": "441722000" },
-    { "no": 4,  "name": "Asian Empire",                 "mmsi": "440114000" },
-    { "no": 5,  "name": "Asian Majesty",                "mmsi": "441947000" },
-    { "no": 6,  "name": "Asian Trust",                  "mmsi": "441995000" },
-    { "no": 7,  "name": "Asian Vision",                 "mmsi": "441992000" },
-    { "no": 8,  "name": "Gas Gala",                     "mmsi": "373568000" },
-    { "no": 9,  "name": "Grand Uranus (Morning Luna)",  "mmsi": null },
-    { "no": 10, "name": "HL Esperance",                 "mmsi": "371173000" },
-    { "no": 11, "name": "HL Saldanha Bay",              "mmsi": "636026210" },
-    { "no": 12, "name": "HL Success",                   "mmsi": "636025665" },
-    { "no": 13, "name": "HL Vision",                    "mmsi": "636025662" },
-    { "no": 14, "name": "HLS Blue Sapphire",            "mmsi": "636021821" },
-    { "no": 15, "name": "HLS Citrine",                  "mmsi": "636021822" },
-    { "no": 16, "name": "HLS Diamond",                  "mmsi": "636021823" },
-    { "no": 17, "name": "Liberty King",                 "mmsi": "538009492" },
-    { "no": 18, "name": "Liberty New York",             "mmsi": "538011582" },
-    { "no": 19, "name": "Liberty Pride",                "mmsi": "538012688" },
-    { "no": 20, "name": "Morning Camilla",              "mmsi": "440104000" },
-    { "no": 21, "name": "Morning Capo",                 "mmsi": "538005232" },
-    { "no": 22, "name": "Morning Cara",                 "mmsi": "441148000" },
-    { "no": 23, "name": "Morning Caroline",             "mmsi": "351446000" },
-    { "no": 24, "name": "Morning Catherine",            "mmsi": "352002781" },
-    { "no": 25, "name": "Morning Cecilie",              "mmsi": "440367000" },
-    { "no": 26, "name": "Morning Celine",               "mmsi": "440694000" },
-    { "no": 27, "name": "Morning Cello",                "mmsi": "441390000" },
-    { "no": 28, "name": "Morning Chant",                "mmsi": "538005333" },
-    { "no": 29, "name": "Morning Charlotte",            "mmsi": "352001831" },
-    { "no": 30, "name": "Morning Chorus",               "mmsi": "440093000" },
-    { "no": 31, "name": "Morning Christina",            "mmsi": "441010000" },
-    { "no": 32, "name": "Morning Composer",             "mmsi": "440204000" },
-    { "no": 33, "name": "Morning Concert",              "mmsi": "441866000" },
-    { "no": 34, "name": "Morning Conductor",            "mmsi": "440083000" },
-    { "no": 35, "name": "Morning Cornelia",             "mmsi": "440797000" },
-    { "no": 36, "name": "Morning Crystal",              "mmsi": "441320000" },
-    { "no": 37, "name": "Morning Lady",                 "mmsi": "441467000" },
-    { "no": 38, "name": "Morning Laura",                "mmsi": "538011674" },
-    { "no": 39, "name": "Morning Lena",                 "mmsi": "538011676" },
-    { "no": 40, "name": "Morning Lily",                 "mmsi": "440446000" },
-    { "no": 41, "name": "Morning Linda",                "mmsi": "370567000" },
-    { "no": 42, "name": "Morning Lisa",                 "mmsi": "370967000" },
-    { "no": 43, "name": "Morning Lucy",                 "mmsi": "372802000" },
-    { "no": 44, "name": "Morning Lynn",                 "mmsi": "441108000" },
-    { "no": 45, "name": "Morning Margareta",            "mmsi": "440338000" },
-    { "no": 46, "name": "Morning Menad",                "mmsi": "440253000" },
-    { "no": 47, "name": "Morning Ninni",                "mmsi": "440334000" },
-    { "no": 48, "name": "Morning Peace",                "mmsi": "440767000" },
-    { "no": 49, "name": "Morning Pilot",                "mmsi": "538005521" },
-    { "no": 50, "name": "Morning Post",                 "mmsi": "538005452" },
-    { "no": 51, "name": "Morning Pride",                "mmsi": "538005617" },
-    { "no": 52, "name": "Morning Prosperity",           "mmsi": "440533000" },
-    { "no": 53, "name": "Ocean Ariel",                  "mmsi": "538011800" },
-    { "no": 54, "name": "Oriental Leader",              "mmsi": "441903000" },
-    { "no": 55, "name": "Royal Tern",                   "mmsi": null }
-  ]
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WSMK Fleet Watch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D1522; --panel:#131F30; --panel2:#0F1928; --line:#22334A;
+    --text:#DCE6F2; --muted:#8CA0B8; --accent:#5AB8D6;
+    --live:#3DDC97; --dr:#F0B95A; --stale:#E0703C; --nosig:#6E7E92;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --cond:'Barlow Condensed',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:14px;overflow:hidden}
+
+  /* ── Top status board ── */
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-family:var(--cond);font-weight:600;font-size:22px;letter-spacing:.06em;color:#fff}
+  .brand small{color:var(--accent);font-size:13px;letter-spacing:.18em;margin-left:8px}
+  .board{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none}
+  .chip.on{border-color:var(--accent)}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .updated{font-family:var(--mono);font-size:11px;color:var(--muted);width:100%;text-align:right}
+  @media(min-width:900px){.updated{width:auto}}
+
+  /* ── Layout ── */
+  #wrap{display:flex;height:calc(100% - 57px)}
+  aside{width:330px;min-width:330px;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column}
+  #map{flex:1}
+  .search{padding:10px;border-bottom:1px solid var(--line)}
+  .search input{width:100%;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--text);font-size:13px;outline:none}
+  .search input:focus{border-color:var(--accent)}
+  #list{flex:1;overflow-y:auto}
+  .sec{padding:7px 12px;font-family:var(--cond);font-size:14px;letter-spacing:.12em;color:var(--muted);background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(34,51,74,.5);cursor:pointer}
+  .row:hover{background:rgba(90,184,214,.07)}
+  .row .st{width:9px;height:9px;border-radius:50%;flex:none}
+  .row .nm{flex:1;min-width:0}
+  .row .nm b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .nm span{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
+  .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
+  .row.dim{opacity:.75}
+
+  /* ── Map markers ── */
+  .vmark{filter:drop-shadow(0 0 3px rgba(0,0,0,.7))}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:12.5px}
+  .leaflet-popup-tip{background:var(--panel)}
+  .pop b.t{font-size:14px;display:block;margin-bottom:5px}
+  .pop table{font-family:var(--mono);font-size:11.5px;border-collapse:collapse}
+  .pop td{padding:1.5px 0}
+  .pop td:first-child{color:var(--muted);padding-right:12px}
+  .badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10.5px;font-family:var(--mono);color:#08121F;font-weight:600;margin-left:6px;vertical-align:1px}
+
+  /* ── Mobile ── */
+  #toggle{display:none}
+  @media(max-width:760px){
+    aside{position:absolute;z-index:1000;height:calc(100% - 57px);width:min(330px,86vw);transform:translateX(-100%);transition:transform .22s}
+    aside.open{transform:none}
+    #toggle{display:block;position:absolute;z-index:1001;bottom:18px;left:14px;padding:10px 16px;background:var(--accent);color:#08121F;border:none;border-radius:24px;font-weight:700;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+  }
+  #list::-webkit-scrollbar{width:8px}#list::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">FLEET WATCH<small>WSM KOREA</small></div>
+  <div class="board" id="board"></div>
+  <div class="updated" id="updated">데이터 로딩 중…</div>
+</header>
+<div id="wrap">
+  <aside id="side">
+    <div class="search"><input id="q" type="search" placeholder="선박명 · MMSI 검색"></div>
+    <div id="list"></div>
+  </aside>
+  <div id="map"></div>
+</div>
+<button id="toggle">선박 목록</button>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* 선대 명부 내장 — 데이터 파일을 못 읽어도 56척 전원 항상 표시 */
+const FLEET = [
+{no:0,name:"Arctic Tern",mmsi:"538012533"},{no:1,name:"Asian Captain",mmsi:"440371000"},
+{no:2,name:"Asian Dynasty",mmsi:"440058000"},{no:3,name:"Asian Emperor",mmsi:"441722000"},
+{no:4,name:"Asian Empire",mmsi:"440114000"},{no:5,name:"Asian Majesty",mmsi:"441947000"},
+{no:6,name:"Asian Trust",mmsi:"441995000"},{no:7,name:"Asian Vision",mmsi:"441992000"},
+{no:8,name:"Gas Gala",mmsi:"373568000"},{no:9,name:"Grand Uranus (Morning Luna)",mmsi:null},
+{no:10,name:"HL Esperance",mmsi:"371173000"},{no:11,name:"HL Saldanha Bay",mmsi:"636026210"},
+{no:12,name:"HL Success",mmsi:"636025665"},{no:13,name:"HL Vision",mmsi:"636025662"},
+{no:14,name:"HLS Blue Sapphire",mmsi:"636021821"},{no:15,name:"HLS Citrine",mmsi:"636021822"},
+{no:16,name:"HLS Diamond",mmsi:"636021823"},{no:17,name:"Liberty King",mmsi:"538009492"},
+{no:18,name:"Liberty New York",mmsi:"538011582"},{no:19,name:"Liberty Pride",mmsi:"538012688"},
+{no:20,name:"Morning Camilla",mmsi:"440104000"},{no:21,name:"Morning Capo",mmsi:"538005232"},
+{no:22,name:"Morning Cara",mmsi:"441148000"},{no:23,name:"Morning Caroline",mmsi:"351446000"},
+{no:24,name:"Morning Catherine",mmsi:"352002781"},{no:25,name:"Morning Cecilie",mmsi:"440367000"},
+{no:26,name:"Morning Celine",mmsi:"440694000"},{no:27,name:"Morning Cello",mmsi:"441390000"},
+{no:28,name:"Morning Chant",mmsi:"538005333"},{no:29,name:"Morning Charlotte",mmsi:"352001831"},
+{no:30,name:"Morning Chorus",mmsi:"440093000"},{no:31,name:"Morning Christina",mmsi:"441010000"},
+{no:32,name:"Morning Composer",mmsi:"440204000"},{no:33,name:"Morning Concert",mmsi:"441866000"},
+{no:34,name:"Morning Conductor",mmsi:"440083000"},{no:35,name:"Morning Cornelia",mmsi:"440797000"},
+{no:36,name:"Morning Crystal",mmsi:"441320000"},{no:37,name:"Morning Lady",mmsi:"441467000"},
+{no:38,name:"Morning Laura",mmsi:"538011674"},{no:39,name:"Morning Lena",mmsi:"538011676"},
+{no:40,name:"Morning Lily",mmsi:"440446000"},{no:41,name:"Morning Linda",mmsi:"370567000"},
+{no:42,name:"Morning Lisa",mmsi:"370967000"},{no:43,name:"Morning Lucy",mmsi:"372802000"},
+{no:44,name:"Morning Lynn",mmsi:"441108000"},{no:45,name:"Morning Margareta",mmsi:"440338000"},
+{no:46,name:"Morning Menad",mmsi:"440253000"},{no:47,name:"Morning Ninni",mmsi:"440334000"},
+{no:48,name:"Morning Peace",mmsi:"440767000"},{no:49,name:"Morning Pilot",mmsi:"538005521"},
+{no:50,name:"Morning Post",mmsi:"538005452"},{no:51,name:"Morning Pride",mmsi:"538005617"},
+{no:52,name:"Morning Prosperity",mmsi:"440533000"},{no:53,name:"Ocean Ariel",mmsi:"538011800"},
+{no:54,name:"Oriental Leader",mmsi:"441903000"},{no:55,name:"Royal Tern",mmsi:null}
+];
+
+const ST = {
+  LIVE :{label:'실측',      color:'var(--live)',  hex:'#3DDC97'},
+  DR   :{label:'추정(DR)',  color:'var(--dr)',    hex:'#F0B95A'},
+  STALE:{label:'장기 미수신',color:'var(--stale)', hex:'#E0703C'},
+  NOSIG:{label:'대기 · AIS 미수신', color:'var(--nosig)', hex:'#6E7E92'},
+};
+let fleet=[], store={vessels:{}}, vessels=[], markers={}, filter=null;
+
+const map = L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,140],3);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:12}).addTo(map);
+const layer = L.layerGroup().addTo(map);
+
+const R2D=180/Math.PI, D2R=Math.PI/180;
+
+/* Dead reckoning: project last position along COG at SOG for elapsed hours */
+function project(lat,lon,cog,nm){
+  const dLat = nm*Math.cos(cog*D2R)/60;
+  const dLon = nm*Math.sin(cog*D2R)/(60*Math.cos(lat*D2R)||1e-6);
+  let nlon=lon+dLon; if(nlon>180)nlon-=360; if(nlon<-180)nlon+=360;
+  return [Math.max(-85,Math.min(85,lat+dLat)), nlon];
 }
+function tzOf(lon){ return Math.round(lon/15); }
+function localTime(lon){
+  const tz=tzOf(lon), d=new Date(Date.now()+tz*3600e3);
+  return {hm:String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'),
+          tz:'UTC'+(tz>=0?'+':'')+tz};
+}
+function ago(h){ return h<1 ? Math.round(h*60)+'분 전' : h<48 ? h.toFixed(1)+'h 전' : Math.floor(h/24)+'일 전'; }
+function fmtEta(e){ return e&&e.Month ? String(e.Month).padStart(2,'0')+'/'+String(e.Day).padStart(2,'0')+' '+String(e.Hour).padStart(2,'0')+':'+String(e.Minute||0).padStart(2,'0'):null; }
+
+/* Merge registry + AIS store → display model. Every vessel in fleet.json ALWAYS appears. */
+function build(){
+  const now=Date.now();
+  vessels = fleet.map(f=>{
+    const d = f.mmsi ? (store.vessels[f.mmsi]||null) : null;
+    const v = {...f, data:d};
+    if(!f.mmsi){ v.status='NOSIG'; v.note='MMSI 미등록'; return v; }
+    if(!d || d.lat==null){ v.status='NOSIG'; v.note='수신 이력 없음'; return v; }
+    const h=(now-new Date(d.lastReceived).getTime())/3600e3;
+    v.elapsed=h;
+    v.status = h<6 ? 'LIVE' : h<24 ? 'DR' : 'STALE';
+    const moving = (d.sog||0)>=0.5 && d.navStatus!==1 && d.navStatus!==5 && d.cog!=null && d.cog<360;
+    v.anchored=!moving;
+    if(moving && h>0.02){
+      const nm=Math.min(d.sog*h, d.sog*72);           // 3일 이상은 투영 중단
+      [v.lat,v.lon]=project(d.lat,d.lon,d.cog,nm);
+      v.estimated=h>=0.5;
+      v.radiusNm=Math.min(Math.max(3,h*3),180);       // 불확실성 반경
+    } else { v.lat=d.lat; v.lon=d.lon; }
+    return v;
+  });
+}
+
+function shipIcon(v){
+  const c=ST[v.status].hex;
+  const svg = v.anchored||v.data.cog==null||v.data.cog>=360
+    ? `<svg class="vmark" width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="${c}" stroke="#08121F" stroke-width="1.5"/></svg>`
+    : `<svg class="vmark" width="20" height="20" style="transform:rotate(${v.data.cog}deg)"><path d="M10 2 L15.5 17 L10 13.5 L4.5 17 Z" fill="${c}" stroke="#08121F" stroke-width="1"/></svg>`;
+  return L.divIcon({html:svg,className:'',iconSize:[20,20],iconAnchor:[10,10]});
+}
+
+function popup(v){
+  const d=v.data, lt=localTime(v.lon);
+  const rows=[
+    ['상태', ST[v.status].label + (v.anchored?' · 정박/묘박':'') + (v.estimated?' · 위치는 DR 추정':'')],
+    ['현지시간', `${lt.hm} (${lt.tz})`],
+    ['위치', v.lat.toFixed(3)+'°, '+v.lon.toFixed(3)+'°'],
+    ['SOG / COG', (d.sog!=null?d.sog.toFixed(1)+' kn':'—')+' / '+(d.cog!=null&&d.cog<360?Math.round(d.cog)+'°':'—')],
+    ['최종 AIS', ago(v.elapsed)],
+    d.destination?['목적지', d.destination]:null,
+    fmtEta(d.eta)?['ETA', fmtEta(d.eta)+' UTC']:null,
+    ['MMSI', v.mmsi],
+  ].filter(Boolean);
+  return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
+    <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
+    ${v.estimated?'<div style="margin-top:5px;color:var(--muted);font-size:10.5px">⚠ 추정 위치 — 운영 참고용 (PSC·사고조사 등 공식 용도 사용 불가)</div>':''}</div>`;
+}
+
+function render(){
+  build();
+  layer.clearLayers(); markers={};
+  vessels.forEach(v=>{
+    if(v.lat==null) return;
+    if(v.estimated||v.status==='STALE'){
+      L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05}).addTo(layer);
+    }
+    markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v)}).bindPopup(popup(v)).addTo(layer);
+  });
+  renderBoard(); renderList();
+}
+
+function renderBoard(){
+  const c={LIVE:0,DR:0,STALE:0,NOSIG:0};
+  vessels.forEach(v=>c[v.status]++);
+  document.getElementById('board').innerHTML =
+    Object.keys(ST).map(k=>`<div class="chip ${filter===k?'on':''}" onclick="setFilter('${k}')">
+      <span class="dot" style="background:${ST[k].hex}"></span>${ST[k].label} <b>${c[k]}</b></div>`).join('')
+    + `<div class="chip ${filter===null?'on':''}" onclick="setFilter(null)">전체 <b>${vessels.length}</b></div>`;
+}
+function setFilter(k){ filter=k; renderBoard(); renderList(); }
+
+function renderList(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const show=vessels.filter(v=>(!filter||v.status===filter)&&(!q||v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q)));
+  const onMap=show.filter(v=>v.lat!=null), standby=show.filter(v=>v.lat==null);
+  const row=v=>{
+    const lt=v.lon!=null?localTime(v.lon):null;
+    const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
+    return `<div class="row ${v.status==='NOSIG'?'dim':''}" onclick="focusV(${v.no})">
+      <span class="st" style="background:${ST[v.status].hex}"></span>
+      <div class="nm"><b>${v.name}</b><span>${v.mmsi||'MMSI —'} · ${sub}</span></div>
+      <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
+  };
+  document.getElementById('list').innerHTML =
+    (onMap.length?`<div class="sec">항해 · 정박 중 (${onMap.length})</div>`+onMap.map(row).join(''):'')
+    +(standby.length?`<div class="sec">대기 — AIS 미수신 (${standby.length})</div>`+standby.map(row).join(''):'')
+    +(!show.length?'<div style="padding:20px;color:var(--muted)">검색 결과 없음</div>':'');
+}
+
+function focusV(no){
+  const v=vessels.find(x=>x.no===no);
+  if(v&&v.lat!=null){ map.flyTo([v.lat,v.lon],7,{duration:.8}); markers[no]&&markers[no].openPopup(); }
+  if(innerWidth<=760) document.getElementById('side').classList.remove('open');
+}
+
+async function load(){
+  fleet = FLEET;                                   // 명부는 내장 — 항상 56척 표시
+  try{
+    const t=Date.now();
+    store=await (await fetch('fleet-positions.json?t='+t)).json();
+    if(!store.vessels) store.vessels={};
+    document.getElementById('updated').textContent =
+      store.updated ? '최종 수집 '+new Date(store.updated).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' KST · 화면 위치는 DR 실시간 보정'
+                    : '수집 데이터 없음 — 첫 수집 실행 대기 중 (전체 선박 대기 표시)';
+  }catch(e){
+    store={updated:null,vessels:{}};
+    document.getElementById('updated').textContent =
+      '위치 데이터 미연결 (로컬 미리보기이거나 첫 수집 전) — 전체 선박 대기 표시';
+  }
+  render();
+}
+
+document.getElementById('q').addEventListener('input',renderList);
+document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
+load();
+setInterval(render, 60e3);        // 1분마다 DR 위치·현지시간 재계산
+setInterval(load, 10*60e3);       // 10분마다 최신 JSON 재확인
+</script>
+</body>
+</html>

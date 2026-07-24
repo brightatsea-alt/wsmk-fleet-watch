@@ -1,47 +1,61 @@
-name: Update Fleet Positions
-
-on:
-  schedule:
-    - cron: "0 * * * *"   # 매시 정각 (UTC 기준, 몇 분 지연될 수 있음)
-  workflow_dispatch:        # 수동 실행 버튼
-
-permissions:
-  contents: write
-
-concurrency:
-  group: collect
-  cancel-in-progress: false
-
-jobs:
-  collect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        run: npm install ws --no-save
-
-      - name: Collect AIS positions
-        env:
-          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
-          COLLECT_SECONDS: "150"
-        run: node collect.js
-
-      - name: Commit and push if changed
-        run: |
-          git config user.name "fleet-bot"
-          git config user.email "actions@github.com"
-          git add fleet-positions.json
-          if git diff --cached --quiet; then
-            echo "No changes."
-          else
-            git commit -m "Position update $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+{
+  "fleet": "WSM Korea Managed Fleet",
+  "vessels": [
+    { "no": 0,  "name": "Arctic Tern",                  "mmsi": "538012533" },
+    { "no": 1,  "name": "Asian Captain",                "mmsi": "440371000" },
+    { "no": 2,  "name": "Asian Dynasty",                "mmsi": "440058000" },
+    { "no": 3,  "name": "Asian Emperor",                "mmsi": "441722000" },
+    { "no": 4,  "name": "Asian Empire",                 "mmsi": "440114000" },
+    { "no": 5,  "name": "Asian Majesty",                "mmsi": "441947000" },
+    { "no": 6,  "name": "Asian Trust",                  "mmsi": "441995000" },
+    { "no": 7,  "name": "Asian Vision",                 "mmsi": "441992000" },
+    { "no": 8,  "name": "Gas Gala",                     "mmsi": "373568000" },
+    { "no": 9,  "name": "Grand Uranus (Morning Luna)",  "mmsi": null },
+    { "no": 10, "name": "HL Esperance",                 "mmsi": "371173000" },
+    { "no": 11, "name": "HL Saldanha Bay",              "mmsi": "636026210" },
+    { "no": 12, "name": "HL Success",                   "mmsi": "636025665" },
+    { "no": 13, "name": "HL Vision",                    "mmsi": "636025662" },
+    { "no": 14, "name": "HLS Blue Sapphire",            "mmsi": "636021821" },
+    { "no": 15, "name": "HLS Citrine",                  "mmsi": "636021822" },
+    { "no": 16, "name": "HLS Diamond",                  "mmsi": "636021823" },
+    { "no": 17, "name": "Liberty King",                 "mmsi": "538009492" },
+    { "no": 18, "name": "Liberty New York",             "mmsi": "538011582" },
+    { "no": 19, "name": "Liberty Pride",                "mmsi": "538012688" },
+    { "no": 20, "name": "Morning Camilla",              "mmsi": "440104000" },
+    { "no": 21, "name": "Morning Capo",                 "mmsi": "538005232" },
+    { "no": 22, "name": "Morning Cara",                 "mmsi": "441148000" },
+    { "no": 23, "name": "Morning Caroline",             "mmsi": "351446000" },
+    { "no": 24, "name": "Morning Catherine",            "mmsi": "352002781" },
+    { "no": 25, "name": "Morning Cecilie",              "mmsi": "440367000" },
+    { "no": 26, "name": "Morning Celine",               "mmsi": "440694000" },
+    { "no": 27, "name": "Morning Cello",                "mmsi": "441390000" },
+    { "no": 28, "name": "Morning Chant",                "mmsi": "538005333" },
+    { "no": 29, "name": "Morning Charlotte",            "mmsi": "352001831" },
+    { "no": 30, "name": "Morning Chorus",               "mmsi": "440093000" },
+    { "no": 31, "name": "Morning Christina",            "mmsi": "441010000" },
+    { "no": 32, "name": "Morning Composer",             "mmsi": "440204000" },
+    { "no": 33, "name": "Morning Concert",              "mmsi": "441866000" },
+    { "no": 34, "name": "Morning Conductor",            "mmsi": "440083000" },
+    { "no": 35, "name": "Morning Cornelia",             "mmsi": "440797000" },
+    { "no": 36, "name": "Morning Crystal",              "mmsi": "441320000" },
+    { "no": 37, "name": "Morning Lady",                 "mmsi": "441467000" },
+    { "no": 38, "name": "Morning Laura",                "mmsi": "538011674" },
+    { "no": 39, "name": "Morning Lena",                 "mmsi": "538011676" },
+    { "no": 40, "name": "Morning Lily",                 "mmsi": "440446000" },
+    { "no": 41, "name": "Morning Linda",                "mmsi": "370567000" },
+    { "no": 42, "name": "Morning Lisa",                 "mmsi": "370967000" },
+    { "no": 43, "name": "Morning Lucy",                 "mmsi": "372802000" },
+    { "no": 44, "name": "Morning Lynn",                 "mmsi": "441108000" },
+    { "no": 45, "name": "Morning Margareta",            "mmsi": "440338000" },
+    { "no": 46, "name": "Morning Menad",                "mmsi": "440253000" },
+    { "no": 47, "name": "Morning Ninni",                "mmsi": "440334000" },
+    { "no": 48, "name": "Morning Peace",                "mmsi": "440767000" },
+    { "no": 49, "name": "Morning Pilot",                "mmsi": "538005521" },
+    { "no": 50, "name": "Morning Post",                 "mmsi": "538005452" },
+    { "no": 51, "name": "Morning Pride",                "mmsi": "538005617" },
+    { "no": 52, "name": "Morning Prosperity",           "mmsi": "440533000" },
+    { "no": 53, "name": "Ocean Ariel",                  "mmsi": "538011800" },
+    { "no": 54, "name": "Oriental Leader",              "mmsi": "441903000" },
+    { "no": 55, "name": "Royal Tern",                   "mmsi": null }
+  ]
+}
