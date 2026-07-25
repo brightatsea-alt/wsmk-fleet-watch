@@ -78,7 +78,12 @@ const wantPort = q.get('port'), wantCountry = q.get('country');
 
 let LANG = 'ko';                 // 기본: 한글
 let KO = {};                      // 영문 원문 → 한글 번역 매핑
-function tr(t){ return LANG==='ko' ? (KO[t]||null) : null; }
+function koOf(t){
+  if(KO[t]) return KO[t];
+  for(const k in KO){ if(k.length>40 && t.startsWith(k)) return KO[k]+' '+t.slice(k.length); }
+  return null;
+}
+function tr(t){ return LANG==='ko' ? koOf(t) : null; }
 
 function toggleLang(){
   LANG = LANG==='ko' ? 'en' : 'ko';
@@ -271,7 +276,7 @@ function makeBrief(title, entries, isCountry){
   if(recent.length){
     out += `<p><span class="hl">■ 최신 동향</span></p>`;
     recent.forEach(r=>{
-      const body = KO[r.text] || r.text;
+      const body = koOf(r.text) || r.text;
       out += `<p style="margin-left:10px">· <span class="hl">${r.ym}</span> ${body}</p>`;
     });
   }
@@ -302,7 +307,7 @@ function _fname(ext){
 function dlCSV(){
   const esc = s => '"' + String(s??'').replace(/"/g,'""') + '"';
   const head = 'Port,Country,Year-Month,Category,Description_KO,Description_EN,Source File,Source Link';
-  const lines = _rows().map(r => [r.port,r.country,r.ym,r.cat,(KO[r.text]||''),r.text,r.src,r.link].map(esc).join(','));
+  const lines = _rows().map(r => [r.port,r.country,r.ym,r.cat,(koOf(r.text)||''),r.text,r.src,r.link].map(esc).join(','));
   _save(new Blob(['\ufeff'+head+'\n'+lines.join('\n')], {type:'text/csv;charset=utf-8'}), _fname('csv'));
 }
 function dlDOC(){
@@ -310,7 +315,7 @@ function dlDOC(){
   const rows = _rows().map(r => `<tr>
     <td>${r.port}</td><td>${r.country}</td><td>${r.ym}</td>
     <td style="color:${r.cat==='Security'?'#c0392b':'#2471a3'};font-weight:bold">${r.cat}</td>
-    <td>${LANG==='ko'?(KO[r.text]||r.text):r.text}</td><td><a href="${r.link}">${r.src}</a></td></tr>`).join('');
+    <td>${LANG==='ko'?(koOf(r.text)||r.text):r.text}</td><td><a href="${r.link}">${r.src}</a></td></tr>`).join('');
   const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
     <style>body{font-family:'Malgun Gothic',Calibri,sans-serif;font-size:10.5pt}
     h1{font-size:15pt;color:#1a3c5e} .meta{color:#666;font-size:9pt;margin-bottom:12pt}
