@@ -186,9 +186,10 @@ function sourcesBlock(){
 
 Promise.all([
   fetch('ports-data.json?t='+Date.now()).then(r=>r.json()),
-  fetch('translations-ko.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}))
-]).then(([data, koMap])=>{
-  KO = koMap || {};
+  fetch('translations-ko.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({})),
+  fetch('translations-ko2.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}))
+]).then(([data, koMap, ko2])=>{
+  KO = Object.assign({}, koMap||{}, ko2||{});
   let entries = data.ports;
   let title = '전체 항구 정보';
   if(wantPort){
