@@ -28,6 +28,13 @@
   .src a{color:var(--accent);text-decoration:none}
   .src a:hover{text-decoration:underline}
   .empty{padding:40px;text-align:center;color:var(--muted)}
+  .brief{background:linear-gradient(135deg,#15263C,#111D2E);border:1px solid #2A4160;border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin:4px 0 14px;line-height:1.7}
+  .brief h2{font-size:14px;color:var(--accent);margin-bottom:7px}
+  .brief p{margin:5px 0;font-size:13.5px}
+  .brief .hl{color:#F0B95A;font-weight:600}
+  .brief .sec2{color:var(--sec);font-weight:600}
+  .brief .gen2{color:var(--gen);font-weight:600}
+  @media print{.brief{background:#f4f7fa;border-color:#88a;color:#111}.brief h2{color:#0a4d7a}.brief .hl{color:#8a6d1c}.brief .sec2{color:#c85a2e}.brief .gen2{color:#2b7fb8}}
   .note{font-size:11px;color:var(--muted);padding:10px 18px;border-top:1px solid var(--line);margin-top:20px}
   .tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
   .tools button{padding:6px 13px;border:1px solid var(--line);border-radius:5px;background:#1a6fb5;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer}
@@ -85,7 +92,8 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   const main = document.getElementById('main');
   if(!entries.length){ main.innerHTML = '<div class="empty">해당하는 정보가 없습니다.</div>'; return; }
 
-  main.innerHTML = entries.map(p=>{
+  window.__brief = makeBrief(title, entries, !!wantCountry);
+  main.innerHTML = `<div class="brief"><h2>📋 요약 설명</h2>${window.__brief}</div>` + entries.map(p=>{
     const items = p.items.map(i=>`
       <div class="card">
         <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span></div>
@@ -100,6 +108,70 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
   document.getElementById('sub').textContent = '';
 });
+
+
+/* ── 자동 브리핑: 선택된 항구/국가 정보를 한국어로 요약 설명 ── */
+const SEC_THEMES = [
+ [/kidnap|abduct/i,'납치'],[/piracy|pirate/i,'해적행위'],
+ [/kinetic|projectile|uav|usv|drone.*attack|attack.*(uav|drone)|rpg|missile/i,'무력공격·드론/USV 위협'],
+ [/stowaway/i,'밀항자'],[/drug|traffick|narco/i,'마약 밀수'],
+ [/suspicious/i,'의심 선박 접근'],
+ [/robber|theft|thief|stole|stolen|steal|intruder|boarded|boarding/i,'강도·절도(승선)'],
+];
+const GEN_THEMES = [
+ [/ballast/i,'평형수(BWM) 규제'],[/biofoul|hull clean|craft risk/i,'선체부착생물(Biofouling) 규제'],
+ [/stink bug|bmsb|moth|fsmc|snail|biosecurity|pest/i,'생물보안·검역 해충'],
+ [/mpox|dengue|nipah|health|sanitation|sscc|mdh/i,'보건·위생 신고'],
+ [/customs|fine|penalt|smuggl|declar/i,'세관·벌금 리스크'],
+ [/draft|lock/i,'흘수·통항 조건'],[/mooring|rope|line/i,'계류(Mooring) 요건'],
+ [/cctv/i,'CCTV 설치 요건'],[/shore power|emission|carb|opa/i,'배출·육상전원 규제'],
+ [/pilot/i,'도선 안전'],[/anchor/i,'묘박 규정'],[/speed/i,'속력 제한'],
+ [/salvage|vetting|checklist/i,'입항 전 심사·서식'],
+ [/dgps|gnss|vhf|starlink/i,'항해·통신 장비 규정'],
+ [/whale|jellyfish|fishery|strainer/i,'해양생물·조업 주의'],
+ [/waste|garbage/i,'폐기물 처리 규제'],
+];
+function themeCount(items, cat, themes){
+  const hits = {};
+  items.filter(i=>i.cat===cat).forEach(i=>{
+    for(const [re,name] of themes){ if(re.test(i.text)){ hits[name]=(hits[name]||0)+1; break; } }
+  });
+  return Object.entries(hits).sort((a,b)=>b[1]-a[1]);
+}
+function makeBrief(title, entries, isCountry){
+  const all = entries.flatMap(p=>p.items);
+  const g = all.filter(i=>i.cat==='general').length, sN = all.filter(i=>i.cat==='security').length;
+  const yms = all.map(i=>i.ym).sort();
+  const first = yms[0]||'', last = yms[yms.length-1]||'';
+  const latest = all.slice().sort((a,b)=>b.ym.localeCompare(a.ym))[0];
+  let out = '';
+
+  out += `<p><b>${title}</b>에 대해 <span class="hl">${first} ~ ${last}</span> 기간 총 <span class="hl">${all.length}건</span>의 항만 정보가 축적되어 있습니다 — <span class="gen2">일반(규제·운항) ${g}건</span>, <span class="sec2">보안(사고·위협) ${sN}건</span>.</p>`;
+
+  if(isCountry && entries.length>1){
+    const top = entries.slice().sort((a,b)=>b.items.length-a.items.length).slice(0,4)
+      .map(p=>`${p.port}(${p.items.length})`).join(', ');
+    out += `<p>국가 내 정보가 집중된 항구: <span class="hl">${top}</span>${entries.length>4?` 외 ${entries.length-4}곳`:''}.</p>`;
+  }
+
+  const st = themeCount(all,'security',SEC_THEMES);
+  if(st.length){
+    out += `<p><span class="sec2">■ 보안 위협 유형</span> — ${st.map(([n,c])=>`${n} ${c}건`).join(' · ')}. `;
+    if(st.some(([n])=>n.includes('강도'))) out += `정박지/협수로 통항 중 승선 절도가 반복되는 패턴이므로 앵커체인·선미 감시, 조명·순찰 강화, 창고 시정 관리가 요구됩니다.`;
+    if(st.some(([n])=>n.includes('무력'))) out += ` 무력공격 위협이 보고된 수역으로, 최신 보안정보 확인과 통항 전 위험성 평가가 필요합니다.`;
+    if(st.some(([n])=>n.includes('납치')||n.includes('해적'))) out += ` 납치/해적 이력이 있어 시타델 절차와 BMP 준수가 중요합니다.`;
+    out += `</p>`;
+  }
+  const gt = themeCount(all,'general',GEN_THEMES);
+  if(gt.length){
+    out += `<p><span class="gen2">■ 규제·운항 특징</span> — ${gt.map(([n,c])=>`${n} ${c}건`).join(' · ')}. 입항 전 해당 요건의 최신 원문(PDF 링크)을 확인하고 선내 준비상태를 점검하십시오.</p>`;
+  }
+  if(latest){
+    out += `<p><span class="hl">■ 최신 동향(${latest.ym})</span> — ${latest.text.length>160?latest.text.slice(0,160)+'…':latest.text}</p>`;
+  }
+  out += `<p style="color:var(--muted);font-size:12px">※ 본 요약은 인덱싱된 항목을 기반으로 자동 생성된 참고 정보이며, 세부 내용은 아래 항목별 원문을 확인하십시오.</p>`;
+  return out;
+}
 
 /* ── 다운로드 기능: 현재 화면(필터 적용된) 정보 그대로 저장 ── */
 function _rows(){
@@ -140,6 +212,7 @@ function dlDOC(){
     table{border-collapse:collapse;width:100%} td,th{border:1px solid #999;padding:4pt 6pt;vertical-align:top;font-size:9.5pt}
     th{background:#1a3c5e;color:#fff}</style></head><body>
     <h1>⚓ WSMK Port Information — ${v.title}</h1>
+    <div style="background:#f4f7fa;border-left:4px solid #1a3c5e;padding:8pt 10pt;margin:8pt 0;font-size:9.5pt">${(window.__brief||'').replace(/class="[^"]*"/g,'')}</div>
     <div class="meta">Generated ${new Date().toLocaleString('ko-KR')} · Source: WSMK Work Place / Port Information</div>
     <table><tr><th>Port</th><th>Country</th><th>Y-M</th><th>Cat.</th><th>Description</th><th>Source</th></tr>${rows}</table>
     </body></html>`;
