@@ -9,16 +9,16 @@ OUT = "ports-data.json"
 
 # 항구 좌표 (isC: 국가/광역 단위 항목 여부)
 C = {
-"singapore ports":(1.29,103.85,1),"singapore":(1.29,103.85,0),"singapore, all ports":(1.29,103.85,1),
-"singapore strait":(1.20,103.85,0),"singapore strait (phillip channel)":(1.10,103.70,0),
+"singapore ports":(1.32,103.82,1),
+"singapore strait":(1.16,103.90,0),"singapore strait (phillip channel)":(1.06,103.72,0),
 "singapore strait (phillip channel/eb lane)":(1.10,103.70,0),"singapore strait (eb lane)":(1.18,104.10,0),
-"singapore strait (eb lane/off pulau cula)":(1.18,104.20,0),"singapore strait (off pulau cula)":(1.18,104.20,0),
+"singapore strait (eb lane/off pulau cula)":(1.18,104.20,0),"singapore strait (off pulau cula)":(1.21,104.18,0),
 "singapore strait (off pulau nongsa/cula)":(1.18,104.15,0),"phillip channel":(1.10,103.70,0),
 "malacca & singapore straits":(1.60,102.80,0),
 "tianjin":(38.98,117.75,0),"fujairah":(25.15,56.35,0),"usa ports":(38.0,-97.0,1),
-"lome":(6.13,1.28,0),"panjang":(-5.47,105.32,0),"chattogram":(22.30,91.80,0),"chittagong":(22.30,91.80,0),
-"kutubdia":(21.85,91.85,0),"luanda":(-8.79,13.23,0),"lagos":(6.43,3.40,0),
-"lagos (tin can island)":(6.44,3.34,0),"lagos (tincan)":(6.44,3.34,0),"lagos (eko terminal)":(6.42,3.40,0),
+"lome":(6.13,1.28,0),"panjang":(-5.45,105.30,0),"chattogram":(22.30,91.80,0),
+"kutubdia":(21.85,91.85,0),"luanda":(-8.79,13.23,0),"lagos":(6.44,3.39,0),
+"lagos (tin can island)":(6.43,3.33,0),
 "suez canal":(30.45,32.35,0),"hong kong":(22.30,114.17,0),"beibu gulf":(20.5,108.5,0),
 "zhoushan":(29.99,122.21,0),"kurushima kaikyo":(34.12,132.99,0),"conakry":(9.51,-13.71,0),
 "panama canal":(9.08,-79.68,0),"kuala tanjung":(3.37,99.45,0),"balikpapan":(-1.27,116.83,0),
@@ -37,7 +37,7 @@ C = {
 "pulau cula":(1.18,104.20,0),"batangas (mabini sea oil terminal)":(13.75,120.95,0),
 "bay of campeche":(19.5,-92.5,0),"bay of campeche (off sanchez magallanes)":(18.6,-93.0,0),
 "california (la/long beach)":(33.73,-118.24,0),"argentine ports":(-36.0,-60.0,1),
-"tarahan":(-5.55,105.35,0),"mongla":(22.49,89.60,0),"belawan":(3.78,98.68,0),"payra":(21.98,90.32,0),
+"tarahan":(-5.57,105.38,0),"mongla":(22.49,89.60,0),"belawan":(3.78,98.68,0),"payra":(21.98,90.32,0),
 "abidjan":(5.28,-4.01,0),"monrovia":(6.35,-10.76,0),"beira":(-19.83,34.84,0),
 "dalian":(38.92,121.63,0),"yangtze river (shanghai/jiangsu)":(31.8,120.8,0),
 "new zealand, all ports":(-41.0,173.0,1),"istanbul southern anchorage":(40.95,28.80,0),
@@ -47,17 +47,43 @@ C = {
 "hobyo":(5.35,48.53,0),"nansha":(22.76,113.60,0),
 "antwerp (antwerp-bruges/north sea port)":(51.26,4.39,0),"dominican republic ports":(18.5,-70.0,1),
 "brunswick":(31.13,-81.50,0),"lagos (algarve)":(37.10,-8.67,0),"djibouti":(11.60,43.15,0),
-"ciudad del carmen (bay of campeche)":(18.65,-91.80,0),"dos bocas (bay of campeche)":(18.43,-93.19,0),
+"ciudad del carmen":(18.65,-91.80,0),"dos bocas":(18.43,-93.19,0),"bay of campeche":(19.5,-92.5,0),
 "taiwan, all ports":(23.7,121.0,1),"san antonio":(-33.59,-71.62,0),"balongan":(-6.27,108.38,0),
 "tema":(5.63,0.02,0),"fiji ports":(-17.8,178.0,1),"lima (delta dock)":(-34.7,-58.4,0),
 "port of bahrain":(26.20,50.60,0),"ras laffan":(25.90,51.55,0),"taicang":(31.62,121.13,0),
-"san pedro":(4.74,-6.63,0),"novorossiysk":(44.72,37.78,0),"mumbai port":(18.95,72.85,0),
+"san pedro":(4.74,-6.63,0),"novorossiysk":(44.72,37.78,0),"mumbai":(18.95,72.85,0),
 "saldanha bay":(-33.03,17.95,0),"veracruz":(19.20,-96.13,0),"santa marta":(11.25,-74.22,0),
 "santo antonio (principe is.)":(1.64,7.42,0),"owendo":(0.29,9.50,0),"libreville":(0.39,9.45,0),
 "brass":(4.31,6.24,0),"shanghai":(31.23,121.49,0),
 "cartagena":(10.40,-75.51,0),"mombasa":(-4.06,39.66,0),
 "ghanaian ports":(7.9,-1.0,1),"indian ports":(21.0,78.0,1),
 }
+
+
+# ── 초정밀 인덱싱: 별칭 → 대표 항구명 통합 (모든 파일의 내용이 한 항구로 모이도록)
+ALIAS = {
+ "chittagong": "Chattogram",
+ "dampier port": "Dampier",
+ "singapore, all ports": "Singapore Ports", "singapore": "Singapore Ports",
+ "china, all ports": "Chinese Ports", "china ports": "Chinese Ports",
+ "turkey, all ports": "Turkish Ports",
+ "brazil, all ports": "Brazilian Ports",
+ "norway, all ports": "Norwegian Ports",
+ "phillip channel": "Singapore Strait (Phillip Channel)",
+ "singapore strait (phillip channel/eb lane)": "Singapore Strait (Phillip Channel)",
+ "pulau cula": "Singapore Strait (off Pulau Cula)",
+ "singapore strait (eb lane/off pulau cula)": "Singapore Strait (off Pulau Cula)",
+ "singapore strait (off pulau nongsa/cula)": "Singapore Strait (off Pulau Cula)",
+ "lagos (tincan)": "Lagos (Tin Can Island)",
+ "lagos (eko terminal)": "Lagos",
+ "ciudad del carmen (bay of campeche)": "Ciudad del Carmen",
+ "dos bocas (bay of campeche)": "Dos Bocas",
+ "bay of campeche (off sanchez magallanes)": "Bay of Campeche",
+ "ashburton / dampier / varanus": "Ashburton / Dampier",
+ "mumbai port": "Mumbai",
+}
+def canon(p):
+    return ALIAS.get(p.strip().lower(), p.strip())
 
 def main():
     try:
@@ -71,7 +97,7 @@ def main():
     rows = list(csv.DictReader(io.StringIO(raw)))
     ports = {}
     for r in rows:
-        p = (r.get("Port") or "").strip()
+        p = canon((r.get("Port") or "").strip())
         cn = (r.get("Country") or "").strip()
         ym = (r.get("Year-Month") or "").strip()
         d  = (r.get("Description") or "").strip()
@@ -94,6 +120,18 @@ def main():
     plist = sorted(ports.values(), key=lambda x:-(len(x["items"])))
     for e in plist:
         e["items"].sort(key=lambda i:i["ym"], reverse=True)
+
+    # 좌표 겹침 자동 분리(클릭 가능 보장)
+    seen = {}
+    for e in plist:
+        if e["lat"] is None: continue
+        k = (round(e["lat"],2), round(e["lon"],2))
+        n = seen.get(k, 0)
+        if n:
+            ang = 0.9*n
+            e["lat"] += 0.12*n*__import__("math").sin(ang)
+            e["lon"] += 0.12*n*__import__("math").cos(ang)
+        seen[k] = n+1
     countries = {}
     for e in plist:
         c = countries.setdefault(e["country"], {"country":e["country"],"general":0,"security":0,"ports":0})
