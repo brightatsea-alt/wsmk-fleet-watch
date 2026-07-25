@@ -81,6 +81,7 @@
 <body>
 <header>
   <div class="brand">FLEET WATCH<small>WSM KOREA</small></div>
+  <div class="chip" id="langbtn" onclick="toggleLang()" style="cursor:pointer">🌐 English</div>
   <div class="board" id="board"></div>
   <div class="updated" id="updated">데이터 로딩 중…</div>
 </header>
@@ -338,6 +339,82 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
   };
   renderPorts();
 }).catch(e=>console.log('port data not ready:', e.message));
+
+/* ══════════ 한/영 UI 토글 ══════════ */
+let UILANG='ko';
+const EN_PAIRS = [
+ ['위치 데이터 미연결 (로컬 미리보기이거나 첫 수집 전) — 전체 선박 대기 표시','Position data not connected (local preview or before first collection) — all vessels shown standby'],
+ ['수집 데이터 없음 — 첫 수집 실행 대기 중 (전체 선박 대기 표시)','No collected data — awaiting first run (all vessels shown standby)'],
+ ['⚠ 추정 위치 — 운영 참고용 (PSC·사고조사 등 공식 용도 사용 불가)','⚠ Estimated position — operational reference only (not for PSC / investigations)'],
+ ['· 화면 위치는 DR 실시간 보정','· on-screen positions DR-corrected live'],
+ ['명부는 내장 — 항상 56척 표시','Roster embedded — all 56 vessels always shown'],
+ ['대기 — AIS 미수신','Standby — no AIS'],
+ ['대기 · AIS 미수신','Standby · no AIS'],
+ ['항해 · 정박 중','Underway · in port'],
+ ['· 위치는 DR 추정','· position estimated (DR)'],
+ ['· 정박/묘박','· moored/anchored'],
+ ['이 항구 정보 보기 →','View this port info →'],
+ ['국가 정보 열기 →','Open country info →'],
+ ['전체 보기 →','View all →'],
+ ['국가: 전체','Country: All'],
+ ['검색 결과 없음','No results'],
+ ['수신 이력 없음','No AIS history'],
+ ['불확실성 반경','Uncertainty radius'],
+ ['최종 수집','Last collection'],
+ ['최종 AIS','Last AIS'],
+ ['데이터 로딩 중…','Loading data…'],
+ ['현지시간','Local time'],
+ ['장기 미수신','Stale'],
+ ['추정(DR)','Est. (DR)'],
+ ['선박 목록','Vessel list'],
+ ['목적지','Destination'],
+ ['미등록','Unregistered'],
+ ['시간 전',' h ago'],
+ ['분 전',' min ago'],
+ ['일 전',' d ago'],
+ ['실측','Live'],
+ ['상태','Status'],
+ ['위치','Position'],
+ ['보안','Security'],
+ ['일반','General'],
+ ['항구','Ports'],
+ ['전체','All'],
+].sort((a,b)=>b[0].length-a[0].length);
+const KOMEM = new WeakMap();
+function xlate(n){
+  if(n.nodeType===3){
+    let s=n.nodeValue, o=s;
+    for(const [k,e] of EN_PAIRS){ if(s.indexOf(k)>=0) s=s.split(k).join(e); }
+    if(s!==o){ if(!KOMEM.has(n)) KOMEM.set(n,o); n.nodeValue=s; }
+  } else if(n.nodeType===1 && n.id!=='langbtn'){
+    for(const c of n.childNodes) xlate(c);
+  }
+}
+function unxlate(n){
+  if(n.nodeType===3){ if(KOMEM.has(n)) n.nodeValue=KOMEM.get(n); }
+  else if(n.nodeType===1){ for(const c of n.childNodes) unxlate(c); }
+}
+const LOBS = new MutationObserver(ms=>{
+  if(UILANG!=='en') return;
+  ms.forEach(m=>{
+    if(m.type==='characterData') xlate(m.target);
+    m.addedNodes && m.addedNodes.forEach(xlate);
+  });
+});
+function toggleLang(){
+  UILANG = UILANG==='ko' ? 'en' : 'ko';
+  document.getElementById('langbtn').textContent = UILANG==='ko' ? '\ud83c\udf10 English' : '\ud83c\udf10 \ud55c\uae00';
+  const q = document.getElementById('q');
+  if(UILANG==='en'){
+    xlate(document.body);
+    LOBS.observe(document.body,{childList:true,subtree:true,characterData:true});
+    if(q) q.placeholder='Search vessel · MMSI';
+  } else {
+    LOBS.disconnect();
+    unxlate(document.body);
+    if(q) q.placeholder='\uc120\ubc15\uba85 \u00b7 MMSI \uac80\uc0c9';
+  }
+}
 </script>
 </body>
 </html>
