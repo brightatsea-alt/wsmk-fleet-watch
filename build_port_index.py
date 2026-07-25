@@ -82,8 +82,16 @@ ALIAS = {
  "ashburton / dampier / varanus": "Ashburton / Dampier",
  "mumbai port": "Mumbai",
 }
+COUNTRY_OVERRIDE = {  # 항구명 기준 국가 통일 (같은 지점이 국가 표기 차이로 분열되는 것 방지)
+ "singapore strait (off pulau cula)": "Singapore",
+ "singapore strait (phillip channel)": "Singapore",
+ "singapore strait (eb lane)": "Singapore",
+ "singapore strait": "Singapore",
+}
 def canon(p):
     return ALIAS.get(p.strip().lower(), p.strip())
+def canon_country(port, cn):
+    return COUNTRY_OVERRIDE.get(port.strip().lower(), cn)
 
 def main():
     try:
@@ -98,7 +106,7 @@ def main():
     ports = {}
     for r in rows:
         p = canon((r.get("Port") or "").strip())
-        cn = (r.get("Country") or "").strip()
+        cn = canon_country(p, (r.get("Country") or "").strip())
         ym = (r.get("Year-Month") or "").strip()
         d  = (r.get("Description") or "").strip()
         if not p or not d: continue
