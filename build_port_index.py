@@ -55,6 +55,8 @@ C = {
 "saldanha bay":(-33.03,17.95,0),"veracruz":(19.20,-96.13,0),"santa marta":(11.25,-74.22,0),
 "santo antonio (principe is.)":(1.64,7.42,0),"owendo":(0.29,9.50,0),"libreville":(0.39,9.45,0),
 "brass":(4.31,6.24,0),"shanghai":(31.23,121.49,0),
+"cartagena":(10.40,-75.51,0),"mombasa":(-4.06,39.66,0),
+"ghanaian ports":(7.9,-1.0,1),"indian ports":(21.0,78.0,1),
 }
 
 def main():
