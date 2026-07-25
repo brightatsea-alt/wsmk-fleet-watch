@@ -65,9 +65,9 @@
       <option value="12">최근 12개월</option>
       <option value="6">최근 6개월</option>
     </select>
-    <button onclick="dlCSV()">⬇ CSV 다운로드</button>
-    <button onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
-    <button class="alt" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    <button id="bcsv" onclick="dlCSV()">⬇ CSV 다운로드</button>
+    <button id="bdoc" onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
+    <button class="alt" id="bprn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
   </div>
 </header>
 <main id="main"></main>
@@ -76,7 +76,8 @@
 const q = new URLSearchParams(location.search);
 const wantPort = q.get('port'), wantCountry = q.get('country');
 
-let LANG = 'ko';                 // 기본: 한글
+let LANG = (q.get('lang')==='en') ? 'en' : 'ko';
+function TXT(k,e){ return LANG==='ko' ? k : e; }
 let KO = {};                      // 영문 원문 → 한글 번역 매핑
 function koOf(t){
   if(KO[t]) return KO[t];
@@ -85,11 +86,21 @@ function koOf(t){
 }
 function tr(t){ return LANG==='ko' ? koOf(t) : null; }
 
+function applyChromeLang(){
+  document.getElementById('langbtn').textContent = LANG==='ko' ? '🌐 English' : '🌐 한글';
+  const r=document.getElementById('range');
+  if(r){ r.options[0].text=TXT('기간: 전체','Range: All'); r.options[1].text=TXT('최근 12개월','Last 12 months'); r.options[2].text=TXT('최근 6개월','Last 6 months'); }
+  const b1=document.getElementById('bcsv'), b2=document.getElementById('bdoc'), b3=document.getElementById('bprn');
+  if(b1) b1.textContent=TXT('⬇ CSV 다운로드','⬇ Download CSV');
+  if(b2) b2.textContent=TXT('⬇ Word(.doc) 다운로드','⬇ Download Word (.doc)');
+  if(b3) b3.textContent=TXT('🖨 인쇄 / PDF 저장','🖨 Print / Save PDF');
+}
 function toggleLang(){
   LANG = LANG==='ko' ? 'en' : 'ko';
-  document.getElementById('langbtn').textContent = LANG==='ko' ? '🌐 English' : '🌐 한글';
+  applyChromeLang();
   renderAll();
 }
+applyChromeLang();
 
 function cutoffYM(){
   const m = parseInt(document.getElementById('range')?.value||'0');
@@ -106,17 +117,23 @@ function visibleEntries(){ const v=window.__view; return v?applyCut(v.entries):[
 function visibleCommon(){ const v=window.__view; return (v&&v.common)?applyCut(v.common):[]; }
 function renderAll(){
   const v = window.__view; if(!v) return;
+  const tt = window.__tmode==='port' ? v.title
+           : window.__tmode==='country' ? (wantCountry + TXT(' — 국가 전체',' — Country overview'))
+           : TXT('전체 항구 정보','All Ports Information');
+  document.getElementById('title').textContent = '⚓ ' + tt;
+  if(window.__meta){ const M=window.__meta;
+    document.getElementById('sub').textContent = TXT(
+      `항목 ${M.g+M.s}건 · 인덱스 생성 ${M.generated} · 데이터 기간 2024.02 ~ 최신 · 번역 ${M.ko}건`,
+      `${M.g+M.s} items · index generated ${M.generated} · data 2024.02–latest · ${M.ko} translations`); }
   const entries = visibleEntries();
   const main = document.getElementById('main');
   const gAll = entries.reduce((a,p)=>a+p.items.filter(i=>i.cat==='general').length,0);
   const sAll = entries.reduce((a,p)=>a+p.items.filter(i=>i.cat==='security').length,0);
   document.getElementById('stats').innerHTML =
-    `<span class="stat">일반 <b class="g">${gAll}</b></span><span class="stat">보안 <b class="s">${sAll}</b></span><span class="stat">항구 ${entries.length}</span><span class="stat">표시 ${gAll+sAll}건${cutoffYM()?' (기간 필터)':''}</span>`;
-  if(!entries.length){ main.innerHTML = '<div class="empty">선택한 기간에 해당하는 정보가 없습니다.</div>'; return; }
-  window.__brief = makeBrief(v.title, entries, v.isCountry);
-  const briefBlock = LANG==='ko'
-    ? `<div class="brief"><h2>📋 요약 설명</h2>${window.__brief}</div>`
-    : `<div class="brief"><h2>📋 Summary (KO)</h2>${window.__brief}</div>`;
+    `<span class="stat">${TXT('일반','General')} <b class="g">${gAll}</b></span><span class="stat">${TXT('보안','Security')} <b class="s">${sAll}</b></span><span class="stat">${TXT('항구','Ports')} ${entries.length}</span><span class="stat">${TXT('표시','Shown')} ${gAll+sAll}${TXT('건','')}${cutoffYM()?TXT(' (기간 필터)',' (range filter)'):''}</span>`;
+  if(!entries.length){ main.innerHTML = '<div class="empty">'+TXT('선택한 기간에 해당하는 정보가 없습니다.','No information for the selected period.')+'</div>'; return; }
+  window.__brief = makeBrief(tt, entries, v.isCountry);
+  const briefBlock = `<div class="brief"><h2>📋 ${TXT('요약 설명','Summary')}</h2>${window.__brief}</div>`;
   main.innerHTML = briefBlock + entries.map(p=>{
     const items = p.items.map(i=>{
       const k = tr(i.text);
@@ -126,10 +143,10 @@ function renderAll(){
       <div class="card">
         <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span>${enTag}</div>
         <div class="txt">${body}</div>
-        <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||'원문 PDF'}</a></div>
+        <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||TXT('원문 PDF','Source PDF')}</a></div>
       </div>`;}).join('');
     const head = (wantPort && entries.length===1) ? '' :
-      `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}건)</span></div>`;
+      `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}${TXT('건',' items')})</span></div>`;
     return head + items;
   }).join('') + commonBlock() + sourcesBlock();
 }
@@ -140,14 +157,14 @@ function cardHTML(i){
   return `<div class="card">
     <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span>${enTag}</div>
     <div class="txt">${body}</div>
-    <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||'원문 PDF'}</a></div>
+    <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||TXT('원문 PDF','Source PDF')}</a></div>
   </div>`;
 }
 function commonBlock(){
   const cm = visibleCommon();
   if(!cm.length) return '';
   return cm.map(p=>
-    `<div class="portsec">🌏 ${p.port} <span class="ym">(${p.country} 국가 공통 · ${p.items.length}건)</span></div>` +
+    `<div class="portsec">🌏 ${p.port} <span class="ym">(${p.country} ${TXT('국가 공통','country-wide')} · ${p.items.length}${TXT('건',' items')})</span></div>` +
     p.items.map(cardHTML).join('')
   ).join('');
 }
@@ -161,26 +178,26 @@ function sourcesBlock(){
   const cn = (v.entries[0]||{}).country || '';
   const pn = wantPort || '';
   const inR = r => REGION[r].some(x=>cn.indexOf(x)>=0);
-  const rec = r => inR(r) ? ' <span class="hl">★권장</span>' : '';
+  const rec = r => inR(r) ? ' <span class="hl">'+TXT('★권장','★recommended')+'</span>' : '';
   const L = (u,t,d)=>`<div style="margin:4px 0">🔗 <a href="${u}" target="_blank" rel="noopener" style="color:var(--accent)">${t}</a> <span class="ym">— ${d}</span></div>`;
   let sec = '';
-  sec += L('https://www.recaap.org/','ReCAAP ISC','아시아 해적·강도 사고 속보/주간보고'+rec('asia'));
-  sec += L('https://gog-mdat.org/home','MDAT-GoG','기니만(서아프리카) 해상보안 경보'+rec('wafr'));
-  sec += L('https://www.ukmto.org/','UKMTO','인도양·중동 VRA 경보 (Q6099)'+rec('io'));
-  sec += L('https://on-shore.mschoa.org/','MSCHOA','아프리카의 뿔 해역 그룹통항·등록'+rec('io'));
-  sec += L('https://icc-ccs.org/imb-piracy-reporting-centre-2/','IMB Piracy Reporting Centre','전세계 해적신고센터(24h)');
-  sec += L('https://www.maritime.dot.gov/msci','US MARAD MSCI','미국 해사 경보·권고문');
+  sec += L('https://www.recaap.org/','ReCAAP ISC',TXT('아시아 해적·강도 사고 속보/주간보고','Asia piracy/robbery alerts & weekly reports')+rec('asia'));
+  sec += L('https://gog-mdat.org/home','MDAT-GoG',TXT('기니만(서아프리카) 해상보안 경보','Gulf of Guinea maritime security alerts')+rec('wafr'));
+  sec += L('https://www.ukmto.org/','UKMTO',TXT('인도양·중동 VRA 경보 (Q6099)','Indian Ocean/Middle East VRA alerts (Q6099)')+rec('io'));
+  sec += L('https://on-shore.mschoa.org/','MSCHOA',TXT('아프리카의 뿔 해역 그룹통항·등록','Horn of Africa group transits & registration')+rec('io'));
+  sec += L('https://icc-ccs.org/imb-piracy-reporting-centre-2/','IMB Piracy Reporting Centre',TXT('전세계 해적신고센터(24h)','Global piracy reporting centre (24h)'));
+  sec += L('https://www.maritime.dot.gov/msci','US MARAD MSCI',TXT('미국 해사 경보·권고문','US maritime alerts & advisories'));
   let pi = '';
-  pi += L('https://www.findaport.com/','Findaport (Guide to Port Entry)','항만 입항 상세정보 데이터베이스');
-  pi += L('https://msi.nga.mil/Publications/WPI','NGA World Port Index (Pub.150)','공식 세계 항만 색인·시설 데이터');
-  pi += L('https://www.vesselfinder.com/ports'+(pn?('?name='+encodeURIComponent(pn)):''),'VesselFinder Ports'+(pn?` — "${pn}"`:''),'항만 위치·입출항 선박 현황');
-  pi += L('https://portwatch.imf.org/','IMF PortWatch','항만 혼잡·물동량 모니터링');
-  if(pn) pi += L('https://news.google.com/search?q='+encodeURIComponent('"'+pn+'" port'),'Google News — "'+pn+'"','해당 항구 최신 뉴스 검색');
+  pi += L('https://www.findaport.com/','Findaport (Guide to Port Entry)',TXT('항만 입항 상세정보 데이터베이스','Port entry details database'));
+  pi += L('https://msi.nga.mil/Publications/WPI','NGA World Port Index (Pub.150)',TXT('공식 세계 항만 색인·시설 데이터','Official world port index & facility data'));
+  pi += L('https://www.vesselfinder.com/ports'+(pn?('?name='+encodeURIComponent(pn)):''),'VesselFinder Ports'+(pn?` — "${pn}"`:''),TXT('항만 위치·입출항 선박 현황','Port locations & vessel movements'));
+  pi += L('https://portwatch.imf.org/','IMF PortWatch',TXT('항만 혼잡·물동량 모니터링','Port congestion & throughput monitoring'));
+  if(pn) pi += L('https://news.google.com/search?q='+encodeURIComponent('"'+pn+'" port'),'Google News — "'+pn+'"',TXT('해당 항구 최신 뉴스 검색','Latest news for this port'));
   return `<div class="brief" style="border-left-color:#7A9E5A;margin-top:18px">
-    <h2>🌐 신뢰 해사·항만 정보 소스 (외부 웹)</h2>
-    <p><span class="sec2">■ 해상보안 속보</span></p>${sec}
-    <p style="margin-top:8px"><span class="gen2">■ 항만 일반정보</span></p>${pi}
-    <p style="color:var(--muted);font-size:11.5px">※ 2026-07 웹 확인 기준 · ★권장 = 현재 조회 중인 국가/수역의 담당 보고기관</p>
+    <h2>🌐 ${TXT('신뢰 해사·항만 정보 소스 (외부 웹)','Trusted maritime & port sources (external)')}</h2>
+    <p><span class="sec2">■ ${TXT('해상보안 속보','Maritime security alerts')}</span></p>${sec}
+    <p style="margin-top:8px"><span class="gen2">■ ${TXT('항만 일반정보','General port information')}</span></p>${pi}
+    <p style="color:var(--muted);font-size:11.5px">${TXT('※ 2026-07 웹 확인 기준 · ★권장 = 현재 조회 중인 국가/수역의 담당 보고기관','※ Verified on web 2026-07 · ★recommended = responsible reporting body for the country/area in view')}</p>
   </div>`;
 }
 
@@ -210,6 +227,8 @@ Promise.all([
     const cn = entries[0].country;
     common = data.ports.filter(p=>p.country===cn && p.isCountry && p.port!==wantPort);
   }
+  window.__tmode = wantPort ? 'port' : (wantCountry ? 'country' : 'all');
+  window.__meta = {g, s, generated:(data.generated||'').slice(0,10), ko:Object.keys(KO).length};
   window.__view = {title, entries, isCountry: !!wantCountry, common};
   renderAll();
 }).catch(e=>{
@@ -239,6 +258,7 @@ const GEN_THEMES = [
  [/whale|jellyfish|fishery|strainer/i,'해양생물·조업 주의'],
  [/waste|garbage/i,'폐기물 처리 규제'],
 ];
+const THEME_EN={'납치':'Kidnapping','해적행위':'Piracy','무력공격·드론/USV 위협':'Kinetic/UAV·USV threats','밀항자':'Stowaways','마약 밀수':'Drug smuggling','의심 선박 접근':'Suspicious approaches','강도·절도(승선)':'Robbery/theft (boarding)','평형수(BWM) 규제':'Ballast water (BWM)','선체부착생물(Biofouling) 규제':'Biofouling controls','생물보안·검역 해충':'Biosecurity/pests','보건·위생 신고':'Health/sanitation','세관·벌금 리스크':'Customs/fine risk','흘수·통항 조건':'Draft/transit limits','계류(Mooring) 요건':'Mooring requirements','CCTV 설치 요건':'CCTV requirement','배출·육상전원 규제':'Emissions/shore power','도선 안전':'Pilotage safety','묘박 규정':'Anchoring rules','속력 제한':'Speed limits','입항 전 심사·서식':'Pre-arrival checks/forms','항해·통신 장비 규정':'Nav/comms equipment','해양생물·조업 주의':'Marine life/fishing caution','폐기물 처리 규제':'Waste disposal rules'};
 function themeCount(items, cat, themes){
   const hits = {};
   items.filter(i=>i.cat===cat).forEach(i=>{
@@ -253,35 +273,38 @@ function makeBrief(title, entries, isCountry){
   const first = yms[0]||'', last = yms[yms.length-1]||'';
   let out = '';
 
-  out += `<p><b>${title}</b>에 대해 <span class="hl">${first} ~ ${last}</span> 기간 총 <span class="hl">${all.length}건</span>의 항만 정보가 축적되어 있습니다 — <span class="gen2">일반(규제·운항) ${g}건</span>, <span class="sec2">보안(사고·위협) ${sN}건</span>.</p>`;
+  out += TXT(
+    `<p><b>${title}</b>에 대해 <span class="hl">${first} ~ ${last}</span> 기간 총 <span class="hl">${all.length}건</span>의 항만 정보가 축적되어 있습니다 — <span class="gen2">일반(규제·운항) ${g}건</span>, <span class="sec2">보안(사고·위협) ${sN}건</span>.</p>`,
+    `<p><b>${title}</b>: <span class="hl">${all.length} items</span> accumulated over <span class="hl">${first} – ${last}</span> — <span class="gen2">${g} general (regulation/operations)</span>, <span class="sec2">${sN} security (incidents/threats)</span>.</p>`);
 
   if(isCountry && entries.length>1){
     const top = entries.slice().sort((a,b)=>b.items.length-a.items.length).slice(0,4)
       .map(p=>`${p.port}(${p.items.length})`).join(', ');
-    out += `<p>국가 내 정보가 집중된 항구: <span class="hl">${top}</span>${entries.length>4?` 외 ${entries.length-4}곳`:''}.</p>`;
+    out += TXT(`<p>국가 내 정보가 집중된 항구: <span class="hl">${top}</span>${entries.length>4?` 외 ${entries.length-4}곳`:''}.</p>`,
+               `<p>Ports with most information: <span class="hl">${top}</span>${entries.length>4?` and ${entries.length-4} more`:''}.</p>`);
   }
 
   const st = themeCount(all,'security',SEC_THEMES);
   if(st.length){
-    out += `<p><span class="sec2">■ 보안 위협 유형</span> — ${st.map(([n,c])=>`${n} ${c}건`).join(' · ')}. `;
-    if(st.some(([n])=>n.includes('강도'))) out += `정박지/협수로 통항 중 승선 절도가 반복되는 패턴이므로 앵커체인·선미 감시, 조명·순찰 강화, 창고 시정 관리가 요구됩니다.`;
-    if(st.some(([n])=>n.includes('무력'))) out += ` 무력공격 위협이 보고된 수역으로, 최신 보안정보 확인과 통항 전 위험성 평가가 필요합니다.`;
-    if(st.some(([n])=>n.includes('납치')||n.includes('해적'))) out += ` 납치/해적 이력이 있어 시타델 절차와 BMP 준수가 중요합니다.`;
+    out += `<p><span class="sec2">■ ${TXT('보안 위협 유형','Security threat types')}</span> — ${st.map(([n,c])=>`${TXT(n,THEME_EN[n]||n)} ${TXT(c+'건','×'+c)}`).join(' · ')}. `;
+    if(st.some(([n])=>n.includes('강도'))) out += TXT(`정박지/협수로 통항 중 승선 절도가 반복되는 패턴이므로 앵커체인·선미 감시, 조명·순찰 강화, 창고 시정 관리가 요구됩니다.`,`Boarding theft recurs at anchorages/narrow passages — reinforce anchor-chain and stern watch, lighting and patrols, and keep stores locked.`);
+    if(st.some(([n])=>n.includes('무력'))) out += TXT(` 무력공격 위협이 보고된 수역으로, 최신 보안정보 확인과 통항 전 위험성 평가가 필요합니다.`,` Kinetic-attack threats reported in this area — check the latest security information and complete a pre-transit risk assessment.`);
+    if(st.some(([n])=>n.includes('납치')||n.includes('해적'))) out += TXT(` 납치/해적 이력이 있어 시타델 절차와 BMP 준수가 중요합니다.`,` Kidnapping/piracy history — citadel procedures and BMP compliance are essential.`);
     out += `</p>`;
   }
   const gt = themeCount(all,'general',GEN_THEMES);
   if(gt.length){
-    out += `<p><span class="gen2">■ 규제·운항 특징</span> — ${gt.map(([n,c])=>`${n} ${c}건`).join(' · ')}. 입항 전 해당 요건의 최신 원문(PDF 링크)을 확인하고 선내 준비상태를 점검하십시오.</p>`;
+    out += `<p><span class="gen2">■ ${TXT('규제·운항 특징','Regulatory & operational features')}</span> — ${gt.map(([n,c])=>`${TXT(n,THEME_EN[n]||n)} ${TXT(c+'건','×'+c)}`).join(' · ')}. ${TXT('입항 전 해당 요건의 최신 원문(PDF 링크)을 확인하고 선내 준비상태를 점검하십시오.','Before arrival, review the latest source documents (PDF links) and verify onboard readiness.')}</p>`;
   }
   const recent = all.slice().sort((a,b)=>b.ym.localeCompare(a.ym)).slice(0,3);
   if(recent.length){
-    out += `<p><span class="hl">■ 최신 동향</span></p>`;
+    out += `<p><span class="hl">■ ${TXT('최신 동향','Latest updates')}</span></p>`;
     recent.forEach(r=>{
-      const body = koOf(r.text) || r.text;
+      const body = LANG==='ko' ? (koOf(r.text) || r.text) : r.text;
       out += `<p style="margin-left:10px">· <span class="hl">${r.ym}</span> ${body}</p>`;
     });
   }
-  out += `<p style="color:var(--muted);font-size:12px">※ 본 요약은 인덱싱된 항목을 기반으로 자동 생성된 참고 정보이며, 세부 내용은 아래 항목별 원문을 확인하십시오.</p>`;
+  out += `<p style="color:var(--muted);font-size:12px">${TXT('※ 본 요약은 인덱싱된 항목을 기반으로 자동 생성된 참고 정보이며, 세부 내용은 아래 항목별 원문을 확인하십시오.','※ This summary is auto-generated from indexed items for reference; see the per-item sources below for details.')}</p>`;
   return out;
 }
 

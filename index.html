@@ -283,6 +283,10 @@ const portLayer = L.layerGroup().addTo(map);
 let portsOn = true, portData = null;
 
 function portColor(p){ return p.security > p.general ? '#E0703C' : '#5AB8D6'; }
+function enc(s){ return encodeURIComponent(s).replace(/'/g,'%27'); }
+function langQ(){ return (typeof UILANG!=='undefined' && UILANG==='en') ? '&lang=en' : ''; }
+function openPort(p){ window.open('ports.html?port='+p+langQ(),'_blank'); }
+function openCountry(c){ window.open('ports.html?country='+c+langQ(),'_blank'); }
 
 function renderPorts(){
   portLayer.clearLayers();
@@ -302,8 +306,8 @@ function renderPorts(){
       className:'plabel', opacity:.9});
     m.bindPopup(`<div class="pop"><b class="t">⚓ ${p.port}</b>
       <div style="font-family:var(--mono);font-size:11px;color:#8CA0B8;margin-bottom:6px">${p.country} · 일반 ${p.general} · 보안 ${p.security}</div>
-      <button class="pbtn" onclick="window.open('ports.html?port=${encodeURIComponent(p.port)}','_blank')">이 항구 정보 보기 →</button>
-      <button class="pbtn co" onclick="window.open('ports.html?country=${encodeURIComponent(p.country)}','_blank')">${p.country} 전체 보기 →</button></div>`);
+      <button class="pbtn" onclick="openPort('${enc(p.port)}')">이 항구 정보 보기 →</button>
+      <button class="pbtn co" onclick="openCountry('${enc(p.country)}')">${p.country} 전체 보기 →</button></div>`);
   });
 }
 
@@ -335,7 +339,7 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
   };
   document.getElementById('copen').onclick = function(){
     const v=document.getElementById('csel').value;
-    if(v) window.open('ports.html?country='+encodeURIComponent(v),'_blank');
+    if(v) window.open('ports.html?country='+enc(v)+langQ(),'_blank');
   };
   renderPorts();
 }).catch(e=>console.log('port data not ready:', e.message));
