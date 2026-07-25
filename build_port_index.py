@@ -88,6 +88,26 @@ COUNTRY_OVERRIDE = {  # 항구명 기준 국가 통일 (같은 지점이 국가 
  "singapore strait (eb lane)": "Singapore",
  "singapore strait": "Singapore",
 }
+
+def repair_row(r):
+    """CSV 컬럼 밀림 수리: 설명 내 쉼표로 잘린 조각을 재결합, 실제 소스/링크 복원."""
+    parts = [(r.get("Description") or "").strip(),
+             (r.get("Source File") or "").strip(),
+             (r.get("Source Link") or "").strip()]
+    parts += [str(x).strip() for x in (r.get(None) or [])]
+    if parts[1].startswith("Port Information Update"):
+        return parts[0], parts[1], parts[2]          # 정상 행
+    si = next((i for i,x in enumerate(parts) if x.startswith("Port Information Update")), None)
+    if si is not None:
+        desc = ", ".join(p for p in parts[:si] if p)
+        src  = parts[si]
+        link = next((x for x in parts[si+1:] if x.startswith("http")), "")
+    else:
+        desc = ", ".join(p for p in parts if p and not p.startswith("http"))
+        src  = ""
+        link = next((x for x in parts if x.startswith("http")), "")
+    return desc, src, link
+
 def canon(p):
     return ALIAS.get(p.strip().lower(), p.strip())
 def canon_country(port, cn):
@@ -103,12 +123,25 @@ def main():
         print("Download failed:", e); sys.exit(1)
 
     rows = list(csv.DictReader(io.StringIO(raw)))
+    # 정상 행에서 월별 소스파일/링크 지도 구축 (손상 행 복원용)
+    month_map = {}
+    for r in rows:
+        sf = (r.get("Source File") or "").strip()
+        sl = (r.get("Source Link") or "").strip()
+        ym = (r.get("Year-Month") or "").strip()
+        if sf.startswith("Port Information Update") and sl.startswith("http"):
+            month_map.setdefault(ym, (sf, sl))
     ports = {}
+    repaired = 0
     for r in rows:
         p = canon((r.get("Port") or "").strip())
         cn = canon_country(p, (r.get("Country") or "").strip())
         ym = (r.get("Year-Month") or "").strip()
-        d  = (r.get("Description") or "").strip()
+        d, sf, sl = repair_row(r)
+        if not (r.get("Source File") or "").strip().startswith("Port Information Update"):
+            repaired += 1
+        if not sf and ym in month_map: sf = month_map[ym][0]
+        if not sl and ym in month_map: sl = month_map[ym][1]
         if not p or not d: continue
         cat = "security" if d.lower().startswith("[security]") else "general"
         d = re.sub(r"^\[(General|Security)\]\s*", "", d)
@@ -121,9 +154,7 @@ def main():
                 "general":0,"security":0,"items":[]}
         e = ports[key]
         e[cat] += 1
-        e["items"].append({"ym":ym,"cat":cat,"text":d,
-            "src":(r.get("Source File") or "").strip(),
-            "link":(r.get("Source Link") or "").strip()})
+        e["items"].append({"ym":ym,"cat":cat,"text":d,"src":sf,"link":sl})
 
     plist = sorted(ports.values(), key=lambda x:-(len(x["items"])))
     for e in plist:
@@ -149,7 +180,7 @@ def main():
            "countries": sorted(countries.values(), key=lambda x:x["country"])}
     json.dump(out, open(OUT,"w",encoding="utf-8"), ensure_ascii=False, separators=(",",":"))
     noc = [e["port"] for e in plist if e["lat"] is None]
-    print(f"OK: {len(rows)} rows, {len(plist)} ports, {len(out['countries'])} countries. No-coord: {noc}")
+    print(f"OK: {len(rows)} rows, repaired {repaired}, {len(plist)} ports, {len(out['countries'])} countries. No-coord: {noc}")
 
 if __name__ == "__main__":
     main()
