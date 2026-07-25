@@ -60,6 +60,11 @@
   <div class="stats" id="stats"></div>
   <div class="tools">
     <button class="alt" id="langbtn" onclick="toggleLang()" style="border-color:var(--accent)">🌐 English</button>
+    <select id="range" onchange="renderAll()" style="padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);font-size:12.5px">
+      <option value="0">기간: 전체</option>
+      <option value="12">최근 12개월</option>
+      <option value="6">최근 6개월</option>
+    </select>
     <button onclick="dlCSV()">⬇ CSV 다운로드</button>
     <button onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
     <button class="alt" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
@@ -81,11 +86,28 @@ function toggleLang(){
   renderAll();
 }
 
+function cutoffYM(){
+  const m = parseInt(document.getElementById('range')?.value||'0');
+  if(!m) return null;
+  const d = new Date(); d.setMonth(d.getMonth()-m);
+  return d.toISOString().slice(0,7);
+}
+function visibleEntries(){
+  const v = window.__view; if(!v) return [];
+  const c = cutoffYM();
+  if(!c) return v.entries;
+  return v.entries.map(p=>({...p, items:p.items.filter(i=>i.ym>=c)})).filter(p=>p.items.length);
+}
 function renderAll(){
   const v = window.__view; if(!v) return;
-  const entries = v.entries;
+  const entries = visibleEntries();
   const main = document.getElementById('main');
-  if(!entries.length){ main.innerHTML = '<div class="empty">해당하는 정보가 없습니다.</div>'; return; }
+  const gAll = entries.reduce((a,p)=>a+p.items.filter(i=>i.cat==='general').length,0);
+  const sAll = entries.reduce((a,p)=>a+p.items.filter(i=>i.cat==='security').length,0);
+  document.getElementById('stats').innerHTML =
+    `<span class="stat">일반 <b class="g">${gAll}</b></span><span class="stat">보안 <b class="s">${sAll}</b></span><span class="stat">항구 ${entries.length}</span><span class="stat">표시 ${gAll+sAll}건${cutoffYM()?' (기간 필터)':''}</span>`;
+  if(!entries.length){ main.innerHTML = '<div class="empty">선택한 기간에 해당하는 정보가 없습니다.</div>'; return; }
+  window.__brief = makeBrief(v.title, entries, v.isCountry);
   const briefBlock = LANG==='ko'
     ? `<div class="brief"><h2>📋 요약 설명</h2>${window.__brief}</div>`
     : `<div class="brief"><h2>📋 Summary (KO)</h2>${window.__brief}</div>`;
@@ -126,8 +148,7 @@ Promise.all([
     `항목 ${g+s}건 · 인덱스 생성 ${ (data.generated||'').slice(0,10) } · 데이터 기간 2024.02 ~ 최신 · 번역 ${Object.keys(KO).length}건`;
   document.getElementById('stats').innerHTML =
     `<span class="stat">일반 <b class="g">${g}</b></span><span class="stat">보안 <b class="s">${s}</b></span><span class="stat">항구 ${entries.length}</span>`;
-  window.__view = {title, entries};
-  window.__brief = makeBrief(title, entries, !!wantCountry);
+  window.__view = {title, entries, isCountry: !!wantCountry};
   renderAll();
 }).catch(e=>{
   document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
@@ -168,7 +189,6 @@ function makeBrief(title, entries, isCountry){
   const g = all.filter(i=>i.cat==='general').length, sN = all.filter(i=>i.cat==='security').length;
   const yms = all.map(i=>i.ym).sort();
   const first = yms[0]||'', last = yms[yms.length-1]||'';
-  const latest = all.slice().sort((a,b)=>b.ym.localeCompare(a.ym))[0];
   let out = '';
 
   out += `<p><b>${title}</b>에 대해 <span class="hl">${first} ~ ${last}</span> 기간 총 <span class="hl">${all.length}건</span>의 항만 정보가 축적되어 있습니다 — <span class="gen2">일반(규제·운항) ${g}건</span>, <span class="sec2">보안(사고·위협) ${sN}건</span>.</p>`;
@@ -191,8 +211,13 @@ function makeBrief(title, entries, isCountry){
   if(gt.length){
     out += `<p><span class="gen2">■ 규제·운항 특징</span> — ${gt.map(([n,c])=>`${n} ${c}건`).join(' · ')}. 입항 전 해당 요건의 최신 원문(PDF 링크)을 확인하고 선내 준비상태를 점검하십시오.</p>`;
   }
-  if(latest){
-    out += `<p><span class="hl">■ 최신 동향(${latest.ym})</span> — ${latest.text.length>160?latest.text.slice(0,160)+'…':latest.text}</p>`;
+  const recent = all.slice().sort((a,b)=>b.ym.localeCompare(a.ym)).slice(0,3);
+  if(recent.length){
+    out += `<p><span class="hl">■ 최신 동향</span></p>`;
+    recent.forEach(r=>{
+      const body = KO[r.text] || r.text;
+      out += `<p style="margin-left:10px">· <span class="hl">${r.ym}</span> ${body}</p>`;
+    });
   }
   out += `<p style="color:var(--muted);font-size:12px">※ 본 요약은 인덱싱된 항목을 기반으로 자동 생성된 참고 정보이며, 세부 내용은 아래 항목별 원문을 확인하십시오.</p>`;
   return out;
@@ -200,9 +225,8 @@ function makeBrief(title, entries, isCountry){
 
 /* ── 다운로드 기능: 현재 화면(필터 적용된) 정보 그대로 저장 ── */
 function _rows(){
-  const v = window.__view; if(!v) return [];
   const rows = [];
-  v.entries.forEach(p => p.items.forEach(i => rows.push({
+  visibleEntries().forEach(p => p.items.forEach(i => rows.push({
     port: p.port, country: p.country, ym: i.ym,
     cat: i.cat==='security' ? 'Security' : 'General',
     text: i.text, src: i.src, link: i.link
