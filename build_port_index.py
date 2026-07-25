@@ -56,6 +56,13 @@ C = {
 "santo antonio (principe is.)":(1.64,7.42,0),"owendo":(0.29,9.50,0),"libreville":(0.39,9.45,0),
 "brass":(4.31,6.24,0),"shanghai":(31.23,121.49,0),
 "cartagena":(10.40,-75.51,0),"mombasa":(-4.06,39.66,0),
+"charleston":(32.78,-79.93,0),"new york":(40.67,-74.04,0),"san francisco":(37.80,-122.40,0),
+"alaska":(59.0,-150.0,1),"washington coast (atba)":(47.7,-125.2,0),
+"tacoma":(47.27,-122.41,0),"new westminster":(49.20,-122.91,0),"canadian ports":(56.0,-106.0,1),
+"zeebrugge":(51.33,3.20,0),"immingham":(53.63,-0.19,0),"southampton":(50.90,-1.40,0),"piraeus":(37.94,23.64,0),
+"pyeongtaek":(36.97,126.83,0),"japanese ports":(36.0,138.0,1),
+"fremantle":(-32.05,115.74,0),"melbourne":(-37.84,144.93,0),"great barrier reef":(-18.5,147.5,0),
+"auckland":(-36.84,174.77,0),"durban":(-29.87,31.02,0),"sri lanka (south tss)":(5.45,80.55,0),
 "ghanaian ports":(7.9,-1.0,1),"indian ports":(21.0,78.0,1),
 }
 
@@ -95,9 +102,9 @@ def repair_row(r):
              (r.get("Source File") or "").strip(),
              (r.get("Source Link") or "").strip()]
     parts += [str(x).strip() for x in (r.get(None) or [])]
-    if parts[1].startswith("Port Information Update"):
+    if parts[1].startswith(("Port Information Update","WSMK Port")):
         return parts[0], parts[1], parts[2]          # 정상 행
-    si = next((i for i,x in enumerate(parts) if x.startswith("Port Information Update")), None)
+    si = next((i for i,x in enumerate(parts) if x.startswith(("Port Information Update","WSMK Port"))), None)
     if si is not None:
         desc = ", ".join(p for p in parts[:si] if p)
         src  = parts[si]
@@ -123,6 +130,13 @@ def main():
         print("Download failed:", e); sys.exit(1)
 
     rows = list(csv.DictReader(io.StringIO(raw)))
+    try:
+        with open("ports-extra.csv", encoding="utf-8") as xf:
+            extra = list(csv.DictReader(xf))
+        rows += extra
+        print(f"merged ports-extra.csv: +{len(extra)} rows")
+    except FileNotFoundError:
+        pass
     # 정상 행에서 월별 소스파일/링크 지도 구축 (손상 행 복원용)
     month_map = {}
     for r in rows:
@@ -138,7 +152,7 @@ def main():
         cn = canon_country(p, (r.get("Country") or "").strip())
         ym = (r.get("Year-Month") or "").strip()
         d, sf, sl = repair_row(r)
-        if not (r.get("Source File") or "").strip().startswith("Port Information Update"):
+        if not (r.get("Source File") or "").strip().startswith(("Port Information Update","WSMK Port")):
             repaired += 1
         if not sf and ym in month_map: sf = month_map[ym][0]
         if not sl and ym in month_map: sl = month_map[ym][1]
