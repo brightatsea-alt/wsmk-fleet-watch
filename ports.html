@@ -92,12 +92,13 @@ function cutoffYM(){
   const d = new Date(); d.setMonth(d.getMonth()-m);
   return d.toISOString().slice(0,7);
 }
-function visibleEntries(){
-  const v = window.__view; if(!v) return [];
+function applyCut(list){
   const c = cutoffYM();
-  if(!c) return v.entries;
-  return v.entries.map(p=>({...p, items:p.items.filter(i=>i.ym>=c)})).filter(p=>p.items.length);
+  if(!c) return list;
+  return list.map(p=>({...p, items:p.items.filter(i=>i.ym>=c)})).filter(p=>p.items.length);
 }
+function visibleEntries(){ const v=window.__view; return v?applyCut(v.entries):[]; }
+function visibleCommon(){ const v=window.__view; return (v&&v.common)?applyCut(v.common):[]; }
 function renderAll(){
   const v = window.__view; if(!v) return;
   const entries = visibleEntries();
@@ -125,7 +126,57 @@ function renderAll(){
     const head = (wantPort && entries.length===1) ? '' :
       `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}건)</span></div>`;
     return head + items;
-  }).join('');
+  }).join('') + commonBlock() + sourcesBlock();
+}
+function cardHTML(i){
+  const k = tr(i.text);
+  const body = k ? k : i.text;
+  const enTag = (LANG==='ko' && !k) ? ' <span class="ym">(EN)</span>' : '';
+  return `<div class="card">
+    <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span>${enTag}</div>
+    <div class="txt">${body}</div>
+    <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||'원문 PDF'}</a></div>
+  </div>`;
+}
+function commonBlock(){
+  const cm = visibleCommon();
+  if(!cm.length) return '';
+  return cm.map(p=>
+    `<div class="portsec">🌏 ${p.port} <span class="ym">(${p.country} 국가 공통 · ${p.items.length}건)</span></div>` +
+    p.items.map(cardHTML).join('')
+  ).join('');
+}
+const REGION = {
+  asia:['Singapore','Indonesia','Malaysia','Philippines','Bangladesh','India','China','Vietnam','Thailand','Hong Kong'],
+  wafr:['Nigeria','Ghana','Togo','Benin',"Cote d'Ivoire","Côte d'Ivoire",'Ivory Coast','Guinea','Liberia','Gabon','Angola','Cameroon','Sao Tome and Principe','Equatorial Guinea'],
+  io:['Yemen','Somalia','Djibouti','Oman','UAE','United Arab Emirates','Saudi Arabia','Qatar','Bahrain','Egypt','Kenya','Mozambique','Tanzania']
+};
+function sourcesBlock(){
+  const v = window.__view; if(!v) return '';
+  const cn = (v.entries[0]||{}).country || '';
+  const pn = wantPort || '';
+  const inR = r => REGION[r].some(x=>cn.indexOf(x)>=0);
+  const rec = r => inR(r) ? ' <span class="hl">★권장</span>' : '';
+  const L = (u,t,d)=>`<div style="margin:4px 0">🔗 <a href="${u}" target="_blank" rel="noopener" style="color:var(--accent)">${t}</a> <span class="ym">— ${d}</span></div>`;
+  let sec = '';
+  sec += L('https://www.recaap.org/','ReCAAP ISC','아시아 해적·강도 사고 속보/주간보고'+rec('asia'));
+  sec += L('https://gog-mdat.org/home','MDAT-GoG','기니만(서아프리카) 해상보안 경보'+rec('wafr'));
+  sec += L('https://www.ukmto.org/','UKMTO','인도양·중동 VRA 경보 (Q6099)'+rec('io'));
+  sec += L('https://on-shore.mschoa.org/','MSCHOA','아프리카의 뿔 해역 그룹통항·등록'+rec('io'));
+  sec += L('https://icc-ccs.org/imb-piracy-reporting-centre-2/','IMB Piracy Reporting Centre','전세계 해적신고센터(24h)');
+  sec += L('https://www.maritime.dot.gov/msci','US MARAD MSCI','미국 해사 경보·권고문');
+  let pi = '';
+  pi += L('https://www.findaport.com/','Findaport (Guide to Port Entry)','항만 입항 상세정보 데이터베이스');
+  pi += L('https://msi.nga.mil/Publications/WPI','NGA World Port Index (Pub.150)','공식 세계 항만 색인·시설 데이터');
+  pi += L('https://www.vesselfinder.com/ports'+(pn?('?name='+encodeURIComponent(pn)):''),'VesselFinder Ports'+(pn?` — "${pn}"`:''),'항만 위치·입출항 선박 현황');
+  pi += L('https://portwatch.imf.org/','IMF PortWatch','항만 혼잡·물동량 모니터링');
+  if(pn) pi += L('https://news.google.com/search?q='+encodeURIComponent('"'+pn+'" port'),'Google News — "'+pn+'"','해당 항구 최신 뉴스 검색');
+  return `<div class="brief" style="border-left-color:#7A9E5A;margin-top:18px">
+    <h2>🌐 신뢰 해사·항만 정보 소스 (외부 웹)</h2>
+    <p><span class="sec2">■ 해상보안 속보</span></p>${sec}
+    <p style="margin-top:8px"><span class="gen2">■ 항만 일반정보</span></p>${pi}
+    <p style="color:var(--muted);font-size:11.5px">※ 2026-07 웹 확인 기준 · ★권장 = 현재 조회 중인 국가/수역의 담당 보고기관</p>
+  </div>`;
 }
 
 Promise.all([
@@ -148,7 +199,12 @@ Promise.all([
     `항목 ${g+s}건 · 인덱스 생성 ${ (data.generated||'').slice(0,10) } · 데이터 기간 2024.02 ~ 최신 · 번역 ${Object.keys(KO).length}건`;
   document.getElementById('stats').innerHTML =
     `<span class="stat">일반 <b class="g">${g}</b></span><span class="stat">보안 <b class="s">${s}</b></span><span class="stat">항구 ${entries.length}</span>`;
-  window.__view = {title, entries, isCountry: !!wantCountry};
+  let common = [];
+  if(wantPort && entries.length){
+    const cn = entries[0].country;
+    common = data.ports.filter(p=>p.country===cn && p.isCountry && p.port!==wantPort);
+  }
+  window.__view = {title, entries, isCountry: !!wantCountry, common};
   renderAll();
 }).catch(e=>{
   document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
@@ -226,7 +282,7 @@ function makeBrief(title, entries, isCountry){
 /* ── 다운로드 기능: 현재 화면(필터 적용된) 정보 그대로 저장 ── */
 function _rows(){
   const rows = [];
-  visibleEntries().forEach(p => p.items.forEach(i => rows.push({
+  visibleEntries().concat(visibleCommon()).forEach(p => p.items.forEach(i => rows.push({
     port: p.port, country: p.country, ym: i.ym,
     cat: i.cat==='security' ? 'Security' : 'General',
     text: i.text, src: i.src, link: i.link
