@@ -29,6 +29,21 @@
   .src a:hover{text-decoration:underline}
   .empty{padding:40px;text-align:center;color:var(--muted)}
   .note{font-size:11px;color:var(--muted);padding:10px 18px;border-top:1px solid var(--line);margin-top:20px}
+  .tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .tools button{padding:6px 13px;border:1px solid var(--line);border-radius:5px;background:#1a6fb5;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer}
+  .tools button.alt{background:var(--panel);color:var(--text)}
+  .tools button:hover{filter:brightness(1.2)}
+  @media print{
+    body{background:#fff;color:#111}
+    header{position:static;background:#fff;border-color:#ccc}
+    .tools,.note{display:none}
+    .card{background:#fff;border-color:#bbb;break-inside:avoid;color:#111}
+    .stat{background:#fff;color:#111}
+    .ym,.sub{color:#555} .txt{color:#111}
+    .badge.g{background:#2b7fb8;color:#fff}.badge.s{background:#c85a2e;color:#fff}
+    .portsec{color:#0a4d7a}
+    .src a{color:#0a4d7a}
+  }
 </style>
 </head>
 <body>
@@ -36,6 +51,11 @@
   <h1 id="title">Port Information</h1>
   <div class="sub" id="sub">로딩 중…</div>
   <div class="stats" id="stats"></div>
+  <div class="tools">
+    <button onclick="dlCSV()">⬇ CSV 다운로드</button>
+    <button onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
+    <button class="alt" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+  </div>
 </header>
 <main id="main"></main>
 <div class="note">출처: WSMK Work Place / Port Information (월간 Port Information Update 등) · 원문 PDF는 각 항목의 링크로 열람 · 자동 인덱싱</div>
@@ -45,6 +65,7 @@ const wantPort = q.get('port'), wantCountry = q.get('country');
 
 fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   let entries = data.ports;
+  window.__view = null;
   let title = '전체 항구 정보';
   if(wantPort){
     entries = entries.filter(p=>p.port===wantPort);
@@ -60,6 +81,7 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   document.getElementById('stats').innerHTML =
     `<span class="stat">일반 <b class="g">${g}</b></span><span class="stat">보안 <b class="s">${s}</b></span><span class="stat">항구 ${entries.length}</span>`;
 
+  window.__view = {title, entries};
   const main = document.getElementById('main');
   if(!entries.length){ main.innerHTML = '<div class="empty">해당하는 정보가 없습니다.</div>'; return; }
 
@@ -78,6 +100,51 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
   document.getElementById('sub').textContent = '';
 });
+
+/* ── 다운로드 기능: 현재 화면(필터 적용된) 정보 그대로 저장 ── */
+function _rows(){
+  const v = window.__view; if(!v) return [];
+  const rows = [];
+  v.entries.forEach(p => p.items.forEach(i => rows.push({
+    port: p.port, country: p.country, ym: i.ym,
+    cat: i.cat==='security' ? 'Security' : 'General',
+    text: i.text, src: i.src, link: i.link
+  })));
+  return rows;
+}
+function _save(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 500);
+}
+function _fname(ext){
+  const t = (window.__view && window.__view.title || 'PortInfo').replace(/[^\w가-힣]+/g,'_');
+  return `PortInfo_${t}_${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+function dlCSV(){
+  const esc = s => '"' + String(s??'').replace(/"/g,'""') + '"';
+  const head = 'Port,Country,Year-Month,Category,Description,Source File,Source Link';
+  const lines = _rows().map(r => [r.port,r.country,r.ym,r.cat,r.text,r.src,r.link].map(esc).join(','));
+  _save(new Blob(['\ufeff'+head+'\n'+lines.join('\n')], {type:'text/csv;charset=utf-8'}), _fname('csv'));
+}
+function dlDOC(){
+  const v = window.__view;
+  const rows = _rows().map(r => `<tr>
+    <td>${r.port}</td><td>${r.country}</td><td>${r.ym}</td>
+    <td style="color:${r.cat==='Security'?'#c0392b':'#2471a3'};font-weight:bold">${r.cat}</td>
+    <td>${r.text}</td><td><a href="${r.link}">${r.src}</a></td></tr>`).join('');
+  const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
+    <style>body{font-family:'Malgun Gothic',Calibri,sans-serif;font-size:10.5pt}
+    h1{font-size:15pt;color:#1a3c5e} .meta{color:#666;font-size:9pt;margin-bottom:12pt}
+    table{border-collapse:collapse;width:100%} td,th{border:1px solid #999;padding:4pt 6pt;vertical-align:top;font-size:9.5pt}
+    th{background:#1a3c5e;color:#fff}</style></head><body>
+    <h1>⚓ WSMK Port Information — ${v.title}</h1>
+    <div class="meta">Generated ${new Date().toLocaleString('ko-KR')} · Source: WSMK Work Place / Port Information</div>
+    <table><tr><th>Port</th><th>Country</th><th>Y-M</th><th>Cat.</th><th>Description</th><th>Source</th></tr>${rows}</table>
+    </body></html>`;
+  _save(new Blob([html], {type:'application/msword'}), _fname('doc'));
+}
 </script>
 </body>
 </html>
