@@ -292,7 +292,7 @@ function renderPorts(){
     if(sel && p.country!==sel) return;
     const n = p.items.length;
     const m = L.circleMarker([p.lat,p.lon],{
-      radius: Math.min(5+n*0.9, 14),
+      radius: Math.max(7, Math.min(5+n*0.9, 15)),
       color:'#08121F', weight:1,
       fillColor: portColor(p), fillOpacity: p.isCountry?.45:.85,
       dashArray: p.isCountry ? '3 3' : null
