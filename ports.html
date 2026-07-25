@@ -59,6 +59,7 @@
   <div class="sub" id="sub">로딩 중…</div>
   <div class="stats" id="stats"></div>
   <div class="tools">
+    <button class="alt" id="langbtn" onclick="toggleLang()" style="border-color:var(--accent)">🌐 English</button>
     <button onclick="dlCSV()">⬇ CSV 다운로드</button>
     <button onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
     <button class="alt" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
@@ -70,9 +71,47 @@
 const q = new URLSearchParams(location.search);
 const wantPort = q.get('port'), wantCountry = q.get('country');
 
-fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
+let LANG = 'ko';                 // 기본: 한글
+let KO = {};                      // 영문 원문 → 한글 번역 매핑
+function tr(t){ return LANG==='ko' ? (KO[t]||null) : null; }
+
+function toggleLang(){
+  LANG = LANG==='ko' ? 'en' : 'ko';
+  document.getElementById('langbtn').textContent = LANG==='ko' ? '🌐 English' : '🌐 한글';
+  renderAll();
+}
+
+function renderAll(){
+  const v = window.__view; if(!v) return;
+  const entries = v.entries;
+  const main = document.getElementById('main');
+  if(!entries.length){ main.innerHTML = '<div class="empty">해당하는 정보가 없습니다.</div>'; return; }
+  const briefBlock = LANG==='ko'
+    ? `<div class="brief"><h2>📋 요약 설명</h2>${window.__brief}</div>`
+    : `<div class="brief"><h2>📋 Summary (KO)</h2>${window.__brief}</div>`;
+  main.innerHTML = briefBlock + entries.map(p=>{
+    const items = p.items.map(i=>{
+      const k = tr(i.text);
+      const body = k ? k : i.text;
+      const enTag = (LANG==='ko' && !k) ? ' <span class="ym">(EN)</span>' : '';
+      return `
+      <div class="card">
+        <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span>${enTag}</div>
+        <div class="txt">${body}</div>
+        <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||'원문 PDF'}</a></div>
+      </div>`;}).join('');
+    const head = (wantPort && entries.length===1) ? '' :
+      `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}건)</span></div>`;
+    return head + items;
+  }).join('');
+}
+
+Promise.all([
+  fetch('ports-data.json?t='+Date.now()).then(r=>r.json()),
+  fetch('translations-ko.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}))
+]).then(([data, koMap])=>{
+  KO = koMap || {};
   let entries = data.ports;
-  window.__view = null;
   let title = '전체 항구 정보';
   if(wantPort){
     entries = entries.filter(p=>p.port===wantPort);
@@ -84,26 +123,12 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(data=>{
   document.getElementById('title').textContent = '⚓ ' + title;
   const g = entries.reduce((a,p)=>a+p.general,0), s = entries.reduce((a,p)=>a+p.security,0);
   document.getElementById('sub').textContent =
-    `항목 ${g+s}건 · 인덱스 생성 ${ (data.generated||'').slice(0,10) } · 데이터 기간 2024.02 ~ 최신`;
+    `항목 ${g+s}건 · 인덱스 생성 ${ (data.generated||'').slice(0,10) } · 데이터 기간 2024.02 ~ 최신 · 번역 ${Object.keys(KO).length}건`;
   document.getElementById('stats').innerHTML =
     `<span class="stat">일반 <b class="g">${g}</b></span><span class="stat">보안 <b class="s">${s}</b></span><span class="stat">항구 ${entries.length}</span>`;
-
   window.__view = {title, entries};
-  const main = document.getElementById('main');
-  if(!entries.length){ main.innerHTML = '<div class="empty">해당하는 정보가 없습니다.</div>'; return; }
-
   window.__brief = makeBrief(title, entries, !!wantCountry);
-  main.innerHTML = `<div class="brief"><h2>📋 요약 설명</h2>${window.__brief}</div>` + entries.map(p=>{
-    const items = p.items.map(i=>`
-      <div class="card">
-        <div class="top"><span class="badge ${i.cat==='security'?'s':'g'}">${i.cat==='security'?'SECURITY':'GENERAL'}</span><span class="ym">${i.ym}</span></div>
-        <div class="txt">${i.text}</div>
-        <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||'원문 PDF'}</a></div>
-      </div>`).join('');
-    const head = (wantPort && entries.length===1) ? '' :
-      `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}건)</span></div>`;
-    return head + items;
-  }).join('');
+  renderAll();
 }).catch(e=>{
   document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
   document.getElementById('sub').textContent = '';
@@ -196,8 +221,8 @@ function _fname(ext){
 }
 function dlCSV(){
   const esc = s => '"' + String(s??'').replace(/"/g,'""') + '"';
-  const head = 'Port,Country,Year-Month,Category,Description,Source File,Source Link';
-  const lines = _rows().map(r => [r.port,r.country,r.ym,r.cat,r.text,r.src,r.link].map(esc).join(','));
+  const head = 'Port,Country,Year-Month,Category,Description_KO,Description_EN,Source File,Source Link';
+  const lines = _rows().map(r => [r.port,r.country,r.ym,r.cat,(KO[r.text]||''),r.text,r.src,r.link].map(esc).join(','));
   _save(new Blob(['\ufeff'+head+'\n'+lines.join('\n')], {type:'text/csv;charset=utf-8'}), _fname('csv'));
 }
 function dlDOC(){
@@ -205,7 +230,7 @@ function dlDOC(){
   const rows = _rows().map(r => `<tr>
     <td>${r.port}</td><td>${r.country}</td><td>${r.ym}</td>
     <td style="color:${r.cat==='Security'?'#c0392b':'#2471a3'};font-weight:bold">${r.cat}</td>
-    <td>${r.text}</td><td><a href="${r.link}">${r.src}</a></td></tr>`).join('');
+    <td>${LANG==='ko'?(KO[r.text]||r.text):r.text}</td><td><a href="${r.link}">${r.src}</a></td></tr>`).join('');
   const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
     <style>body{font-family:'Malgun Gothic',Calibri,sans-serif;font-size:10.5pt}
     h1{font-size:15pt;color:#1a3c5e} .meta{color:#666;font-size:9pt;margin-bottom:12pt}
