@@ -67,6 +67,15 @@
     #toggle{display:block;position:absolute;z-index:1001;bottom:18px;left:14px;padding:10px 16px;background:var(--accent);color:#08121F;border:none;border-radius:24px;font-weight:700;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.5)}
   }
   #list::-webkit-scrollbar{width:8px}#list::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+
+  /* ── Port layer ── */
+  .plabel{background:rgba(13,21,34,.85);border:1px solid var(--line);color:var(--text);
+    font-size:10px;font-family:var(--mono);padding:1px 5px;border-radius:3px;box-shadow:none}
+  .plabel::before{display:none}
+  .pbtn{display:block;width:100%;margin-top:5px;padding:7px 10px;border:none;border-radius:5px;
+    background:#1a6fb5;color:#fff;font-size:12.5px;cursor:pointer;font-weight:600}
+  .pbtn.co{background:#57606e}
+  .pbtn:hover{filter:brightness(1.15)}
 </style>
 </head>
 <body>
@@ -267,6 +276,68 @@ document.getElementById('toggle').onclick=()=>document.getElementById('side').cl
 load();
 setInterval(render, 60e3);        // 1분마다 DR 위치·현지시간 재계산
 setInterval(load, 10*60e3);       // 10분마다 최신 JSON 재확인
+
+/* ══════════ 항구 정보 레이어 (Port Information) ══════════ */
+const portLayer = L.layerGroup().addTo(map);
+let portsOn = true, portData = null;
+
+function portColor(p){ return p.security > p.general ? '#E0703C' : '#5AB8D6'; }
+
+function renderPorts(){
+  portLayer.clearLayers();
+  if(!portsOn || !portData) return;
+  const sel = document.getElementById('csel') ? document.getElementById('csel').value : '';
+  portData.ports.forEach(p=>{
+    if(p.lat==null) return;
+    if(sel && p.country!==sel) return;
+    const n = p.items.length;
+    const m = L.circleMarker([p.lat,p.lon],{
+      radius: Math.min(5+n*0.9, 14),
+      color:'#08121F', weight:1,
+      fillColor: portColor(p), fillOpacity: p.isCountry?.45:.85,
+      dashArray: p.isCountry ? '3 3' : null
+    }).addTo(portLayer);
+    m.bindTooltip(p.port,{permanent:true,direction:'top',offset:[0,-6],
+      className:'plabel', opacity:.9});
+    m.bindPopup(`<div class="pop"><b class="t">⚓ ${p.port}</b>
+      <div style="font-family:var(--mono);font-size:11px;color:#8CA0B8;margin-bottom:6px">${p.country} · 일반 ${p.general} · 보안 ${p.security}</div>
+      <button class="pbtn" onclick="window.open('ports.html?port=${encodeURIComponent(p.port)}','_blank')">이 항구 정보 보기 →</button>
+      <button class="pbtn co" onclick="window.open('ports.html?country=${encodeURIComponent(p.country)}','_blank')">${p.country} 전체 보기 →</button></div>`);
+  });
+}
+
+fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
+  portData = d;
+  // 국가 선택 드롭다운 + 항구 토글을 헤더에 삽입
+  const board = document.getElementById('board');
+  const wrap = document.createElement('div');
+  wrap.style.cssText='display:flex;gap:8px;align-items:center';
+  wrap.innerHTML =
+    `<div class="chip on" id="ptoggle">⚓ 항구 <b>${d.ports.filter(p=>p.lat!=null).length}</b></div>
+     <select id="csel" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:12px">
+       <option value="">국가: 전체</option>
+       ${d.countries.map(c=>`<option value="${c.country}">${c.country} (${c.general+c.security})</option>`).join('')}
+     </select>
+     <div class="chip" id="copen" style="display:none">국가 정보 열기 →</div>`;
+  board.parentNode.insertBefore(wrap, board.nextSibling);
+  document.getElementById('ptoggle').onclick = function(){
+    portsOn=!portsOn; this.classList.toggle('on',portsOn); renderPorts();
+  };
+  document.getElementById('csel').onchange = function(){
+    const v=this.value;
+    document.getElementById('copen').style.display = v?'flex':'none';
+    renderPorts();
+    if(v && portData){
+      const pts = portData.ports.filter(p=>p.country===v && p.lat!=null);
+      if(pts.length){ map.fitBounds(pts.map(p=>[p.lat,p.lon]),{padding:[50,50],maxZoom:6}); }
+    }
+  };
+  document.getElementById('copen').onclick = function(){
+    const v=document.getElementById('csel').value;
+    if(v) window.open('ports.html?country='+encodeURIComponent(v),'_blank');
+  };
+  renderPorts();
+}).catch(e=>console.log('port data not ready:', e.message));
 </script>
 </body>
 </html>
