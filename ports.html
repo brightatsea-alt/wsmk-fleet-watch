@@ -71,7 +71,7 @@
   </div>
 </header>
 <main id="main"></main>
-<div class="note">출처: WSMK Work Place / Port Information (월간 Port Information Update 등) · 원문 PDF는 각 항목의 링크로 열람 · 자동 인덱싱</div>
+<div class="note" id="note">출처: WSMK Work Place / Port Information (월간 Port Information Update 등) · 원문 PDF는 각 항목의 링크로 열람 · 자동 인덱싱</div>
 <script>
 const q = new URLSearchParams(location.search);
 const wantPort = q.get('port'), wantCountry = q.get('country');
@@ -94,6 +94,10 @@ function applyChromeLang(){
   if(b1) b1.textContent=TXT('⬇ CSV 다운로드','⬇ Download CSV');
   if(b2) b2.textContent=TXT('⬇ Word(.doc) 다운로드','⬇ Download Word (.doc)');
   if(b3) b3.textContent=TXT('🖨 인쇄 / PDF 저장','🖨 Print / Save PDF');
+  const nt=document.getElementById('note');
+  if(nt) nt.textContent=TXT('출처: WSMK Work Place / Port Information (월간 Port Information Update 등) · 원문 PDF는 각 항목의 링크로 열람 · 자동 인덱싱','Source: WSMK Work Place / Port Information (monthly Port Information Update etc.) · open source PDFs via each item link · auto-indexed');
+  const sb=document.getElementById('sub');
+  if(sb && !window.__meta) sb.textContent=TXT('로딩 중…','Loading…');
 }
 function toggleLang(){
   LANG = LANG==='ko' ? 'en' : 'ko';
@@ -232,12 +236,12 @@ Promise.all([
   window.__view = {title, entries, isCountry: !!wantCountry, common};
   renderAll();
 }).catch(e=>{
-  document.getElementById('main').innerHTML = '<div class="empty">데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.</div>';
+  document.getElementById('main').innerHTML = '<div class="empty">'+TXT('데이터 로드 실패 — 인덱스가 아직 생성되지 않았을 수 있습니다.','Failed to load data — the index may not have been generated yet.')+'</div>';
   document.getElementById('sub').textContent = '';
 });
 
 
-/* ── 자동 브리핑: 선택된 항구/국가 정보를 한국어로 요약 설명 ── */
+/* ── 자동 브리핑 ── */
 const SEC_THEMES = [
  [/kidnap|abduct/i,'납치'],[/piracy|pirate/i,'해적행위'],
  [/kinetic|projectile|uav|usv|drone.*attack|attack.*(uav|drone)|rpg|missile/i,'무력공격·드론/USV 위협'],
@@ -308,7 +312,7 @@ function makeBrief(title, entries, isCountry){
   return out;
 }
 
-/* ── 다운로드 기능: 현재 화면(필터 적용된) 정보 그대로 저장 ── */
+/* ── 다운로드 ── */
 function _rows(){
   const rows = [];
   visibleEntries().concat(visibleCommon()).forEach(p => p.items.forEach(i => rows.push({
