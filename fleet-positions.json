@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-28T16:47:24.154Z",
+ "updated": "2026-07-28T18:21:42.990Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -61,7 +61,14 @@
    "cog": 203.9,
    "heading": 202,
    "navStatus": 0,
-   "lastReceived": "2026-07-26 07:39:52.126558514 +0000 UTC"
+   "lastReceived": "2026-07-26 07:39:52.126558514 +0000 UTC",
+   "destination": "AU MEL",
+   "eta": {
+    "Day": 28,
+    "Hour": 10,
+    "Minute": 0,
+    "Month": 7
+   }
   },
   "440446000": {
    "mmsi": "440446000",
@@ -135,20 +142,20 @@
   "538005452": {
    "mmsi": "538005452",
    "name": "Morning Post",
-   "destination": "BEANR",
+   "destination": "ZADUR",
    "eta": {
-    "Day": 23,
-    "Hour": 8,
+    "Day": 14,
+    "Hour": 3,
     "Minute": 0,
-    "Month": 7
+    "Month": 8
    },
-   "lat": 44.761175,
-   "lon": -4.363711666666666,
-   "sog": 16.7,
-   "cog": 163,
-   "heading": 161,
+   "lat": 43.45910666666667,
+   "lon": -3.781675,
+   "sog": 8.6,
+   "cog": 78.6,
+   "heading": 80,
    "navStatus": 0,
-   "lastReceived": "2026-07-28 02:57:34.232154651 +0000 UTC"
+   "lastReceived": "2026-07-28 18:20:12.595498163 +0000 UTC"
   },
   "538011582": {
    "mmsi": "538011582",
