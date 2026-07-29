@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-29T07:50:01.468Z",
+ "updated": "2026-07-29T10:47:18.917Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -138,11 +138,11 @@
    "heading": 280,
    "navStatus": 5,
    "lastReceived": "2026-07-29 07:47:38.827568032 +0000 UTC",
-   "destination": "US SSI",
+   "destination": "USBAL>USPHL",
    "eta": {
-    "Day": 25,
-    "Hour": 7,
-    "Minute": 0,
+    "Day": 28,
+    "Hour": 22,
+    "Minute": 45,
     "Month": 7
    }
   },
@@ -189,13 +189,13 @@
   "538011582": {
    "mmsi": "538011582",
    "name": "Liberty New York",
-   "lat": 37.193648333333336,
-   "lon": -123.30244666666667,
-   "sog": 2.3,
-   "cog": 197.2,
-   "heading": 54,
+   "lat": 37.123243333333335,
+   "lon": -123.31169,
+   "sog": 3.2,
+   "cog": 194.2,
+   "heading": 53,
    "navStatus": 0,
-   "lastReceived": "2026-07-29 00:02:45.018940105 +0000 UTC"
+   "lastReceived": "2026-07-29 10:45:26.504351754 +0000 UTC"
   },
   "538011676": {
    "mmsi": "538011676",
