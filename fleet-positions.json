@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-29T04:19:17.166Z",
+ "updated": "2026-07-29T07:50:01.468Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -119,18 +119,25 @@
    "cog": 27.5,
    "heading": 342,
    "navStatus": 5,
-   "lastReceived": "2026-07-29 04:17:51.947595118 +0000 UTC"
+   "lastReceived": "2026-07-29 04:17:51.947595118 +0000 UTC",
+   "destination": "BE ZEE",
+   "eta": {
+    "Day": 27,
+    "Hour": 16,
+    "Minute": 0,
+    "Month": 7
+   }
   },
   "441722000": {
    "mmsi": "441722000",
    "name": "Asian Emperor",
-   "lat": 37.962786666666666,
-   "lon": -76.201005,
-   "sog": 17.8,
-   "cog": 165.4,
-   "heading": 167,
-   "navStatus": 0,
-   "lastReceived": "2026-07-28 08:45:17.65958118 +0000 UTC",
+   "lat": 39.896269999999994,
+   "lon": -75.140325,
+   "sog": 0,
+   "cog": 302.4,
+   "heading": 280,
+   "navStatus": 5,
+   "lastReceived": "2026-07-29 07:47:38.827568032 +0000 UTC",
    "destination": "US SSI",
    "eta": {
     "Day": 25,
@@ -149,6 +156,17 @@
    "heading": 230,
    "navStatus": 0,
    "lastReceived": "2026-07-27 08:37:22.476645566 +0000 UTC"
+  },
+  "538005333": {
+   "mmsi": "538005333",
+   "name": "Morning Chant",
+   "lat": -29.649451666666668,
+   "lon": 12.677013333333333,
+   "sog": 16.1,
+   "cog": 138.3,
+   "heading": 138,
+   "navStatus": 0,
+   "lastReceived": "2026-07-29 07:47:55.212920622 +0000 UTC"
   },
   "538005452": {
    "mmsi": "538005452",
