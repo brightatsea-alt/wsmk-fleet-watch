@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-03T07:36:30.848Z",
+ "updated": "2026-08-03T11:35:24.915Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -109,11 +109,11 @@
    "heading": 191,
    "navStatus": 0,
    "lastReceived": "2026-08-02 23:05:48.669809597 +0000 UTC",
-   "destination": "AU BNE",
+   "destination": "CN ZHO",
    "eta": {
-    "Day": 2,
-    "Hour": 20,
-    "Minute": 45,
+    "Day": 13,
+    "Hour": 0,
+    "Minute": 30,
     "Month": 8
    }
   },
