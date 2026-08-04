@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-04T17:56:01.055Z",
+ "updated": "2026-08-04T19:46:19.296Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -199,12 +199,12 @@
    "heading": 228,
    "navStatus": 0,
    "lastReceived": "2026-08-04 09:42:17.965281274 +0000 UTC",
-   "destination": "BE ZEE",
+   "destination": "FR LEH",
    "eta": {
-    "Day": 27,
-    "Hour": 16,
+    "Day": 5,
+    "Hour": 5,
     "Minute": 0,
-    "Month": 7
+    "Month": 8
    }
   },
   "441722000": {
@@ -279,13 +279,13 @@
   "538005617": {
    "mmsi": "538005617",
    "name": "Morning Pride",
-   "lat": 51.896370000000005,
-   "lon": 4.231038333333333,
-   "sog": 1.8,
-   "cog": 131,
-   "heading": 128,
-   "navStatus": 0,
-   "lastReceived": "2026-08-04 17:55:40.863566265 +0000 UTC"
+   "lat": 51.89463833333333,
+   "lon": 4.247365,
+   "sog": 0,
+   "cog": 241.8,
+   "heading": 286,
+   "navStatus": 5,
+   "lastReceived": "2026-08-04 19:45:48.34272807 +0000 UTC"
   },
   "538011582": {
    "mmsi": "538011582",
