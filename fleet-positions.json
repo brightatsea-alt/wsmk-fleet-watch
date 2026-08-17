@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-17T19:35:01.418Z",
+ "updated": "2026-08-17T20:34:51.255Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -98,11 +98,11 @@
    "heading": 150,
    "navStatus": 0,
    "lastReceived": "2026-08-17 19:33:43.321278244 +0000 UTC",
-   "destination": "BE ZEE",
+   "destination": "BE ANR",
    "eta": {
-    "Day": 4,
-    "Hour": 15,
-    "Minute": 45,
+    "Day": 17,
+    "Hour": 11,
+    "Minute": 0,
     "Month": 8
    }
   },
