@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-17T15:32:41.319Z",
+ "updated": "2026-08-17T16:36:09.028Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -58,6 +58,17 @@
    "heading": 130,
    "navStatus": 0,
    "lastReceived": "2026-08-02 04:27:52.934703601 +0000 UTC"
+  },
+  "440083000": {
+   "mmsi": "440083000",
+   "name": "Morning Conductor",
+   "destination": "ES TAR",
+   "eta": {
+    "Day": 18,
+    "Hour": 23,
+    "Minute": 0,
+    "Month": 8
+   }
   },
   "440114000": {
    "mmsi": "440114000",
