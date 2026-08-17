@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-17T14:35:54.309Z",
+ "updated": "2026-08-17T15:32:41.319Z",
  "vessels": {
   "370967000": {
    "mmsi": "370967000",
@@ -210,10 +210,10 @@
    "heading": 324,
    "navStatus": 5,
    "lastReceived": "2026-08-17 08:51:23.486633593 +0000 UTC",
-   "destination": "FR LEH",
+   "destination": "US BAL",
    "eta": {
-    "Day": 5,
-    "Hour": 5,
+    "Day": 16,
+    "Hour": 23,
     "Minute": 0,
     "Month": 8
    }
