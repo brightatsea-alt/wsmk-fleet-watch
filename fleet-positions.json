@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-19T01:40:26.105Z",
+ "updated": "2026-08-19T03:05:20.242Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
@@ -116,11 +116,11 @@
    "heading": 257,
    "navStatus": 0,
    "lastReceived": "2026-08-18 22:29:31.95685295 +0000 UTC",
-   "destination": "BE ANR",
+   "destination": "GB SOU",
    "eta": {
-    "Day": 17,
-    "Hour": 11,
-    "Minute": 0,
+    "Day": 19,
+    "Hour": 9,
+    "Minute": 30,
     "Month": 8
    }
   },
@@ -243,13 +243,13 @@
   "441390000": {
    "mmsi": "441390000",
    "name": "Morning Cello",
-   "lat": 39.24393,
-   "lon": -76.53743833333333,
+   "lat": 39.24391833333333,
+   "lon": -76.53742333333334,
    "sog": 0,
    "cog": 10.9,
    "heading": 324,
    "navStatus": 5,
-   "lastReceived": "2026-08-18 20:30:34.633838419 +0000 UTC",
+   "lastReceived": "2026-08-19 03:03:35.859439784 +0000 UTC",
    "destination": "US BAL",
    "eta": {
     "Day": 16,
@@ -290,13 +290,13 @@
   "538005232": {
    "mmsi": "538005232",
    "name": "Morning Capo",
-   "lat": 49.182768333333335,
-   "lon": -122.92332666666667,
+   "lat": 49.182784999999996,
+   "lon": -122.92332333333334,
    "sog": 0,
-   "cog": 98,
+   "cog": 352.1,
    "heading": 199,
    "navStatus": 5,
-   "lastReceived": "2026-08-18 23:27:56.988467317 +0000 UTC",
+   "lastReceived": "2026-08-19 03:03:56.976528501 +0000 UTC",
    "destination": "CANWE",
    "eta": {
     "Day": 14,
