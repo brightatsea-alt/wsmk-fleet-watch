@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-23T03:10:44.358Z",
+ "updated": "2026-08-23T04:45:06.318Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
@@ -195,6 +195,17 @@
     "Minute": 0,
     "Month": 8
    }
+  },
+  "440694000": {
+   "mmsi": "440694000",
+   "name": "Morning Celine",
+   "lat": 1.2783166666666665,
+   "lon": 103.90623333333333,
+   "sog": 5.8,
+   "cog": 283,
+   "heading": 289,
+   "navStatus": 0,
+   "lastReceived": "2026-08-23 04:43:29.997892764 +0000 UTC"
   },
   "440767000": {
    "mmsi": "440767000",
@@ -409,11 +420,11 @@
    "heading": 260,
    "navStatus": 0,
    "lastReceived": "2026-08-23 01:45:28.444114032 +0000 UTC",
-   "destination": "DEBRV",
+   "destination": "GBSOU",
    "eta": {
-    "Day": 16,
-    "Hour": 3,
-    "Minute": 30,
+    "Day": 25,
+    "Hour": 4,
+    "Minute": 0,
     "Month": 8
    }
   },
