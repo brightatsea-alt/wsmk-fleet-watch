@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-24T23:28:56.193Z",
+ "updated": "2026-08-25T01:39:43.408Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
@@ -199,19 +199,19 @@
   "440694000": {
    "mmsi": "440694000",
    "name": "Morning Celine",
-   "lat": 1.2785,
-   "lon": 103.89553333333333,
-   "sog": 0.1,
-   "cog": 266,
-   "heading": 109,
-   "navStatus": 1,
-   "lastReceived": "2026-08-23 06:50:34.809596988 +0000 UTC",
-   "destination": "SGSIN PEBGC",
+   "lat": 1.1792833333333335,
+   "lon": 103.66810000000001,
+   "sog": 13.5,
+   "cog": 289,
+   "heading": 288,
+   "navStatus": 0,
+   "lastReceived": "2026-08-25 01:38:09.902414147 +0000 UTC",
+   "destination": "ESSAG",
    "eta": {
-    "Day": 23,
-    "Hour": 4,
+    "Day": 21,
+    "Hour": 6,
     "Minute": 0,
-    "Month": 8
+    "Month": 9
    }
   },
   "440767000": {
