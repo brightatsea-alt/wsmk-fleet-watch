@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-26T14:52:21.646Z",
+ "updated": "2026-08-26T16:24:45.914Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
@@ -217,17 +217,17 @@
   "440767000": {
    "mmsi": "440767000",
    "name": "Morning Peace",
-   "lat": -29.617630000000002,
-   "lon": 12.686776666666667,
-   "sog": 17.8,
-   "cog": 136.1,
-   "heading": 137,
+   "lat": -30.628258333333335,
+   "lon": 13.7754,
+   "sog": 16.6,
+   "cog": 137.1,
+   "heading": 138,
    "navStatus": 0,
-   "lastReceived": "2026-08-26 11:34:40.587205796 +0000 UTC",
-   "destination": "KR USN",
+   "lastReceived": "2026-08-26 16:22:17.225859368 +0000 UTC",
+   "destination": "KR PTK",
    "eta": {
-    "Day": 17,
-    "Hour": 3,
+    "Day": 16,
+    "Hour": 20,
     "Minute": 0,
     "Month": 9
    }
