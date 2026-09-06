@@ -1,16 +1,16 @@
 {
- "updated": "2026-09-06T19:00:42.863Z",
+ "updated": "2026-09-06T21:16:32.607Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
    "name": "Morning Caroline",
-   "lat": 36.19582333333334,
-   "lon": -5.008321666666666,
-   "sog": 0.5,
-   "cog": 264,
-   "heading": 28,
+   "lat": 36.1892,
+   "lon": -5.001481666666667,
+   "sog": 1.2,
+   "cog": 56.1,
+   "heading": 108,
    "navStatus": 0,
-   "lastReceived": "2026-09-06 16:06:43.61457822 +0000 UTC",
+   "lastReceived": "2026-09-06 21:14:42.836806555 +0000 UTC",
    "destination": "ES ALG",
    "eta": {
     "Day": 6,
@@ -264,13 +264,13 @@
   "441010000": {
    "mmsi": "441010000",
    "name": "Morning Christina",
-   "lat": 39.71566666666667,
-   "lon": -9.845666666666666,
-   "sog": 13.5,
-   "cog": 0,
-   "heading": 2,
+   "lat": 40.22026666666667,
+   "lon": -9.831183333333334,
+   "sog": 13.4,
+   "cog": 4,
+   "heading": 5,
    "navStatus": 0,
-   "lastReceived": "2026-09-06 18:59:23.766346702 +0000 UTC",
+   "lastReceived": "2026-09-06 21:14:45.103761415 +0000 UTC",
    "destination": "GBBRS",
    "eta": {
     "Day": 9,
