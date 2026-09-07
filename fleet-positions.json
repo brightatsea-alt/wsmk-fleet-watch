@@ -1,5 +1,5 @@
 {
- "updated": "2026-09-07T19:48:25.162Z",
+ "updated": "2026-09-07T22:43:45.212Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
@@ -481,17 +481,17 @@
   "538011676": {
    "mmsi": "538011676",
    "name": "Morning Lena",
-   "lat": 40.69645666666667,
-   "lon": -74.14205166666667,
+   "lat": 40.69648666666667,
+   "lon": -74.14206666666668,
    "sog": 0,
    "cog": 87.4,
    "heading": 294,
    "navStatus": 5,
-   "lastReceived": "2026-09-07 03:59:44.947048063 +0000 UTC",
-   "destination": "CAHAL",
+   "lastReceived": "2026-09-07 22:41:50.734021479 +0000 UTC",
+   "destination": "USEWR",
    "eta": {
-    "Day": 1,
-    "Hour": 19,
+    "Day": 6,
+    "Hour": 12,
     "Minute": 0,
     "Month": 9
    }
@@ -499,18 +499,18 @@
   "538012688": {
    "mmsi": "538012688",
    "name": "Liberty Pride",
-   "lat": 38.173096666666666,
-   "lon": -123.44634833333333,
-   "sog": 9.8,
-   "cog": 280.4,
-   "heading": 285,
+   "lat": 45.59055333333333,
+   "lon": -124.60533166666667,
+   "sog": 16,
+   "cog": 24.7,
+   "heading": 28,
    "navStatus": 0,
-   "lastReceived": "2026-09-06 16:07:16.878233063 +0000 UTC",
-   "destination": "USBNC",
+   "lastReceived": "2026-09-07 22:42:04.129356522 +0000 UTC",
+   "destination": "USPDX",
    "eta": {
-    "Day": 5,
-    "Hour": 11,
-    "Minute": 15,
+    "Day": 8,
+    "Hour": 1,
+    "Minute": 30,
     "Month": 9
    }
   },
