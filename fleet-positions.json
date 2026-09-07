@@ -1,16 +1,16 @@
 {
- "updated": "2026-09-07T04:01:29.270Z",
+ "updated": "2026-09-07T09:18:12.468Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
    "name": "Morning Caroline",
-   "lat": 36.238875,
-   "lon": -4.939366666666667,
-   "sog": 1.9,
-   "cog": 178,
-   "heading": 205,
+   "lat": 36.18495666666667,
+   "lon": -5.013195,
+   "sog": 3.7,
+   "cog": 217,
+   "heading": 209,
    "navStatus": 0,
-   "lastReceived": "2026-09-07 03:59:46.728836013 +0000 UTC",
+   "lastReceived": "2026-09-07 09:16:14.329253181 +0000 UTC",
    "destination": "ES ALG",
    "eta": {
     "Day": 6,
