@@ -1,16 +1,16 @@
 {
- "updated": "2026-09-09T14:20:39.667Z",
+ "updated": "2026-09-09T18:27:49.668Z",
  "vessels": {
   "351446000": {
    "mmsi": "351446000",
    "name": "Morning Caroline",
-   "lat": 33.389575,
-   "lon": -9.643076666666667,
-   "sog": 17.6,
-   "cog": 224.1,
-   "heading": 225,
+   "lat": 29.283891666666666,
+   "lon": -14.229255,
+   "sog": 17.9,
+   "cog": 208.1,
+   "heading": 208,
    "navStatus": 0,
-   "lastReceived": "2026-09-08 23:20:06.87402553 +0000 UTC",
+   "lastReceived": "2026-09-09 18:26:32.859917589 +0000 UTC",
    "destination": "KR USN",
    "eta": {
     "Day": 11,
