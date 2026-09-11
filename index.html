@@ -165,6 +165,9 @@
   .vlabel{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.18);color:#fff;
     font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.6)}
   .vlabel::before{display:none}
+  .leaflet-tooltip.vlabel{display:none;font-size:10.5px;padding:1px 6px;opacity:.95}
+  .zl3 .leaflet-tooltip.vlabel{display:block}
+  .leaflet-tooltip.vlabel.hov{display:block;z-index:950;font-weight:700}
   /* ── Legend ── */
   #legend{position:absolute;left:14px;bottom:14px;z-index:800;background:rgba(13,21,34,.88);
     border:1px solid var(--line);border-radius:7px;padding:9px 11px;font-family:var(--mono);
@@ -440,15 +443,19 @@ function render(){
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
-      .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
+      .bindTooltip(v.name,{permanent:true,direction:'top',offset:[0,-12],className:'vlabel',opacity:1})
       .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false})
-      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} }).addTo(layer);
+      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} })
+      .on('mouseover', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.add('hov'); }catch(e){} })
+      .on('mouseout', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.remove('hov'); }catch(e){} })
+      .addTo(layer);
    }catch(e){}
   });
   try{
     if(soloNo!=null){ var sv=vessels.filter(function(x){return x.no===soloNo;})[0]; drawDest(sv); }
     else if(destLayer) destLayer.clearLayers();
   }catch(e){}
+  try{ applyPortLabels(); }catch(e){}
   renderBoard(); renderList();
 }
 
@@ -943,6 +950,7 @@ function labelMode(){
 }
 function applyPortLabels(){
   const z = map.getZoom(), c = map.getContainer();
+  c.classList.toggle('zl3', z>=3);
   c.classList.toggle('zl4', z>=4);
   c.classList.toggle('zl5', z>=5);
 }
