@@ -135,6 +135,12 @@
   .pop table{font-family:var(--mono);font-size:11.5px;border-collapse:collapse}
   .pop td{padding:1.5px 0}
   .pop td:first-child{color:var(--muted);padding-right:12px}
+  .pop .pch{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted)}
+  .pop .pcl{margin-top:3px;font-size:11.5px;max-height:96px;overflow-y:auto}
+  .pop .pcr{padding:2px 0;white-space:nowrap}
+  .pop .pcr b{color:#F0B95A;font-weight:600}
+  .pop .pcr span{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:4px}
+  .pop .pcn{color:var(--muted);font-size:10.5px}
   .badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10.5px;font-family:var(--mono);color:#08121F;font-weight:600;margin-left:6px;vertical-align:1px}
 
   /* ── Mobile ── */
@@ -365,7 +371,11 @@ function fmtEta(e){ return e&&e.Month ? String(e.Month).padStart(2,'0')+'/'+Stri
 function build(){
   const now=Date.now();
   vessels = fleet.map(f=>{
-    const d = f.mmsi ? (store.vessels[f.mmsi]||null) : null;
+    var d = f.mmsi ? (store.vessels[f.mmsi]||null) : null;
+    if(!d){ var nk=String(f.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/MORNINGLUNA|[()]/g,'');
+      for(var sk in store.vessels){ var sv=store.vessels[sk];
+        var sn=String(sv.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+        if(sn && nk && (sn===nk || nk.indexOf(sn)>=0 || sn.indexOf(nk)>=0)){ d=sv; break; } } }
     const v = {...f, data:d};
     if(!f.mmsi){ v.status='NOSIG'; v.note='MMSI 미등록'; return v; }
     if(!d || d.lat==null){ v.status='NOSIG'; v.note='수신 이력 없음'; return v; }
@@ -409,6 +419,7 @@ function popup(v){
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
     <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
+    <div class="pch">\uCD5C\uADFC \uAE30\uD56D</div><div class="pcl" id="pc_${v.no}">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>
     ${(function(){ try{ var pe=d.destination?destPortEntry(d.destination):null; if(!pe) return '';
       return pe.countryOnly
         ? `<button class="pbtn co" onclick="openCountry('${enc(pe.country)}')">\uD83C\uDF0F ${pe.country} \uD56D\uB9CC \uC815\uBCF4 \uBCF4\uAE30 \u2192</button>`
@@ -430,7 +441,8 @@ function render(){
     }
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
-      .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false}).addTo(layer);
+      .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false})
+      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} }).addTo(layer);
    }catch(e){}
   });
   try{
@@ -648,6 +660,27 @@ function detectCalls(pts){
               berth:!!(np && np.dist<=6)});
   }
   return out;
+}
+var TRKC={};
+async function loadCalls(v){
+  var el=document.getElementById('pc_'+v.no); if(!el) return;
+  var key=(v.mmsi)||(v.data&&v.data.imo)||'';
+  if(!key){ el.innerHTML='<span class="pcn">\uD56D\uC801 \uC5C6\uC74C</span>'; return; }
+  try{
+    var pts=TRKC[key];
+    if(!pts){ var r=await fetch('tracks/'+key+'.json?t='+Date.now());
+      if(!r.ok) throw new Error('no track');
+      var d2=await r.json(); pts=d2.points||[]; TRKC[key]=pts; }
+    if(pts.length<3){ el.innerHTML='<span class="pcn">\uD56D\uC801 \uB370\uC774\uD130 \uBD80\uC871</span>'; return; }
+    var cs=detectCalls(pts).slice(-4).reverse();
+    if(!cs.length){ el.innerHTML='<span class="pcn">\uCD5C\uADFC \uAE30\uD56D \uC5C6\uC74C \u00b7 \uC5F0\uC18D \uD56D\uD574</span>'; return; }
+    el.innerHTML=cs.map(function(c){
+      var ic=c.port?(c.berth?'\u2693':'\u23F8'):'\u25CB';
+      var nm=c.port||'\uBBF8\uC0C1 \uC815\uC9C0\uC9C0';
+      var du=c.hrs<24?c.hrs.toFixed(1)+'h':(c.hrs/24).toFixed(1)+'\uC77C';
+      return '<div class="pcr">'+ic+' <b>'+nm+'</b> <span>'+fmtD(c.from)+' \u00b7 '+du+'</span></div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<span class="pcn">\uD56D\uC801 \uB370\uC774\uD130 \uC5C6\uC74C</span>'; }
 }
 function renderCalls(calls){
   var el=document.getElementById('trkcalls'); if(!el) return;
