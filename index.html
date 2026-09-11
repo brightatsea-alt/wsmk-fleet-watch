@@ -50,6 +50,7 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  #legend{display:none!important}
   #trkpanel{display:none;position:fixed;left:344px;bottom:34px;z-index:900;width:330px;background:rgba(13,21,34,.94);
     border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text);
     box-shadow:0 6px 20px rgba(0,0,0,.5);backdrop-filter:blur(4px)}
@@ -155,19 +156,6 @@
   <div class="rl">종료 END</div><input type="range" id="trkto" min="0" max="1" value="1" oninput="drawTrack()">
 </div>
 <div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span></div>
-<div id="legend">
-  <b>선박 VESSEL</b>
-  <div><i style="background:#3DDC97"></i>실측 (6h 이내)</div>
-  <div><i style="background:#F0B95A"></i>추정 DR</div>
-  <div><i style="background:#E0703C"></i>장기 미수신</div>
-  <div class="sep"></div>
-  <b>항구 PORT</b>
-  <div><i style="background:#5AB8D6"></i>일반 정보 위주</div>
-  <div><i style="background:#E0703C"></i>보안 정보 위주</div>
-  <div style="color:#6E7E92;margin-top:3px">점 크기 = 정보량 · 확대 시 이름 표시</div>
-  <div style="color:#6E7E92">상단 칩으로 선박/항구 표시 전환</div>
-</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* 선대 명부 내장 — 데이터 파일을 못 읽어도 56척 전원 항상 표시 */
