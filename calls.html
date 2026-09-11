@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WSMK Fleet Watch — 기항 이력</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;
+   --accent:#5AB8D6;--amber:#F0B95A;--mono:'IBM Plex Mono',ui-monospace,monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:14px;min-height:100vh}
+ header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+ .brand{font-family:var(--cond);font-weight:600;font-size:21px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--accent);font-size:12px;letter-spacing:.18em;margin-left:8px}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ a.back:hover{border-color:var(--accent)}
+ .bar{display:flex;gap:7px;flex-wrap:wrap;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--line)}
+ select,input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ select:focus,input:focus{border-color:var(--accent)}
+ select.act{border-color:var(--accent);color:var(--accent)}
+ .sum{padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid var(--line)}
+ .sum b{color:var(--text)}
+ table{width:100%;border-collapse:collapse}
+ th{position:sticky;top:0;background:var(--panel);font-family:var(--cond);font-size:13px;letter-spacing:.1em;color:var(--muted);
+   text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+ th:hover{color:var(--accent)}
+ td{padding:7px 12px;border-bottom:1px solid rgba(34,51,74,.45);font-size:12.5px;white-space:nowrap}
+ tr:hover td{background:rgba(90,184,214,.06)}
+ td.d{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ td.v{font-weight:600}
+ td.p{color:var(--amber)}
+ .tag{display:inline-block;padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:10px}
+ .tag.b{background:rgba(240,185,90,.18);color:var(--amber)}
+ .tag.a{background:rgba(140,160,184,.18);color:var(--muted)}
+ .empty{padding:30px 16px;color:var(--muted);text-align:center}
+ .wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">PORT CALLS<small>WSM KOREA</small></div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div class="bar">
+  <select id="fport"><option value="">항구 — 전체</option></select>
+  <select id="fves"><option value="">선박 — 전체</option></select>
+  <select id="fdays"><option value="0">전체 기간</option><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30">최근 30일</option><option value="60">최근 60일</option></select>
+  <select id="fkind"><option value="">접안·묘박 전체</option><option value="b">접안만</option><option value="a">묘박·대기만</option></select>
+  <input id="fq" type="search" placeholder="선박·항구 검색" style="min-width:150px">
+</div>
+<div class="sum" id="sum">불러오는 중…</div>
+<div class="wrap"><table>
+  <thead><tr>
+    <th data-k="from">입항 (UTC)</th><th data-k="to">출항 (UTC)</th><th data-k="hrs">체류</th>
+    <th data-k="v">선박</th><th data-k="port">항구</th><th data-k="country">국가</th><th data-k="berth">구분</th>
+  </tr></thead>
+  <tbody id="tb"></tbody>
+</table></div>
+<div class="empty" id="empty" style="display:none">조건에 맞는 기항 이력이 없습니다</div>
+<script>
+var D=null, SORT='from', ASC=true;
+function q(id){ return document.getElementById(id); }
+function fmt(s){ var d=new Date(s); if(isNaN(d)) return s;
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')
+    +' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+function dur(h){ return h<24 ? h.toFixed(1)+'h' : (h/24).toFixed(1)+'일'; }
+function pkey(c){ return c.port+(c.country?' / '+c.country:''); }
+function rows(){
+  if(!D) return [];
+  var p=q('fport').value, v=q('fves').value, dy=parseInt(q('fdays').value,10), k=q('fkind').value,
+      s=(q('fq').value||'').toLowerCase();
+  var cut = dy ? Date.now()-dy*864e5 : 0;
+  return (D.calls||[]).filter(function(c){
+    if(p && pkey(c)!==p) return false;
+    if(v && c.v!==v) return false;
+    if(cut && new Date(c.from).getTime()<cut) return false;
+    if(k==='b' && !c.berth) return false;
+    if(k==='a' && c.berth) return false;
+    if(s && (c.v+' '+c.port+' '+(c.country||'')).toLowerCase().indexOf(s)<0) return false;
+    return true;
+  });
+}
+function draw(){
+  var r=rows().slice();
+  r.sort(function(a,b){ var x=a[SORT], y=b[SORT];
+    if(SORT==='hrs'||SORT==='berth'){ x=+x; y=+y; }
+    if(x===y) return 0; return (x<y?-1:1)*(ASC?1:-1); });
+  var vs={}, ps={};
+  r.forEach(function(c){ vs[c.v]=1; ps[pkey(c)]=1; });
+  q('sum').innerHTML='<b>'+r.length+'</b>건 · 선박 <b>'+Object.keys(vs).length+'</b>척 · 항구 <b>'+Object.keys(ps).length+'</b>곳 · 집계 '+(D.updated||'').slice(0,16).replace('T',' ')+' UTC · 항적 '+D.vessels+'척 기준';
+  q('tb').innerHTML=r.map(function(c){
+    return '<tr><td class="d">'+fmt(c.from)+'</td><td class="d">'+fmt(c.to)+'</td><td class="d">'+dur(c.hrs)+'</td>'
+      +'<td class="v">'+c.v+'</td><td class="p">'+c.port+'</td><td class="d">'+(c.country||'—')+'</td>'
+      +'<td>'+(c.berth?'<span class="tag b">⚓ 접안</span>':'<span class="tag a">⏸ 묘박 '+Math.round(c.dist)+'nm</span>')+'</td></tr>';
+  }).join('');
+  q('empty').style.display = r.length ? 'none' : 'block';
+  ['fport','fves','fdays','fkind'].forEach(function(id){ var e=q(id); e.classList.toggle('act', !!e.value && e.value!=='0'); });
+}
+fetch('calls.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(d){
+  D=d;
+  var ports=Object.keys(d.ports||{}).sort();
+  q('fport').innerHTML='<option value="">항구 — 전체 ('+ports.length+')</option>'+ports.map(function(k){ return '<option value="'+k+'">'+k+' ('+d.ports[k].n+')</option>'; }).join('');
+  var vs=[]; (d.calls||[]).forEach(function(c){ if(vs.indexOf(c.v)<0) vs.push(c.v); }); vs.sort();
+  q('fves').innerHTML='<option value="">선박 — 전체 ('+vs.length+')</option>'+vs.map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+  var qs=new URLSearchParams(location.search), pp=qs.get('port'), pv=qs.get('vessel');
+  if(pp) q('fport').value=pp;
+  if(pv) q('fves').value=pv;
+  draw();
+}).catch(function(){ q('sum').textContent='기항 집계 데이터가 아직 없습니다 (매일 자동 수집)'; });
+['fport','fves','fdays','fkind'].forEach(function(id){ q(id).onchange=draw; });
+q('fq').oninput=draw;
+[].forEach.call(document.querySelectorAll('th'), function(th){
+  th.onclick=function(){ var k=th.getAttribute('data-k'); if(SORT===k) ASC=!ASC; else { SORT=k; ASC=true; } draw(); };
+});
+</script>
+</body>
+</html>
