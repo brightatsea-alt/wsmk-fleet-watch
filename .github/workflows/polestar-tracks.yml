@@ -34,11 +34,14 @@ jobs:
           KEEP_DAYS: '60'
           FORCE_BACKFILL: ${{ github.event.inputs.backfill == 'true' && '1' || '0' }}
         run: node polestar-tracks.js
+      - name: Build port call index
+        continue-on-error: true
+        run: node build-calls.js
       - name: Commit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add tracks
+          git add tracks calls.json
           if git diff --staged --quiet; then
             echo 'no change'
           else
