@@ -29,16 +29,22 @@ jobs:
         run: npm install ws --no-save
 
       - name: Collect AIS positions
+        continue-on-error: true          # 한 소스 실패가 전체를 중단하지 않도록
         env:
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
           COLLECT_SECONDS: "330"
         run: node collect.js
 
       - name: Collect Pole Star (Spire) positions
+        continue-on-error: true
         env:
           POLESTAR_CLIENT_ID: ${{ secrets.POLESTAR_CLIENT_ID }}
           POLESTAR_CLIENT_SECRET: ${{ secrets.POLESTAR_CLIENT_SECRET }}
         run: node polestar-collect.js
+
+      - name: Validate output
+        run: |
+          node -e "const d=require('./fleet-positions.json'); const n=Object.keys(d.vessels||{}).length; if(!n) { console.error('EMPTY position store'); process.exit(1); } console.log('OK: '+n+' vessels, updated '+d.updated);"
 
       - name: Commit and push if changed
         run: |
@@ -49,5 +55,8 @@ jobs:
             echo "No changes."
           else
             git commit -m "Position update $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
+            for i in 1 2 3; do
+              git pull --rebase --autostash && git push && break
+              echo "retry $i"; sleep 5
+            done
           fi
