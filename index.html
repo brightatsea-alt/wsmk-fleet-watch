@@ -67,7 +67,7 @@
   @media(max-width:760px){
     aside{position:absolute;z-index:1000;height:calc(100% - 57px);width:min(330px,86vw);transform:translateX(-100%);transition:transform .22s}
     aside.open{transform:none}
-    #toggle{display:block;position:absolute;z-index:1001;bottom:18px;left:14px;padding:10px 16px;background:var(--accent);color:#08121F;border:none;border-radius:24px;font-weight:700;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+    #toggle{display:block;position:absolute;z-index:1002;z-index:1001;bottom:18px;left:14px;padding:10px 16px;background:var(--accent);color:#08121F;border:none;border-radius:24px;font-weight:700;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.5)}
   }
   #list::-webkit-scrollbar{width:8px}#list::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
 
@@ -81,7 +81,7 @@
     font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.6)}
   .vlabel::before{display:none}
   /* ── Legend ── */
-  #legend{display:none;position:absolute;left:14px;bottom:14px;z-index:800;background:rgba(13,21,34,.88);
+  #legend{position:absolute;left:14px;bottom:14px;z-index:800;background:rgba(13,21,34,.88);
     border:1px solid var(--line);border-radius:7px;padding:9px 11px;font-family:var(--mono);
     font-size:10.5px;color:var(--muted);backdrop-filter:blur(3px);line-height:1.75;pointer-events:none}
   #legend b{color:var(--text);font-weight:600;display:block;margin-bottom:3px;letter-spacing:.08em;font-size:10px}
@@ -102,7 +102,7 @@
   <div class="updated" id="updated">데이터 로딩 중…</div>
 </header>
 <div id="wrap">
-  <aside id="side">
+  <aside id="side" class="open">
     <div class="search"><input id="q" type="search" placeholder="선박명 · MMSI 검색"></div>
     <div id="list"></div>
   </aside>
@@ -307,7 +307,8 @@ function focusV(no){
 }
 
 async function load(){
-  fleet = FLEET;                                   // 명부는 내장 — 항상 56척 표시
+  fleet = FLEET;
+  if(!vessels.length) render();                  // 새로고침 직후 선박 목록 즉시 표시                                   // 명부는 내장 — 항상 56척 표시
   try{
     const t=Date.now();
     store=await (await fetch('fleet-positions.json?t='+t)).json();
