@@ -50,6 +50,23 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  #posbox{position:absolute;top:12px;right:12px;z-index:850;width:290px;background:rgba(13,21,34,.96);
+    border:1px solid var(--line);border-radius:8px;padding:11px 12px;box-shadow:0 6px 24px rgba(0,0,0,.55);display:none}
+  #posbox.on{display:block}
+  #posbox h4{font-size:12px;color:var(--accent);margin-bottom:6px;letter-spacing:.05em}
+  #posbox textarea{width:100%;height:64px;resize:vertical;background:var(--panel);border:1px solid var(--line);
+    border-radius:5px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;outline:none}
+  #posbox textarea:focus{border-color:var(--accent)}
+  #posbox .ex{font-family:var(--mono);font-size:10px;color:var(--muted);margin:6px 0 8px;line-height:1.6}
+  #posbox .bt{display:flex;gap:6px}
+  #posbox button{flex:1;padding:6px 0;border:1px solid var(--line);border-radius:5px;background:#1a6fb5;color:#fff;
+    font-size:12px;font-weight:600;cursor:pointer}
+  #posbox button.alt{background:var(--panel);color:var(--muted)}
+  #posbox .msg{font-family:var(--mono);font-size:10.5px;margin-top:7px;min-height:13px;color:var(--muted)}
+  .wplbl{background:rgba(24,14,40,.94);border:1px solid rgba(201,167,255,.7);color:#E6D8FF;font-family:var(--mono);
+    font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .wplbl::before{display:none}
+  @media(max-width:760px){#posbox{width:auto;left:10px;right:10px}}
   @keyframes dpulse{0%{transform:scale(.75);opacity:.85}70%{transform:scale(1.35);opacity:0}100%{opacity:0}}
   .destmk .ring{transform-origin:center;animation:dpulse 2.2s ease-out infinite}
   .destlbl{background:rgba(24,18,8,.92);border:1px solid rgba(240,185,90,.65);color:#F7D79A;
@@ -160,6 +177,13 @@
   <div id="trkinfo">—</div>
   <div class="rl">시작 START</div><input type="range" id="trkfrom" min="0" max="1" value="0" oninput="drawTrack()">
   <div class="rl">종료 END</div><input type="range" id="trkto" min="0" max="1" value="1" oninput="drawTrack()">
+</div>
+<div id="posbox">
+  <h4>📍 위경도 입력</h4>
+  <textarea id="posin" placeholder="예) 23-40N 123-40E &#10;35°06.5′N 129°02.4′E &#10;35.0994, 129.0403"></textarea>
+  <div class="ex">여러 줄을 한거번에 붙여넣을 수 있습니다<br>도-분 / 십진도 / DDMM 형식 모두 인식</div>
+  <div class="bt"><button id="posgo">표시</button><button id="posclr" class="alt">지우기</button><button id="posx" class="alt">닫기</button></div>
+  <div class="msg" id="posmsg"></div>
 </div>
 <div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -482,6 +506,19 @@ const portLayer = L.layerGroup().addTo(map);
   document.getElementById('stoggle').onclick = function(){
     shipsOn = !shipsOn; this.classList.toggle('on', shipsOn); render();
   };
+  const pb=document.createElement('div');
+  pb.className='chip'; pb.id='posbtn'; pb.title='\uC704\uACBD\uB3C4\uB97C \uC785\uB825\uD574 \uC9C0\uB3C4\uC5D0 \uD45C\uC2DC';
+  pb.innerHTML='\uD83D\uDCCD \uC704\uACBD\uB3C4';
+  pb.onclick=function(){ var b=document.getElementById('posbox'); b.classList.toggle('on'); if(b.classList.contains('on')) document.getElementById('posin').focus(); };
+  bar.appendChild(pb);
+  document.getElementById('posgo').onclick=function(){
+    var v=document.getElementById('posin').value, list=parseLL(v), msg=document.getElementById('posmsg');
+    if(!list.length){ msg.style.color='#E0703C'; msg.textContent='\uD574\uC11D\uD560 \uC218 \uC5C6\uB294 \uD615\uC2DD\uC785\uB2C8\uB2E4'; return; }
+    var n=addWP(list); msg.style.color='#3DDC97'; msg.textContent=n+'\uAC1C \uC704\uCE58 \uD45C\uC2DC\uB428';
+  };
+  document.getElementById('posclr').onclick=function(){ wpLayer.clearLayers(); document.getElementById('posmsg').textContent=''; };
+  document.getElementById('posx').onclick=function(){ document.getElementById('posbox').classList.remove('on'); };
+  document.getElementById('posin').addEventListener('keydown',function(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) document.getElementById('posgo').click(); });
   const ms=document.createElement('div');
   ms.className='chip'; ms.id='mapstyle'; ms.title='\uC9C0\uB3C4 \uC2A4\uD0C0\uC77C \uC804\uD658';
   ms.innerHTML='\uD83D\uDDFA '+BASEMAPS[baseIdx].name;
@@ -546,6 +583,73 @@ function drawDest(v){
   mk.bindTooltip('\u25B6 '+destFull(v.data.destination)+'  \u00b7  \uC9C1\uC120 '+d.toLocaleString()+' nm'+(eta?'  \u00b7  ETA '+eta+' UTC':''),
     {permanent:true,direction:'top',offset:[0,-18],className:'destlbl',opacity:1});
   return P;
+}
+function parseLL(text){
+  var out=[], lines=String(text||'').split(/[\r\n;]+/);
+  for(var li=0; li<lines.length; li++){
+    var s=lines[li].toUpperCase().replace(/[\u00B0\u00BA\u02DA\u2032\u2033\u2018\u2019\u201C\u201D'\"]/g,' ').trim(); if(!s) continue;
+    var got=null;
+    if(/[NSEW]/.test(s)){
+      var re=/([NSEW])\s*([0-9]{1,7}(?:[^0-9NSEW]+[0-9.]+)*)|([0-9]{1,7}(?:[^0-9NSEW]+[0-9.]+)*)\s*([NSEW])/g, m, vals=[];
+      while((m=re.exec(s))!==null){
+        var hemi=m[1]||m[4], num=(m[2]||m[3]||'').trim();
+        if(!hemi||!num) continue;
+        var isLat=(hemi==='N'||hemi==='S');
+        var parts=num.split(/[^0-9.]+/).filter(function(x){return x!=='';});
+        var deg,min=0,sec=0;
+        if(parts.length===1 && parts[0].indexOf('.')<0){
+          var d=parts[0];
+          if(isLat){
+            if(d.length<=2){deg=+d;}
+            else if(d.length===4){deg=+d.slice(0,2);min=+d.slice(2);}
+            else if(d.length===6){deg=+d.slice(0,2);min=+d.slice(2,4);sec=+d.slice(4);}
+            else {deg=+d;}
+          } else {
+            if(d.length<=3){deg=+d;}
+            else if(d.length===4){deg=+d.slice(0,2);min=+d.slice(2);}
+            else if(d.length===5){deg=+d.slice(0,3);min=+d.slice(3);}
+            else if(d.length===7){deg=+d.slice(0,3);min=+d.slice(3,5);sec=+d.slice(5);}
+            else {deg=+d;}
+          }
+        } else {
+          deg=parseFloat(parts[0])||0; min=parts[1]?parseFloat(parts[1]):0; sec=parts[2]?parseFloat(parts[2]):0;
+        }
+        var v=Math.abs(deg)+min/60+sec/3600;
+        if(hemi==='S'||hemi==='W') v=-v;
+        vals.push({v:v,isLat:isLat});
+      }
+      var la=vals.filter(function(x){return x.isLat;})[0], lo=vals.filter(function(x){return !x.isLat;})[0];
+      if(la&&lo) got={lat:la.v, lon:lo.v};
+    } else {
+      var nums=s.match(/-?\d+(?:\.\d+)?/g);
+      if(nums&&nums.length>=2) got={lat:parseFloat(nums[0]), lon:parseFloat(nums[1])};
+    }
+    if(got && isFinite(got.lat) && isFinite(got.lon) && Math.abs(got.lat)<=90 && Math.abs(got.lon)<=180)
+      out.push({lat:got.lat, lon:got.lon, raw:lines[li].trim()});
+  }
+  return out;
+}
+const wpLayer=L.layerGroup().addTo(map);
+function wpIcon(){ return L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,14],html:
+  '<svg width="28" height="28" viewBox="0 0 28 28">'
+ +'<circle cx="14" cy="14" r="10" fill="none" stroke="#C9A7FF" stroke-width="1.4" opacity=".85"/>'
+ +'<line x1="14" y1="1" x2="14" y2="27" stroke="#C9A7FF" stroke-width="1.2" opacity=".85"/>'
+ +'<line x1="1" y1="14" x2="27" y2="14" stroke="#C9A7FF" stroke-width="1.2" opacity=".85"/>'
+ +'<circle cx="14" cy="14" r="3" fill="#C9A7FF" stroke="#160C26" stroke-width="1"/></svg>'}); }
+function addWP(list){
+  var pts=[];
+  list.forEach(function(p){
+    var mk=L.marker([p.lat,p.lon],{icon:wpIcon(),pane:'shipsPane'}).addTo(wpLayer);
+    mk.bindTooltip(dm(p.lat,true)+'  '+dm(p.lon,false),{permanent:true,direction:'top',offset:[0,-14],className:'wplbl',opacity:1});
+    mk.bindPopup('<div class="pop"><b class="t">\uD83D\uDCCD \uC785\uB825 \uC704\uCE58</b><table>'
+      +'<tr><td>\uB3C4-\uBD84</td><td>'+dm(p.lat,true)+' / '+dm(p.lon,false)+'</td></tr>'
+      +'<tr><td>\uC2ED\uC9C4\uB3C4</td><td>'+p.lat.toFixed(4)+', '+p.lon.toFixed(4)+'</td></tr>'
+      +'<tr><td>\uC785\uB825\uAC12</td><td>'+p.raw+'</td></tr></table></div>');
+    pts.push([p.lat,p.lon]);
+  });
+  if(pts.length===1) map.flyTo(pts[0], Math.max(map.getZoom(),6), {duration:.8});
+  else if(pts.length>1) map.fitBounds(pts,{padding:[70,70],maxZoom:7});
+  return pts.length;
 }
 function portColor(p){ return p.security > p.general ? '#E0703C' : '#5AB8D6'; }
 function enc(s){ return encodeURIComponent(s).replace(/'/g,'%27'); }
