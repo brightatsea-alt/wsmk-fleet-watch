@@ -50,12 +50,16 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
-  #coord{position:absolute;right:12px;bottom:64px;z-index:800;background:rgba(13,21,34,.86);
-    border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:11.5px;
-    color:var(--text);letter-spacing:.03em;pointer-events:none;backdrop-filter:blur(3px);white-space:nowrap}
+  #coord{position:fixed;left:0;right:0;bottom:0;z-index:900;height:26px;display:flex;align-items:center;gap:16px;
+    padding:0 14px;background:rgba(11,18,29,.94);border-top:1px solid var(--line);font-family:var(--mono);
+    font-size:11.5px;color:var(--muted);letter-spacing:.03em;pointer-events:none;backdrop-filter:blur(4px);white-space:nowrap;overflow:hidden}
   #coord b{color:var(--accent);font-weight:600}
-  #coord .dd{display:block;color:var(--muted);font-size:10px;margin-top:2px}
-  @media(max-width:760px){#coord{display:none}}
+  #coord .dd{color:#6E7E92}
+  #coord .lbl{color:#6E7E92;font-size:10px;letter-spacing:.12em}
+  #wrap{height:calc(100% - 83px)}
+  .leaflet-control-attribution{margin-bottom:26px!important}
+  .leaflet-bottom{margin-bottom:26px}
+  @media(max-width:760px){#coord{display:none} #wrap{height:calc(100% - 57px)}}
   .leaflet-control-attribution{background:rgba(13,21,34,.72)!important;color:#8CA0B8!important;font-size:9.5px}
   .leaflet-control-attribution a{color:#5AB8D6!important}
   .leaflet-control-scale-line{background:rgba(13,21,34,.72);border-color:rgba(140,160,184,.6);color:#DCE6F2;font-family:var(--mono);font-size:10px}
@@ -128,7 +132,7 @@
   <div id="map"></div>
 </div>
 <button id="toggle">선박 목록</button>
-<div id="coord">—</div>
+<div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span></div>
 <div id="legend">
   <b>선박 VESSEL</b>
   <div><i style="background:#3DDC97"></i>실측 (6h 이내)</div>
@@ -196,12 +200,13 @@ function dm(v, isLat){
 }
 function wrapLon(x){ while(x>180) x-=360; while(x<-180) x+=360; return x; }
 map.on('mousemove', function(e){
-  var el=document.getElementById('coord'); if(!el) return;
+  var el=document.getElementById('cpos'); if(!el) return;
   var la=e.latlng.lat, lo=wrapLon(e.latlng.lng);
   el.innerHTML = '<b>' + dm(la,true) + '</b>&nbsp;&nbsp;<b>' + dm(lo,false) + '</b>'
-    + '<span class="dd">' + la.toFixed(4) + ', ' + lo.toFixed(4) + ' \u00b7 zoom ' + map.getZoom() + '</span>';
+    + '&nbsp;&nbsp;<span class="dd">' + la.toFixed(4) + ', ' + lo.toFixed(4) + '</span>'
+    + '&nbsp;&nbsp;<span class="dd">ZOOM ' + map.getZoom() + '</span>';
 });
-map.on('mouseout', function(){ var el=document.getElementById('coord'); if(el) el.innerHTML='\u2014'; });
+map.on('mouseout', function(){ var el=document.getElementById('cpos'); if(el) el.innerHTML='\u2014'; });
 map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex = 350;
 map.getPane('geoLabels').style.pointerEvents = 'none';
 map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
