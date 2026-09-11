@@ -84,6 +84,14 @@
   #trkinfo{color:var(--muted);margin-bottom:7px;line-height:1.5}
   #trkinfo b{color:#F0B95A}
   #trkpanel input[type=range]{width:100%;margin:2px 0;accent-color:#F0B95A}
+  #trkcalls{margin-top:8px;border-top:1px solid var(--line);padding-top:7px;max-height:190px;overflow-y:auto}
+  #trkcalls .hh{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+  #trkcalls .cl{display:flex;gap:7px;align-items:flex-start;padding:4px 0;border-bottom:1px solid rgba(34,51,74,.5);font-size:11.5px}
+  #trkcalls .cl:last-child{border-bottom:none}
+  #trkcalls .ic{flex:none;width:14px;text-align:center}
+  #trkcalls .pn{font-weight:600;color:var(--text)}
+  #trkcalls .tm{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  #trkcalls .anch .pn{color:#F0B95A}
   #trkpanel .rl{color:#6E7E92;font-size:9.5px;letter-spacing:.08em}
   @media(max-width:760px){#trkpanel{left:8px;right:8px;width:auto}}
   #coord{position:fixed;left:0;right:0;bottom:0;z-index:900;height:26px;display:flex;align-items:center;gap:16px;
@@ -178,6 +186,7 @@
   <div id="trkinfo">—</div>
   <div class="rl">시작 START</div><input type="range" id="trkfrom" min="0" max="1" value="0" oninput="drawTrack()">
   <div class="rl">종료 END</div><input type="range" id="trkto" min="0" max="1" value="1" oninput="drawTrack()">
+  <div id="trkcalls"></div>
 </div>
 <div id="posbox">
   <h4>📍 위경도 입력</h4>
@@ -520,6 +529,54 @@ async function showTrack(key, name){
     trkLayer.clearLayers();
   }
 }
+/* ── 항적에서 기항지 추정: 정지 구간 → 최근접 항구 ── */
+function nearestPort(la, lo){
+  var best=null, bd=1e9, byIdx=null;
+  for(var k in PORTXY){ var p=PORTXY[k], d=nmDist(la,lo,p[0],p[1]); if(d<bd){ bd=d; best=k; byIdx=null; } }
+  if(window.portData && portData.ports){
+    portData.ports.forEach(function(p){ if(p.lat==null) return; var d=nmDist(la,lo,p.lat,p.lon); if(d<bd){ bd=d; best=null; byIdx=p.port+", "+p.country; } });
+  }
+  if(best){ var nmv=LOCODE[best], cc=CC[best.slice(0,2)]; return {name:(nmv?nmv+(cc?", "+cc:""):best), dist:bd}; }
+  if(byIdx) return {name:byIdx, dist:bd};
+  return null;
+}
+function detectCalls(pts){
+  var out=[], i=0;
+  function moving(p, prev){
+    if(p[3]!=null) return p[3] >= 1.0;
+    if(!prev) return true;
+    var dt=(new Date(p[0])-new Date(prev[0]))/3600e3;
+    return dt>0 ? (nmDist(prev[1],prev[2],p[1],p[2])/dt) >= 1.0 : true;
+  }
+  while(i<pts.length){
+    if(moving(pts[i], pts[i-1])){ i++; continue; }
+    var s=i; while(i<pts.length && !moving(pts[i], pts[i-1])) i++;
+    var e=i-1;
+    var hrs=(new Date(pts[e][0])-new Date(pts[s][0]))/3600e3;
+    if(hrs < 2.5) continue;
+    var la=0, lo=0, n=0;
+    for(var k=s;k<=e;k++){ la+=pts[k][1]; lo+=pts[k][2]; n++; }
+    la/=n; lo/=n;
+    var np=nearestPort(la,lo);
+    out.push({from:pts[s][0], to:pts[e][0], hrs:hrs, lat:la, lon:lo,
+              port:(np && np.dist<=35)?np.name:null, dist:np?np.dist:null,
+              berth:!!(np && np.dist<=6)});
+  }
+  return out;
+}
+function renderCalls(calls){
+  var el=document.getElementById('trkcalls'); if(!el) return;
+  if(!calls.length){ el.innerHTML='<div class="hh">기항 이력 없음 (연속 항해)</div>'; return; }
+  var rows=calls.map(function(c){
+    var ic = c.port ? (c.berth ? '\u2693' : '\u23F8') : '\u25CB';
+    var nm = c.port ? c.port : '미상 정지지';
+    var tag = c.port ? (c.berth ? '항내/접안' : '묘박·대기 '+Math.round(c.dist)+'nm') : (c.dist!=null?Math.round(c.dist)+'nm 이격':'');
+    var dur = c.hrs<24 ? c.hrs.toFixed(1)+'h' : (c.hrs/24).toFixed(1)+'일';
+    return '<div class="cl '+(c.berth?'anch':'')+'"><div class="ic">'+ic+'</div><div><div class="pn">'+nm+'</div>'
+      +'<div class="tm">'+fmtD(c.from)+' ~ '+fmtD(c.to)+' \u00b7 '+dur+' \u00b7 '+tag+'</div></div></div>';
+  }).join('');
+  el.innerHTML='<div class="hh">기항·정지 이력 '+calls.length+'건 (추정)</div>'+rows;
+}
 function drawTrack(){
   if(!TRK) return;
   let a=parseInt(document.getElementById('trkfrom').value,10), b=parseInt(document.getElementById('trkto').value,10);
@@ -541,6 +598,14 @@ function drawTrack(){
   let nm=0; for(let i=1;i<line.length;i++){ nm += map.distance(line[i-1],line[i])/1852; }
   const hrs=(new Date(pts[pts.length-1][0])-new Date(pts[0][0]))/3600e3;
   document.getElementById('trkinfo').innerHTML='<b>'+fmtD(pts[0][0])+'</b> \u2192 <b>'+fmtD(pts[pts.length-1][0])+'</b> \u00b7 '+pts.length+'pts \u00b7 '+Math.round(nm)+' NM \u00b7 '+(hrs>0?(nm/hrs).toFixed(1):'0')+' kn avg';
+  try{
+    var calls=detectCalls(pts);
+    renderCalls(calls);
+    calls.forEach(function(c){
+      L.circleMarker([c.lat,c.lon],{radius:c.berth?7:5.5,color:'#06101C',weight:1.5,fillColor:c.berth?'#F0B95A':'#8CA0B8',fillOpacity:.95,pane:'portsPane'})
+       .bindTooltip((c.port||'\uBBF8\uC0C1 \uC815\uC9C0\uC9C0')+' \u00b7 '+(c.hrs<24?c.hrs.toFixed(1)+'h':(c.hrs/24).toFixed(1)+'\uC77C'),{className:'plabel'}).addTo(trkLayer);
+    });
+  }catch(e){}
   map.fitBounds(line,{padding:[60,60]});
 }
 
