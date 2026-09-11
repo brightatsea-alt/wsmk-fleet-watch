@@ -1,0 +1,32 @@
+name: Pole Star tracks
+
+on:
+  schedule:
+    - cron: '20 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tracks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Collect tracks
+        env:
+          POLESTAR_CLIENT_ID: ${{ secrets.POLESTAR_CLIENT_ID }}
+          POLESTAR_CLIENT_SECRET: ${{ secrets.POLESTAR_CLIENT_SECRET }}
+          BACKFILL_DAYS: '7'
+          KEEP_DAYS: '30'
+        run: node polestar-tracks.js
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add tracks
+          git diff --staged --quiet || (git commit -m "tracks update" && git pull --rebase && git push)
