@@ -1,0 +1,26 @@
+name: Pole Star probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run probe
+        env:
+          POLESTAR_CLIENT_ID: ${{ secrets.POLESTAR_CLIENT_ID }}
+          POLESTAR_CLIENT_SECRET: ${{ secrets.POLESTAR_CLIENT_SECRET }}
+        run: node polestar-probe.js
+      - name: Upload raw responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polestar-raw
+          path: polestar-out-*.json
+          if-no-files-found: ignore
