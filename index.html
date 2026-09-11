@@ -228,8 +228,12 @@ const ST = {
 };
 let fleet=[], store={vessels:{}}, vessels=[], markers={}, filter=null;
 
-const map = L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,140],3);
+const map = L.map('map',{worldCopyJump:true,zoomControl:false}).setView([14,118],3);
+/* 기본 구도: 유럽·아프리카 ↔ 아시아 ↔ 북미 서해안을 한 화면에 */
 L.control.zoom({position:'bottomright'}).addTo(map);
+/* \uD654\uBA74 \uD3ED\uC5D0 \uB530\uB978 \uAE30\uBCF8 \uC90C \uBCF4\uC815 */
+(function(){ var w=(document.getElementById('map')||{}).clientWidth||window.innerWidth;
+  if(w<900) map.setView([14,118],2); else if(w>1900) map.setView([14,118],4); })();
 L.control.scale({position:'bottomright',imperial:false,metric:true,maxWidth:140}).addTo(map);
 /* ── 마우스 위치 위경도 표시 (도-분 / 십진도) ── */
 function dm(v, isLat){
