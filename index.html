@@ -50,6 +50,9 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  body.lightmap .plabel{background:rgba(255,255,255,.92);color:#12263A;border-color:rgba(20,60,90,.35)}
+  body.lightmap .plabel.sec{background:rgba(255,241,233,.95);color:#8A3A12;border-color:rgba(200,90,46,.5)}
+  body.lightmap .vlabel{background:rgba(255,255,255,.95);color:#10203A;border-color:rgba(20,60,90,.3)}
   #tghint{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em;white-space:nowrap}
   @media(max-width:760px){#tghint{display:none}}
   .sec .lth{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#6E7E92}
@@ -172,10 +175,34 @@ map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex = 350;
 map.getPane('geoLabels').style.pointerEvents = 'none';
 map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
 map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
-  {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:12}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
-  {pane:'geoLabels',maxZoom:12,opacity:.5}).addTo(map);
+/* ── 베이스맵 (API 키 불필요 · 실패 시 자동 대체) ── */
+const BASEMAPS=[
+ {id:'ocean',name:'해도',max:13,attr:'Esri Ocean',dark:false,
+  url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+  ref:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}'},
+ {id:'dark',name:'다크',max:16,attr:'Esri Dark Gray',dark:true,
+  url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  ref:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}'},
+ {id:'sat',name:'위성',max:16,attr:'Esri Imagery',dark:true,
+  url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',ref:null},
+ {id:'osm',name:'표준',max:18,attr:'OpenStreetMap',dark:false,
+  url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',ref:null}
+];
+let baseIdx=0, baseL=null, refL=null, tileErr=0;
+function setBase(i){
+  baseIdx=((i%BASEMAPS.length)+BASEMAPS.length)%BASEMAPS.length;
+  const b=BASEMAPS[baseIdx]; tileErr=0;
+  if(baseL) map.removeLayer(baseL);
+  if(refL){ map.removeLayer(refL); refL=null; }
+  baseL=L.tileLayer(b.url,{maxZoom:b.max,attribution:'&copy; '+b.attr}).addTo(map);
+  if(b.ref) refL=L.tileLayer(b.ref,{pane:'geoLabels',maxZoom:b.max,opacity:.85}).addTo(map);
+  baseL.on('tileerror',function(){ if(++tileErr>10 && baseIdx<BASEMAPS.length-1) setBase(baseIdx+1); });
+  document.body.classList.toggle('lightmap', !b.dark);
+  const c=document.getElementById('mapstyle'); if(c) c.innerHTML='\uD83D\uDDFA '+b.name;
+  try{ localStorage.setItem('fw_base', b.id); }catch(e){}
+}
+let _bi=0; try{ const s=localStorage.getItem('fw_base'); if(s){ const k=BASEMAPS.findIndex(x=>x.id===s); if(k>=0) _bi=k; } }catch(e){}
+setBase(_bi);
 const layer = L.layerGroup().addTo(map);
 let shipsOn = true;          // 기본: 선박만 표시
 let soloNo = null;           // 선택 시 해당 선박만 지도에 표시
@@ -345,6 +372,11 @@ const portLayer = L.layerGroup().addTo(map);
   document.getElementById('stoggle').onclick = function(){
     shipsOn = !shipsOn; this.classList.toggle('on', shipsOn); render();
   };
+  const ms=document.createElement('div');
+  ms.className='chip'; ms.id='mapstyle'; ms.title='\uC9C0\uB3C4 \uC2A4\uD0C0\uC77C \uC804\uD658';
+  ms.innerHTML='\uD83D\uDDFA '+BASEMAPS[baseIdx].name;
+  ms.onclick=function(){ setBase(baseIdx+1); };
+  bar.appendChild(ms);
 })();
 let portsOn = false, portData = null;   // 기본: 항구 숨김
 
