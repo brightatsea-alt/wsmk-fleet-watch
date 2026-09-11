@@ -48,6 +48,8 @@
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
+  .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
+  .brand{cursor:pointer}
   .sec .lth{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#6E7E92}
 
   /* ── Map markers ── */
@@ -94,7 +96,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">FLEET WATCH<small>WSM KOREA</small></div>
+  <div class="brand" onclick="location.reload()" title="새로고침">FLEET WATCH<small>WSM KOREA</small></div>
   <div class="chip" id="langbtn" onclick="toggleLang()" style="cursor:pointer">🌐 English</div>
   <div class="board" id="board"></div>
   <div class="updated" id="updated">데이터 로딩 중…</div>
@@ -174,6 +176,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.p
   {pane:'geoLabels',maxZoom:12,opacity:.5}).addTo(map);
 const layer = L.layerGroup().addTo(map);
 let shipsOn = true;          // 기본: 선박만 표시
+let soloNo = null;           // 선택 시 해당 선박만 지도에 표시
 
 const R2D=180/Math.PI, D2R=Math.PI/180;
 
@@ -248,6 +251,7 @@ function render(){
   layer.clearLayers(); markers={};
   if(shipsOn) vessels.forEach(v=>{
     if(v.lat==null) return;
+    if(soloNo!=null && v.no!==soloNo) return;      // 단일 보기
     if(v.estimated||v.status==='STALE'){
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
@@ -266,7 +270,7 @@ function renderBoard(){
       <span class="dot" style="background:${ST[k].hex}"></span>${ST[k].label} <b>${c[k]}</b></div>`).join('')
     + `<div class="chip ${filter===null?'on':''}" onclick="setFilter(null)">전체 <b>${vessels.length}</b></div>`;
 }
-function setFilter(k){ filter=k; renderBoard(); renderList(); }
+function setFilter(k){ filter=k; soloNo=null; render(); }
 
 function renderList(){
   const q=(document.getElementById('q').value||'').toLowerCase();
@@ -276,7 +280,7 @@ function renderList(){
   const row=v=>{
     const lt=v.lon!=null?localTime(v.lon):null;
     const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
-    return `<div class="row ${v.status==='NOSIG'?'dim':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
+    return `<div class="row ${v.status==='NOSIG'?'dim':''}${soloNo===v.no?' sel':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
       <div class="nm"><b>${v.name}</b><span>${v.mmsi||'MMSI —'} · ${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
@@ -289,7 +293,16 @@ function renderList(){
 
 function focusV(no){
   const v=vessels.find(x=>x.no===no);
-  if(v&&v.lat!=null){ map.flyTo([v.lat,v.lon],7,{duration:.8}); markers[no]&&markers[no].openPopup(); }
+  soloNo = (soloNo===no) ? null : no;              // 같은 선박 재클릭 시 전체 복귀
+  if(!shipsOn && soloNo!=null){
+    shipsOn = true;
+    const st=document.getElementById('stoggle'); if(st) st.classList.add('on');
+  }
+  render();
+  if(soloNo!=null && v && v.lat!=null){
+    map.flyTo([v.lat,v.lon], Math.max(map.getZoom(),7), {duration:.9});
+    setTimeout(()=>{ markers[no] && markers[no].openPopup(); }, 950);
+  }
   if(innerWidth<=760) document.getElementById('side').classList.remove('open');
 }
 
