@@ -81,7 +81,7 @@ function collectChunk(mmsis, seconds) {
 
       if (msg.MessageType === "ShipStaticData" && msg.Message && msg.Message.ShipStaticData) {
         const s = msg.Message.ShipStaticData;
-        if (s.Destination) v.destination = String(s.Destination).trim();
+        if (s.Destination) { v.destination = String(s.Destination).trim(); v.destAt = meta.time_utc || new Date().toISOString(); }
         if (s.Eta) v.eta = s.Eta;
       }
     });
