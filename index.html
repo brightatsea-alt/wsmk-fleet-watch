@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WSMK Fleet Watch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%23D32F2F'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='31' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -44,7 +45,8 @@
   .row .st{width:9px;height:9px;border-radius:50%;flex:none}
   .row .nm{flex:1;min-width:0}
   .row .nm b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .nm span{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .row .nm span{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .nm span+span{color:#6E7E92;margin-top:1px}
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
@@ -166,7 +168,7 @@
   .vlabel{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.18);color:#fff;
     font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.6)}
   .vlabel::before{display:none}
-  .leaflet-tooltip.vlabel{display:none;font-size:10.5px;padding:1px 6px;opacity:.95}
+  .leaflet-tooltip.vlabel{display:block;font-size:10.5px;padding:1px 6px;opacity:.95}
   .zl3 .leaflet-tooltip.vlabel{display:block}
   .leaflet-tooltip.vlabel.hov{display:block;z-index:950;font-weight:700}
   /* ── Legend ── */
@@ -291,32 +293,31 @@ map.createPane('wxPane'); map.getPane('wxPane').style.zIndex = 360;
 map.getPane('wxPane').style.pointerEvents='none';
 map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
 map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
-/* NOAA 공개데이터 기반 해양 기상 오버레이 (ERDDAP WMS, public domain) */
-const WMS_WW3='https://pae-paha.pacioos.hawaii.edu/erddap/wms/ww3_global/request';
-const WMS_GFS='https://pae-paha.pacioos.hawaii.edu/erddap/wms/ncep_global/request';
-const WXLAYERS=[
- {id:'off',  name:'날씨 꺼짐', url:null, layer:null, src:''},
- {id:'wave', name:'파고',   url:WMS_WW3, layer:'ww3_global:Thgt',     src:'NOAA WaveWatch III'},
- {id:'per',  name:'파주기', url:WMS_WW3, layer:'ww3_global:Tper', src:'NOAA WaveWatch III'},
- {id:'windE',name:'바람 E-W', url:WMS_GFS, layer:'ncep_global:ugrd10m', src:'NOAA GFS'},
- {id:'windN',name:'바람 N-S', url:WMS_GFS, layer:'ncep_global:vgrd10m', src:'NOAA GFS'},
- {id:'rain', name:'강수',   url:WMS_GFS, layer:'ncep_global:pratesfc', src:'NOAA GFS'},
- {id:'temp', name:'기온',   url:WMS_GFS, layer:'ncep_global:tmp2m',    src:'NOAA GFS'}
+/* 위성 기상 오버레이 — NASA GIBS (공개 도메인 · 타일 응답 검증 완료) */
+var GIBS='https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/';
+function gibsDate(hoursAgo){ return new Date(Date.now()-hoursAgo*3600e3).toISOString().slice(0,10); }
+var WXLAYERS=[
+ {id:'off',  name:'날씨 꺼짐', layer:null},
+ {id:'cloud',name:'구름·기상계', layer:'VIIRS_NOAA20_CorrectedReflectance_TrueColor', lv:9, ext:'jpg', hrs:30, op:.75, src:'NASA VIIRS'},
+ {id:'rain', name:'강수', layer:'IMERG_Precipitation_Rate', lv:6, ext:'png', hrs:30, tm:'T00:00:00Z', op:.6, src:'NASA GPM IMERG'},
+ {id:'ctt',  name:'운정온도', layer:'MODIS_Aqua_Cloud_Top_Temp_Day', lv:6, ext:'png', hrs:54, op:.6, src:'NASA MODIS'},
+ {id:'sst',  name:'해수면온도', layer:'GHRSST_L4_MUR_Sea_Surface_Temperature', lv:7, ext:'png', hrs:54, op:.6, src:'NASA GHRSST'}
 ];
-let wxIdx=0, wxL=null, wxErr=0;
+var wxIdx=0, wxL=null, wxErr=0;
 function setWx(i){
   wxIdx=((i%WXLAYERS.length)+WXLAYERS.length)%WXLAYERS.length;
   var w=WXLAYERS[wxIdx]; wxErr=0;
   if(wxL){ map.removeLayer(wxL); wxL=null; }
-  if(w.url){
-    wxL=L.tileLayer.wms(w.url, {layers:w.layer, format:'image/png', transparent:true,
-      version:'1.3.0', pane:'wxPane', opacity:.6, maxZoom:16,
-      attribution:w.src+' (NOAA public domain) via PacIOOS ERDDAP'}).addTo(map);
-    wxL.on('tileerror', function(){ if(++wxErr>12){ var c2=document.getElementById('wxbtn');
+  if(w.layer){
+    var t=gibsDate(w.hrs)+(w.tm||'');
+    wxL=L.tileLayer(GIBS+w.layer+'/default/'+t+'/GoogleMapsCompatible_Level'+w.lv+'/{z}/{y}/{x}.'+w.ext,
+      {pane:'wxPane', opacity:w.op, maxNativeZoom:w.lv, maxZoom:16,
+       attribution:w.src+' (NASA, public domain)'}).addTo(map);
+    wxL.on('tileerror', function(){ if(++wxErr>6){ var c2=document.getElementById('wxbtn');
       if(c2) c2.innerHTML='\uD83C\uDF26 '+w.name+' \u26A0'; } });
   }
   var c=document.getElementById('wxbtn');
-  if(c){ c.innerHTML='\uD83C\uDF26 '+w.name; c.classList.toggle('on', !!w.url); }
+  if(c){ c.innerHTML='\uD83C\uDF26 '+w.name; c.classList.toggle('on', !!w.layer); }
   try{ localStorage.setItem('fw_wx', w.id); }catch(e){}
 }
 /* \u2500\u2500 \uBCA0\uC774\uC2A4\uB9F5 (API \uD0A4 \uBD88\uD544\uC694 \u00b7 \uC2E4\uD328 \uC2DC \uC790\uB3D9 \uB300\uCCB4) \u2500\u2500 */
@@ -381,7 +382,7 @@ function build(){
         var sn=String(sv.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
         if(sn && nk && (sn===nk || nk.indexOf(sn)>=0 || sn.indexOf(nk)>=0)){ d=sv; break; } } }
     const v = {...f, data:d};
-    if(!f.mmsi){ v.status='NOSIG'; v.note='MMSI 미등록'; return v; }
+    if(!f.mmsi && !d){ v.status='NOSIG'; v.note='MMSI 미등록'; return v; }
     if(!d || d.lat==null){ v.status='NOSIG'; v.note='수신 이력 없음'; return v; }
     const h=(now-new Date(d.lastReceived).getTime())/3600e3;
     v.elapsed=h;
@@ -573,6 +574,22 @@ document.addEventListener('visibilitychange', function(){ if(!document.hidden){ 
 var RESP={};
 function respOf(v){ return RESP[(v&&v.mmsi)||''] || RESP[(v&&v.name)||''] || null; }
 function selVal(id){ var s=document.getElementById(id); return s?s.value:''; }
+function fitFiltered(){
+  try{
+    var pts=[], ref=null;
+    vessels.forEach(function(v){
+      if(v.lat==null || !passResp(v)) return;
+      var lo=v.lon;
+      if(ref===null) ref=lo; else { if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; }
+      pts.push([v.lat, lo]);
+    });
+    var f1=document.getElementById('fteam'), f2=document.getElementById('fvm'), f3=document.getElementById('fhseq');
+    var any=(f1&&f1.value)||(f2&&f2.value)||(f3&&f3.value);
+    if(!any){ map.flyTo([14,118], 3, {duration:.9}); return; }
+    if(pts.length>1) map.flyToBounds(pts,{padding:[80,80],maxZoom:7,duration:1.0});
+    else if(pts.length===1) map.flyTo(pts[0], Math.max(map.getZoom(),6), {duration:.9});
+  }catch(e){}
+}
 function passResp(v){
   var ft=selVal('fteam'), fv=selVal('fvm'), fh=selVal('fhseq');
   if(!ft && !fv && !fh) return true;
@@ -585,7 +602,7 @@ function passResp(v){
 function fillSel(id, vals, label){
   var s=document.getElementById(id); if(!s) return;
   s.innerHTML='<option value="">'+label+'</option>'+vals.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
-  s.onchange=function(){ s.classList.toggle('act', !!s.value); soloNo=null; try{ render(); }catch(e){ renderList(); } };
+  s.onchange=function(){ s.classList.toggle('act', !!s.value); soloNo=null; try{ render(); fitFiltered(); }catch(e){ renderList(); } };
 }
 fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){
   RESP=d.vessels||{};
@@ -600,7 +617,7 @@ fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).t
   try{ render(); }catch(e){ try{ renderList(); }catch(e2){} }
 }).catch(function(){});
 var _fc=document.getElementById('fclr');
-if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); }catch(e){ renderList(); } };
+if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); fitFiltered(); }catch(e){ renderList(); } };
 document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
 load();
