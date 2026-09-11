@@ -351,6 +351,11 @@ function popup(v){
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
     <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
+    ${(function(){ try{ var pe=d.destination?destPortEntry(d.destination):null; if(!pe) return '';
+      return pe.countryOnly
+        ? `<button class="pbtn co" onclick="openCountry('${enc(pe.country)}')">\uD83C\uDF0F ${pe.country} \uD56D\uB9CC \uC815\uBCF4 \uBCF4\uAE30 \u2192</button>`
+        : `<button class="pbtn" onclick="openPort('${enc(pe.port)}')">\u2693 ${pe.port} \uD56D\uAD6C \uC815\uBCF4 \uBCF4\uAE30 \u2192</button>`;
+    }catch(e){ return ''; } })()}
     ${v.estimated?'<div style="margin-top:5px;color:var(--muted);font-size:10.5px">⚠ 추정 위치 — 운영 참고용 (PSC·사고조사 등 공식 용도 사용 불가)</div>':''}</div>`;
 }
 
@@ -561,6 +566,27 @@ function resolve1(raw){
     if(hit) return hit.port+', '+hit.country+' ('+t+')';
   }
   return t;
+}
+function _pbase(s){ return String(s||'').toUpperCase().split('(')[0].replace(/[^A-Z ]/g,' ').replace(/\s+/g,' ').trim(); }
+function destPortEntry(t){
+  if(!window.portData || !portData.ports) return null;
+  var lg=destLegs(t);
+  for(var i=0;i<lg.length;i++){
+    var raw=String(lg[i]||'').trim(); if(!raw) continue;
+    var k=raw.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    var nm=(LOCODE[k]||raw), u=_pbase(nm); if(!u) continue;
+    var hit=portData.ports.filter(function(p){return _pbase(p.port)===u;})[0];
+    if(!hit) hit=portData.ports.filter(function(p){var b=_pbase(p.port); return b.length>3 && (u.indexOf(b)>=0||b.indexOf(u)>=0);})[0];
+    if(hit) return hit;
+  }
+  var k2=String(lg[0]||'').toUpperCase().replace(/[^A-Z0-9]/g,''), cc=CC[k2.slice(0,2)];
+  if(cc){
+    var alias={'United States':'USA','UAE':'United Arab Emirates'};
+    var cn=alias[cc]||cc;
+    var byC=portData.ports.filter(function(p){return p.country===cn || p.country.indexOf(cn)>=0 || cn.indexOf(p.country)>=0;})[0];
+    if(byC) return {port:null, country:byC.country, countryOnly:true};
+  }
+  return null;
 }
 function destFull(t){
   var legs=destLegs(t);
