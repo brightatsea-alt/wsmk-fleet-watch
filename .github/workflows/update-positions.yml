@@ -15,7 +15,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,14 +31,20 @@ jobs:
       - name: Collect AIS positions
         env:
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
-          COLLECT_SECONDS: "150"
+          COLLECT_SECONDS: "330"
         run: node collect.js
+
+      - name: Collect Pole Star (Spire) positions
+        env:
+          POLESTAR_CLIENT_ID: ${{ secrets.POLESTAR_CLIENT_ID }}
+          POLESTAR_CLIENT_SECRET: ${{ secrets.POLESTAR_CLIENT_SECRET }}
+        run: node polestar-collect.js
 
       - name: Commit and push if changed
         run: |
           git config user.name "fleet-bot"
           git config user.email "actions@github.com"
-          git add fleet-positions.json
+          git add fleet-positions.json polestar-positions.json
           if git diff --cached --quiet; then
             echo "No changes."
           else
