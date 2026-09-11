@@ -263,9 +263,34 @@ map.on('mousemove', function(e){
 map.on('mouseout', function(){ var el=document.getElementById('cpos'); if(el) el.innerHTML='\u2014'; });
 map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex = 350;
 map.getPane('geoLabels').style.pointerEvents = 'none';
+map.createPane('wxPane'); map.getPane('wxPane').style.zIndex = 360;
+map.getPane('wxPane').style.pointerEvents='none';
 map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
 map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
-/* ── 베이스맵 (API 키 불필요 · 실패 시 자동 대체) ── */
+/* \u2500\u2500 \uD574\uC591 \uAE30\uC0C1 \uC624\uBC84\uB808\uC774 (openportguide \u00b7 GFS/WW3 \uAE30\uBC18) \u2500\u2500 */
+const WXBASE='https://weather.openportguide.de/tiles/actual/';
+const WXLAYERS=[
+ {id:'off',  name:'\uB0A0\uC528 \uAEBC\uC9D0', v:null},
+ {id:'wind', name:'\uBC14\uB78C',   v:'wind_stream'},
+ {id:'wave', name:'\uD30C\uACE0',   v:'significant_wave_height'},
+ {id:'rain', name:'\uAC15\uC218',   v:'precipitation'},
+ {id:'pres', name:'\uAE30\uC555',   v:'surface_pressure'}
+];
+let wxIdx=0, wxL=null, wxStep='0h';
+function setWx(i){
+  wxIdx=((i%WXLAYERS.length)+WXLAYERS.length)%WXLAYERS.length;
+  const w=WXLAYERS[wxIdx];
+  if(wxL){ map.removeLayer(wxL); wxL=null; }
+  if(w.v){
+    wxL=L.tileLayer(WXBASE+w.v+'/'+wxStep+'/{z}/{x}/{y}.png',
+      {pane:'wxPane',opacity:.62,maxNativeZoom:7,maxZoom:16,
+       attribution:'\u00A9 <a href=\"https://weather.openportguide.de\" target=\"_blank\">openportguide.de</a>'}).addTo(map);
+  }
+  const c=document.getElementById('wxbtn');
+  if(c){ c.innerHTML='\uD83C\uDF26 '+w.name; c.classList.toggle('on', !!w.v); }
+  try{ localStorage.setItem('fw_wx', w.id); }catch(e){}
+}
+/* \u2500\u2500 \uBCA0\uC774\uC2A4\uB9F5 (API \uD0A4 \uBD88\uD544\uC694 \u00b7 \uC2E4\uD328 \uC2DC \uC790\uB3D9 \uB300\uCCB4) \u2500\u2500 */
 const BASEMAPS=[
  {id:'ocean',name:'해도',max:13,attr:'Esri Ocean + OpenSeaMap',dark:false,sea:true,
   url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
@@ -640,6 +665,12 @@ var portLayer = L.layerGroup().addTo(map);
   ms.innerHTML='\uD83D\uDDFA '+BASEMAPS[baseIdx].name;
   ms.onclick=function(){ setBase(baseIdx+1); };
   bar.appendChild(ms);
+  const wb=document.createElement('div');
+  wb.className='chip'; wb.id='wxbtn'; wb.title='\uD574\uC591 \uAE30\uC0C1 \uC624\uBC84\uB808\uC774 \u2014 \uBC14\uB78C/\uD30C\uACE0/\uAC15\uC218/\uAE30\uC555 \uC21C\uD658';
+  wb.innerHTML='\uD83C\uDF26 \uB0A0\uC528 \uAEBC\uC9D0';
+  wb.onclick=function(){ setWx(wxIdx+1); };
+  bar.appendChild(wb);
+  try{ const s=localStorage.getItem('fw_wx'); const k=WXLAYERS.findIndex(x=>x.id===s); if(k>0) setWx(k); }catch(e){}
 })();
 let portsOn = false, portData = null;   // 기본: 항구 숨김
 
