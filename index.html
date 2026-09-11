@@ -50,6 +50,12 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  .leaflet-control-attribution{background:rgba(13,21,34,.72)!important;color:#8CA0B8!important;font-size:9.5px}
+  .leaflet-control-attribution a{color:#5AB8D6!important}
+  .leaflet-control-scale-line{background:rgba(13,21,34,.72);border-color:rgba(140,160,184,.6);color:#DCE6F2;font-family:var(--mono);font-size:10px}
+  .leaflet-bar a{background:#131F30;color:#DCE6F2;border-color:#22334A}
+  .leaflet-bar a:hover{background:#1B2B41;color:#fff}
+  #mapstyle{border-color:rgba(90,184,214,.5)}
   #langbtn{border-color:var(--accent);color:var(--accent);font-weight:700;background:rgba(90,184,214,.14);box-shadow:inset 0 0 0 1px rgba(90,184,214,.3)}
   #langbtn:hover{background:var(--accent);color:#08121F}
   body.lightmap .plabel{background:rgba(255,255,255,.92);color:#12263A;border-color:rgba(20,60,90,.35)}
@@ -173,13 +179,14 @@ let fleet=[], store={vessels:{}}, vessels=[], markers={}, filter=null;
 
 const map = L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,140],3);
 L.control.zoom({position:'bottomright'}).addTo(map);
+L.control.scale({position:'bottomright',imperial:false,metric:true,maxWidth:140}).addTo(map);
 map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex = 350;
 map.getPane('geoLabels').style.pointerEvents = 'none';
 map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
 map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
 /* ── 베이스맵 (API 키 불필요 · 실패 시 자동 대체) ── */
 const BASEMAPS=[
- {id:'ocean',name:'해도',max:13,attr:'Esri Ocean',dark:false,
+ {id:'ocean',name:'해도',max:13,attr:'Esri Ocean + OpenSeaMap',dark:false,sea:true,
   url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
   ref:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}'},
  {id:'dark',name:'다크',max:16,attr:'Esri Dark Gray',dark:true,
@@ -190,14 +197,16 @@ const BASEMAPS=[
  {id:'osm',name:'표준',max:18,attr:'OpenStreetMap',dark:false,
   url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',ref:null}
 ];
-let baseIdx=0, baseL=null, refL=null, tileErr=0;
+let baseIdx=0, baseL=null, refL=null, seaL=null, tileErr=0;
 function setBase(i){
   baseIdx=((i%BASEMAPS.length)+BASEMAPS.length)%BASEMAPS.length;
   const b=BASEMAPS[baseIdx]; tileErr=0;
   if(baseL) map.removeLayer(baseL);
   if(refL){ map.removeLayer(refL); refL=null; }
+  if(seaL){ map.removeLayer(seaL); seaL=null; }
   baseL=L.tileLayer(b.url,{maxZoom:b.max,attribution:'&copy; '+b.attr}).addTo(map);
   if(b.ref) refL=L.tileLayer(b.ref,{pane:'geoLabels',maxZoom:b.max,opacity:.85}).addTo(map);
+  if(b.sea) seaL=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{pane:'geoLabels',maxZoom:b.max,opacity:.95,attribution:'&copy; OpenSeaMap'}).addTo(map);
   baseL.on('tileerror',function(){ if(++tileErr>10 && baseIdx<BASEMAPS.length-1) setBase(baseIdx+1); });
   document.body.classList.toggle('lightmap', !b.dark);
   const c=document.getElementById('mapstyle'); if(c) c.innerHTML='\uD83D\uDDFA '+b.name;
