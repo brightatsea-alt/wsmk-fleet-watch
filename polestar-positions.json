@@ -1,5 +1,6 @@
 {
- "updated": "2026-09-11T12:03:51.284Z",
+ "updated": "2026-09-11T12:03:51.283Z",
+ "count": 40,
  "vessels": {
   "1044144": {
    "mmsi": null,
@@ -15,35 +16,26 @@
   },
   "351446000": {
    "mmsi": "351446000",
+   "imo": 9338723,
    "name": "Morning Caroline",
    "lat": 24.453203333333335,
    "lon": -16.700546666666668,
    "sog": 18.4,
    "cog": 203,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:04:54.000+00:00",
-   "destination": "KR USN",
-   "eta": {
-    "Day": 11,
-    "Hour": 19,
-    "Minute": 0,
-    "Month": 10
-   },
-   "imo": 9338723,
    "source": "polestar:ais_spire"
   },
   "352001831": {
    "mmsi": "352001831",
+   "imo": 9338694,
    "name": "Morning Charlotte",
    "lat": 44.99943833333333,
    "lon": 167.36362333333332,
    "sog": 16.5,
    "cog": 268.6,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:08:46.000+00:00",
-   "imo": 9338694,
    "source": "polestar:ais_spire"
   },
   "352002781": {
@@ -58,34 +50,17 @@
    "lastReceived": "2026-09-10T12:03:43.000+00:00",
    "source": "polestar:ais_spire"
   },
-  "370567000": {
-   "mmsi": "370567000",
-   "name": "Morning Linda",
-   "lat": -26.493331666666666,
-   "lon": 153.28563,
-   "sog": 10.9,
-   "cog": 196.9,
-   "heading": 192,
-   "navStatus": 0,
-   "lastReceived": "2026-09-11 04:03:20.206645386 +0000 UTC"
-  },
   "370967000": {
    "mmsi": "370967000",
+   "imo": 9383417,
    "name": "Morning Lisa",
-   "destination": "SGSIN",
-   "eta": {
-    "Day": 22,
-    "Hour": 16,
-    "Minute": 1,
-    "Month": 8
-   },
-   "lat": 33.608185,
-   "lon": 136.32713833333335,
-   "sog": 13.8,
-   "cog": 47.9,
-   "heading": 44,
-   "navStatus": 0,
-   "lastReceived": "2026-09-10 14:11:57.738176873 +0000 UTC"
+   "lat": 33.36561,
+   "lon": 136.00719666666666,
+   "sog": 16.5,
+   "cog": 49.8,
+   "heading": null,
+   "lastReceived": "2026-09-10T12:41:23.000+00:00",
+   "source": "polestar:ais_spire"
   },
   "371173000": {
    "mmsi": "371173000",
@@ -101,75 +76,50 @@
   },
   "372802000": {
    "mmsi": "372802000",
+   "imo": 9383431,
    "name": "Morning Lucy",
    "lat": 35.84,
    "lon": 120.94166666666666,
    "sog": 0,
    "cog": 56,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:17:17.000+00:00",
-   "destination": "CA HAL",
-   "eta": {
-    "Day": 31,
-    "Hour": 10,
-    "Minute": 0,
-    "Month": 7
-   },
-   "imo": 9383431,
    "source": "polestar:ais_spire"
   },
   "373568000": {
    "mmsi": "373568000",
+   "imo": 9892406,
    "name": "Gas Gala",
    "lat": 22.171946666666667,
    "lon": -86.18975666666667,
    "sog": 16.4,
    "cog": 318.6,
    "heading": null,
-   "navStatus": 5,
    "lastReceived": "2026-09-10T14:00:51.000+00:00",
-   "destination": "USNDX",
-   "eta": {
-    "Day": 1,
-    "Hour": 21,
-    "Minute": 30,
-    "Month": 8
-   },
-   "imo": 9892406,
    "source": "polestar:ais_spire"
   },
   "440058000": {
    "mmsi": "440058000",
+   "imo": 9203588,
    "name": "Asian Dynasty",
    "lat": 35.992016666666665,
    "lon": 120.25799333333333,
    "sog": 0,
    "cog": 251.3,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:04:40.000+00:00",
-   "imo": 9203588,
    "source": "polestar:ais_spire"
   },
   "440083000": {
    "mmsi": "440083000",
+   "imo": 9336050,
    "name": "Morning Conductor",
-   "destination": "IT CVV",
-   "eta": {
-    "Day": 23,
-    "Hour": 21,
-    "Minute": 0,
-    "Month": 8
-   },
    "lat": -32.69085333333334,
    "lon": 15.476205,
    "sog": 17.1,
    "cog": 138.9,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:08:39.000+00:00",
-   "imo": 9336050,
    "source": "polestar:ais_spire"
   },
   "440104000": {
@@ -186,55 +136,38 @@
   },
   "440114000": {
    "mmsi": "440114000",
+   "imo": 9176606,
    "name": "Asian Empire",
-   "destination": "SGSIN PEBGB",
-   "eta": {
-    "Day": 27,
-    "Hour": 1,
-    "Minute": 45,
-    "Month": 7
-   },
    "lat": 31.31161833333333,
    "lon": 123.99209666666667,
    "sog": 9.6,
    "cog": 76.2,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:03:42.000+00:00",
-   "imo": 9176606,
    "source": "polestar:ais_spire"
   },
   "440204000": {
    "mmsi": "440204000",
+   "imo": 9336074,
    "name": "Morning Composer",
    "lat": -22.127278333333333,
    "lon": 66.81894333333334,
    "sog": 16.1,
    "cog": 72.4,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:08:01.000+00:00",
-   "destination": "GB SOU",
-   "eta": {
-    "Day": 19,
-    "Hour": 9,
-    "Minute": 30,
-    "Month": 8
-   },
-   "imo": 9336074,
    "source": "polestar:ais_spire"
   },
   "440253000": {
    "mmsi": "440253000",
+   "imo": 9318515,
    "name": "Morning Menad",
    "lat": 8.266538333333333,
    "lon": -79.36478,
    "sog": 9.6,
    "cog": 1.1,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:08:37.000+00:00",
-   "imo": 9318515,
    "source": "polestar:ais_spire"
   },
   "440334000": {
@@ -248,24 +181,6 @@
    "heading": null,
    "lastReceived": "2026-09-10T12:08:54.000+00:00",
    "source": "polestar:ais_spire"
-  },
-  "440338000": {
-   "mmsi": "440338000",
-   "name": "Morning Margareta",
-   "lat": -27.23074666666667,
-   "lon": 153.2717483333333,
-   "sog": 17.8,
-   "cog": 17.7,
-   "heading": 18,
-   "navStatus": 0,
-   "lastReceived": "2026-08-03 14:52:31.444931366 +0000 UTC",
-   "destination": "CN ZHO",
-   "eta": {
-    "Day": 13,
-    "Hour": 0,
-    "Minute": 30,
-    "Month": 8
-   }
   },
   "440371000": {
    "mmsi": "440371000",
@@ -281,181 +196,87 @@
   },
   "440446000": {
    "mmsi": "440446000",
+   "imo": 9446013,
    "name": "Morning Lily",
    "lat": -11.185028333333333,
    "lon": 72.32631,
    "sog": 17.1,
    "cog": 237.4,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:11:11.000+00:00",
-   "destination": "USSSI",
-   "eta": {
-    "Day": 27,
-    "Hour": 7,
-    "Minute": 0,
-    "Month": 7
-   },
-   "imo": 9446013,
    "source": "polestar:ais_spire"
   },
   "440533000": {
    "mmsi": "440533000",
+   "imo": 9780639,
    "name": "Morning Prosperity",
    "lat": 15.606828333333333,
    "lon": 137.535705,
    "sog": 15.5,
    "cog": 335.3,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:03:52.000+00:00",
-   "destination": "AUMEL",
-   "eta": {
-    "Day": 28,
-    "Hour": 1,
-    "Minute": 0,
-    "Month": 8
-   },
-   "imo": 9780639,
    "source": "polestar:ais_spire"
   },
   "440694000": {
    "mmsi": "440694000",
+   "imo": 9519133,
    "name": "Morning Celine",
    "lat": -21.219283333333333,
    "lon": 5.926416666666666,
    "sog": 17.8,
    "cog": 321,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:20:34.000+00:00",
-   "destination": "ESSAG",
-   "eta": {
-    "Day": 21,
-    "Hour": 6,
-    "Minute": 0,
-    "Month": 9
-   },
-   "imo": 9519133,
    "source": "polestar:ais_spire"
   },
   "440767000": {
    "mmsi": "440767000",
+   "imo": 9780627,
    "name": "Morning Peace",
    "lat": -0.008041666666666667,
    "lon": 107.881505,
    "sog": 18.3,
    "cog": 10.2,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:07:15.000+00:00",
-   "destination": "KR PTK",
-   "eta": {
-    "Day": 16,
-    "Hour": 20,
-    "Minute": 0,
-    "Month": 9
-   },
-   "imo": 9780627,
    "source": "polestar:ais_spire"
-  },
-  "440797000": {
-   "mmsi": "440797000",
-   "name": "Morning Cornelia",
-   "lat": 29.03803333333333,
-   "lon": -120.0715,
-   "sog": 16.3,
-   "cog": 307,
-   "heading": 310,
-   "navStatus": 0,
-   "lastReceived": "2026-09-05 21:03:37.301214873 +0000 UTC",
-   "destination": "US SSI",
-   "eta": {
-    "Day": 24,
-    "Hour": 8,
-    "Minute": 0,
-    "Month": 8
-   }
   },
   "441010000": {
    "mmsi": "441010000",
+   "imo": 9574054,
    "name": "Morning Christina",
-   "lat": 51.30171666666667,
-   "lon": 3.2373333333333334,
-   "sog": 0,
-   "cog": 49,
-   "heading": 333,
-   "navStatus": 5,
-   "lastReceived": "2026-09-11 11:59:33.703718505 +0000 UTC",
-   "destination": "BEZEE",
-   "eta": {
-    "Day": 11,
-    "Hour": 6,
-    "Minute": 0,
-    "Month": 9
-   }
+   "lat": 49.73786666666667,
+   "lon": -3.8245833333333334,
+   "sog": 14.7,
+   "cog": 86,
+   "heading": null,
+   "lastReceived": "2026-09-10T12:04:51.000+00:00",
+   "source": "polestar:ais_spire"
   },
   "441108000": {
    "mmsi": "441108000",
+   "imo": 9383429,
    "name": "Morning Lynn",
-   "destination": "USPHL",
-   "eta": {
-    "Day": 3,
-    "Hour": 11,
-    "Minute": 0,
-    "Month": 8
-   },
    "lat": 41.87774,
    "lon": 144.00990166666668,
    "sog": 15.8,
    "cog": 64.5,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:03:52.000+00:00",
-   "imo": 9383429,
    "source": "polestar:ais_spire"
   },
   "441148000": {
    "mmsi": "441148000",
+   "imo": 9574092,
    "name": "Morning Cara",
    "lat": -27.163266666666665,
    "lon": 153.91681666666668,
    "sog": 15,
    "cog": 4,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:04:53.000+00:00",
-   "imo": 9574092,
    "source": "polestar:ais_spire"
-  },
-  "441320000": {
-   "mmsi": "441320000",
-   "name": "Morning Crystal",
-   "lat": 28.201363333333333,
-   "lon": -118.64641,
-   "sog": 17.6,
-   "cog": 128.7,
-   "heading": 127,
-   "navStatus": 0,
-   "lastReceived": "2026-08-18 22:29:38.230360558 +0000 UTC"
-  },
-  "441390000": {
-   "mmsi": "441390000",
-   "name": "Morning Cello",
-   "lat": 31.13421333333333,
-   "lon": -81.53850833333333,
-   "sog": 0,
-   "cog": 257.7,
-   "heading": 133,
-   "navStatus": 5,
-   "lastReceived": "2026-08-22 23:26:16.807073103 +0000 UTC",
-   "destination": "US SSI",
-   "eta": {
-    "Day": 21,
-    "Hour": 20,
-    "Minute": 40,
-    "Month": 8
-   }
   },
   "441467000": {
    "mmsi": "441467000",
@@ -471,22 +292,14 @@
   },
   "441722000": {
    "mmsi": "441722000",
+   "imo": 9176632,
    "name": "Asian Emperor",
    "lat": 30.836148333333334,
    "lon": 121.828595,
    "sog": 0,
    "cog": 64.3,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:06:36.000+00:00",
-   "destination": "USBAL>USPHL",
-   "eta": {
-    "Day": 28,
-    "Hour": 22,
-    "Minute": 45,
-    "Month": 7
-   },
-   "imo": 9176632,
    "source": "polestar:ais_spire"
   },
   "441866000": {
@@ -515,117 +328,62 @@
   },
   "441992000": {
    "mmsi": "441992000",
+   "imo": 9122966,
    "name": "Asian Vision",
    "lat": 19.123121666666666,
    "lon": -106.33406166666667,
    "sog": 15,
    "cog": 129.8,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:04:42.000+00:00",
-   "destination": "JP THS",
-   "eta": {
-    "Day": 24,
-    "Hour": 19,
-    "Minute": 30,
-    "Month": 8
-   },
-   "imo": 9122966,
    "source": "polestar:ais_spire"
   },
   "441995000": {
    "mmsi": "441995000",
+   "imo": 9203590,
    "name": "Asian Trust",
    "lat": 12.482815,
    "lon": -99.864015,
    "sog": 18.6,
    "cog": 314.1,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:08:02.000+00:00",
-   "imo": 9203590,
    "source": "polestar:ais_spire"
   },
   "538005232": {
    "mmsi": "538005232",
+   "imo": 9663295,
    "name": "Morning Capo",
    "lat": 36.978811666666665,
    "lon": 126.827245,
    "sog": 0,
    "cog": 180.9,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:05:54.000+00:00",
-   "destination": "CANWE",
-   "eta": {
-    "Day": 14,
-    "Hour": 6,
-    "Minute": 0,
-    "Month": 8
-   },
-   "imo": 9663295,
    "source": "polestar:ais_spire"
   },
   "538005333": {
    "mmsi": "538005333",
+   "imo": 9663300,
    "name": "Morning Chant",
    "lat": 30.836156666666668,
    "lon": 121.82365333333334,
    "sog": 0.1,
    "cog": 161.8,
    "heading": null,
-   "navStatus": 5,
    "lastReceived": "2026-09-10T12:06:15.000+00:00",
-   "imo": 9663300,
    "source": "polestar:ais_spire"
-  },
-  "538005452": {
-   "mmsi": "538005452",
-   "name": "Morning Post",
-   "destination": "ZADUR",
-   "eta": {
-    "Day": 14,
-    "Hour": 3,
-    "Minute": 0,
-    "Month": 8
-   },
-   "lat": -6.098903333333333,
-   "lon": 106.91687,
-   "sog": 0,
-   "cog": 221.4,
-   "heading": 93,
-   "navStatus": 5,
-   "lastReceived": "2026-09-01 17:46:02.798582127 +0000 UTC"
-  },
-  "538005521": {
-   "mmsi": "538005521",
-   "name": "Morning Pilot",
-   "lat": -34.62132,
-   "lon": 18.680403333333334,
-   "sog": 17,
-   "cog": 120.7,
-   "heading": 120,
-   "navStatus": 0,
-   "lastReceived": "2026-08-24 09:55:06.154938401 +0000 UTC",
-   "destination": "INMUN",
-   "eta": {
-    "Day": 5,
-    "Hour": 2,
-    "Minute": 30,
-    "Month": 9
-   }
   },
   "538005617": {
    "mmsi": "538005617",
+   "imo": 9681431,
    "name": "Morning Pride",
    "lat": 9.45314,
    "lon": -79.867585,
    "sog": 0.1,
    "cog": 3.8,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:03:44.000+00:00",
-   "imo": 9681431,
    "source": "polestar:ais_spire"
   },
   "538009492": {
@@ -639,24 +397,6 @@
    "heading": null,
    "lastReceived": "2026-09-10T12:04:39.000+00:00",
    "source": "polestar:ais_spire"
-  },
-  "538011582": {
-   "mmsi": "538011582",
-   "name": "Liberty New York",
-   "lat": 34.11841833333333,
-   "lon": -119.20696833333334,
-   "sog": 0.1,
-   "cog": 144.8,
-   "heading": 243,
-   "navStatus": 1,
-   "lastReceived": "2026-08-02 20:13:16.504005909 +0000 UTC",
-   "destination": "US BNC > US NTD",
-   "eta": {
-    "Day": 1,
-    "Hour": 17,
-    "Minute": 0,
-    "Month": 8
-   }
   },
   "538011674": {
    "mmsi": "538011674",
@@ -672,21 +412,15 @@
   },
   "538011676": {
    "mmsi": "538011676",
+   "imo": 9446001,
    "name": "Morning Lena",
-   "lat": 25.512316666666667,
-   "lon": -79.84698333333334,
-   "sog": 15.1,
-   "cog": 195.1,
-   "heading": 194,
-   "navStatus": 0,
-   "lastReceived": "2026-09-11 09:27:24.992911504 +0000 UTC",
-   "destination": "USGLS",
-   "eta": {
-    "Day": 14,
-    "Hour": 8,
-    "Minute": 0,
-    "Month": 9
-   }
+   "lat": 30.918946666666667,
+   "lon": -77.022225,
+   "sog": 21.1,
+   "cog": 209.1,
+   "heading": null,
+   "lastReceived": "2026-09-10T13:05:13.000+00:00",
+   "source": "polestar:ais_spire"
   },
   "538011800": {
    "mmsi": "538011800",
@@ -702,73 +436,38 @@
   },
   "538012688": {
    "mmsi": "538012688",
+   "imo": 9448114,
    "name": "Liberty Pride",
    "lat": 47.237181666666665,
    "lon": -136.005765,
    "sog": 14.8,
    "cog": 281.3,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:36:30.000+00:00",
-   "destination": "JPYOK",
-   "eta": {
-    "Day": 21,
-    "Hour": 20,
-    "Minute": 0,
-    "Month": 9
-   },
-   "imo": 9448114,
    "source": "polestar:ais_spire"
   },
   "636021821": {
    "mmsi": "636021821",
+   "imo": 9938573,
    "name": "HLS Blue Sapphire",
    "lat": 9.508238333333333,
    "lon": -88.987365,
    "sog": 15.6,
    "cog": 297.4,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:43:43.000+00:00",
-   "destination": "USNDX",
-   "eta": {
-    "Day": 27,
-    "Hour": 12,
-    "Minute": 0,
-    "Month": 8
-   },
-   "imo": 9938573,
    "source": "polestar:ais_spire"
-  },
-  "636021822": {
-   "mmsi": "636021822",
-   "name": "HLS Citrine",
-   "lat": 34.09171333333333,
-   "lon": 134.987025,
-   "sog": 11.4,
-   "cog": 5.5,
-   "heading": 10,
-   "navStatus": 0,
-   "lastReceived": "2026-09-05 23:42:26.036008498 +0000 UTC",
-   "destination": "PA BLB",
-   "eta": {
-    "Day": 2,
-    "Hour": 3,
-    "Minute": 0,
-    "Month": 10
-   }
   },
   "636021823": {
    "mmsi": "636021823",
+   "imo": 9940605,
    "name": "HLS Diamond",
    "lat": 50.263223333333336,
    "lon": -169.17875666666666,
    "sog": 15.1,
    "cog": 95.4,
    "heading": null,
-   "navStatus": 0,
    "lastReceived": "2026-09-10T12:04:46.000+00:00",
-   "imo": 9940605,
    "source": "polestar:ais_spire"
   },
   "636025662": {
@@ -782,18 +481,6 @@
    "heading": null,
    "lastReceived": "2026-09-10T12:07:30.000+00:00",
    "source": "polestar:ais_spire"
-  },
-  "636025665": {
-   "mmsi": "636025665",
-   "name": "HL Success",
-   "lat": 25.26197833333333,
-   "lon": 122.396875,
-   "sog": 12.1,
-   "cog": 166.8,
-   "heading": 171,
-   "navStatus": 0,
-   "lastReceived": "2026-08-17 18:47:41.004519591 +0000 UTC"
   }
- },
- "polestarUpdated": "2026-09-11T12:03:51.284Z"
+ }
 }
