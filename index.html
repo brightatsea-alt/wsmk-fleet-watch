@@ -48,6 +48,7 @@
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
+  .sec .lth{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#6E7E92}
 
   /* ── Map markers ── */
   .vmark{filter:drop-shadow(0 0 3px rgba(0,0,0,.7))}
@@ -116,6 +117,7 @@
   <div><i style="background:#5AB8D6"></i>일반 정보 위주</div>
   <div><i style="background:#E0703C"></i>보안 정보 위주</div>
   <div style="color:#6E7E92;margin-top:3px">점 크기 = 정보량 · 확대 시 이름 표시</div>
+  <div style="color:#6E7E92">상단 칩으로 선박/항구 표시 전환</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -171,6 +173,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
   {pane:'geoLabels',maxZoom:12,opacity:.5}).addTo(map);
 const layer = L.layerGroup().addTo(map);
+let shipsOn = true;          // 기본: 선박만 표시
 
 const R2D=180/Math.PI, D2R=Math.PI/180;
 
@@ -243,7 +246,7 @@ function popup(v){
 function render(){
   build();
   layer.clearLayers(); markers={};
-  vessels.forEach(v=>{
+  if(shipsOn) vessels.forEach(v=>{
     if(v.lat==null) return;
     if(v.estimated||v.status==='STALE'){
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
@@ -268,17 +271,18 @@ function setFilter(k){ filter=k; renderBoard(); renderList(); }
 function renderList(){
   const q=(document.getElementById('q').value||'').toLowerCase();
   const show=vessels.filter(v=>(!filter||v.status===filter)&&(!q||v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q)));
-  const onMap=show.filter(v=>v.lat!=null), standby=show.filter(v=>v.lat==null);
+  const byName=(a,b)=>a.name.localeCompare(b.name,'en');
+  const onMap=show.filter(v=>v.lat!=null).sort(byName), standby=show.filter(v=>v.lat==null).sort(byName);
   const row=v=>{
     const lt=v.lon!=null?localTime(v.lon):null;
     const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
-    return `<div class="row ${v.status==='NOSIG'?'dim':''}" onclick="focusV(${v.no})">
+    return `<div class="row ${v.status==='NOSIG'?'dim':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
       <div class="nm"><b>${v.name}</b><span>${v.mmsi||'MMSI —'} · ${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
   };
   document.getElementById('list').innerHTML =
-    (onMap.length?`<div class="sec">항해 · 정박 중 (${onMap.length})</div>`+onMap.map(row).join(''):'')
+    (onMap.length?`<div class="sec">항해 · 정박 중 (${onMap.length})<span class="lth">현지시간</span></div>`+onMap.map(row).join(''):'')
     +(standby.length?`<div class="sec">대기 — AIS 미수신 (${standby.length})</div>`+standby.map(row).join(''):'')
     +(!show.length?'<div style="padding:20px;color:var(--muted)">검색 결과 없음</div>':'');
 }
@@ -314,7 +318,19 @@ setInterval(load, 10*60e3);       // 10분마다 최신 JSON 재확인
 
 /* ══════════ 항구 정보 레이어 (Port Information) ══════════ */
 const portLayer = L.layerGroup().addTo(map);
-let portsOn = true, portData = null;
+/* 상단 컨트롤 바 — 선박 / 항구 정보 토글 */
+(function(){
+  const board = document.getElementById('board');
+  const bar = document.createElement('div');
+  bar.id = 'ctrlbar';
+  bar.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+  bar.innerHTML = '<div class="chip on" id="stoggle">\uD83D\uDEA2 \uC120\uBC15</div>';
+  board.parentNode.insertBefore(bar, board.nextSibling);
+  document.getElementById('stoggle').onclick = function(){
+    shipsOn = !shipsOn; this.classList.toggle('on', shipsOn); render();
+  };
+})();
+let portsOn = false, portData = null;   // 기본: 항구 숨김
 
 function portColor(p){ return p.security > p.general ? '#E0703C' : '#5AB8D6'; }
 function enc(s){ return encodeURIComponent(s).replace(/'/g,'%27'); }
@@ -372,20 +388,21 @@ function renderPorts(){
 fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
   portData = d;
   // 국가 선택 드롭다운 + 항구 토글을 헤더에 삽입
-  const board = document.getElementById('board');
-  const wrap = document.createElement('div');
-  wrap.style.cssText='display:flex;gap:8px;align-items:center';
-  wrap.innerHTML =
-    `<div class="chip on" id="ptoggle">⚓ 항구 <b>${d.ports.filter(p=>p.lat!=null).length}</b></div>
+  const wrap = document.getElementById('ctrlbar');
+  wrap.insertAdjacentHTML('beforeend',
+    `<div class="chip" id="ptoggle">⚓ 항구 정보 <b>${d.ports.filter(p=>p.lat!=null).length}</b></div>
      <select id="csel" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:12px">
        <option value="">국가: 전체</option>
        ${d.countries.map(c=>`<option value="${c.country}">${c.country} (${c.general+c.security})</option>`).join('')}
      </select>
-     <div class="chip" id="copen" style="display:none">국가 정보 열기 →</div>`;
-  board.parentNode.insertBefore(wrap, board.nextSibling);
+     <div class="chip" id="copen" style="display:none">국가 정보 열기 →</div>`);
   document.getElementById('ptoggle').onclick = function(){
-    portsOn=!portsOn; this.classList.toggle('on',portsOn); renderPorts();
+    portsOn=!portsOn; this.classList.toggle('on',portsOn);
+    document.getElementById('csel').style.display = portsOn ? '' : 'none';
+    if(!portsOn) document.getElementById('copen').style.display='none';
+    renderPorts();
   };
+  document.getElementById('csel').style.display = portsOn ? '' : 'none';
   document.getElementById('csel').onchange = function(){
     const v=this.value;
     document.getElementById('copen').style.display = v?'flex':'none';
