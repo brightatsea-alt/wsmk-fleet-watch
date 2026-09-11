@@ -348,7 +348,7 @@ function popup(v){
     ['위치', v.lat.toFixed(3)+'°, '+v.lon.toFixed(3)+'°'],
     ['SOG / COG', (d.sog!=null?d.sog.toFixed(1)+' kn':'—')+' / '+(d.cog!=null&&d.cog<360?Math.round(d.cog)+'°':'—')],
     ['최종 AIS', ago(v.elapsed)],
-    d.destination?['목적지', destFull(d.destination)]:null,
+    ['목적지', d.destination ? (destFull(d.destination) + (d.destAt ? ' <span style="color:var(--muted);font-size:10px">('+ago((Date.now()-new Date(d.destAt).getTime())/3600e3)+' 수신)</span>' : '')) : '<span style="color:var(--muted)">— AIS 정적정보 미수신</span>'],
     fmtEta(d.eta)?['ETA', fmtEta(d.eta)+' UTC']:null,
     ['MMSI', v.mmsi],
     ['데이터', (d.source||'').indexOf('polestar')===0 ? '위성 AIS · Pole Star' : '지상 AIS'],
