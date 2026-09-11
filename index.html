@@ -48,6 +48,14 @@
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
+  #fbar{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+  #fbar select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:11.5px;font-family:var(--mono);outline:none;min-width:0}
+  #fbar select:focus{border-color:var(--accent)}
+  #fbar select.act{border-color:var(--accent);color:var(--accent)}
+  #fbar .fx{display:flex;align-items:center;justify-content:flex-end;gap:6px}
+  #fbar #fcnt{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  #fbar #fclr{background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:3px 8px;font-size:10.5px;cursor:pointer}
+  #fbar #fclr:hover{border-color:var(--accent);color:var(--accent)}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
   #posbox{position:absolute;top:12px;right:12px;z-index:850;width:290px;background:rgba(13,21,34,.96);
@@ -176,6 +184,12 @@
 <div id="wrap">
   <aside id="side" class="open">
     <div class="search"><input id="q" type="search" placeholder="선박명 · MMSI 검색"></div>
+    <div id="fbar">
+      <select id="fteam"><option value="">Team 전체</option></select>
+      <select id="fvm"><option value="">Vessel Manager 전체</option></select>
+      <select id="fhseq"><option value="">HSEQ 전체</option></select>
+      <div class="fx"><span id="fcnt"></span><button id="fclr">초기화</button></div>
+    </div>
     <div id="list"></div>
   </aside>
   <div id="map"></div>
@@ -432,7 +446,19 @@ function setFilter(k){ filter=k; soloNo=null; render(); }
 
 function renderList(){
   const q=(document.getElementById('q').value||'').toLowerCase();
-  const show=vessels.filter(v=>(!filter||v.status===filter)&&(!q||v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q)));
+  var gv=function(id){ var s=document.getElementById(id); return s?s.value:''; };
+  var ft=gv('fteam'), fv=gv('fvm'), fh=gv('fhseq');
+  var rOf=function(v){ return RESP[v.mmsi||''] || RESP[v.name] || null; };
+  const show=vessels.filter(function(v){
+    if(filter && v.status!==filter) return false;
+    if(q && !(v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q))) return false;
+    if(ft||fv||fh){ var r=rOf(v); if(!r) return false;
+      if(ft && r.team!==ft) return false;
+      if(fv && r.vm!==fv) return false;
+      if(fh && r.hseq!==fh) return false; }
+    return true;
+  });
+  try{ var fcx=document.getElementById('fcnt'); if(fcx) fcx.textContent=(ft||fv||fh)? show.length+'척' : ''; }catch(e){}
   const byName=(a,b)=>a.name.localeCompare(b.name,'en');
   const onMap=show.filter(v=>v.lat!=null).sort(byName), standby=show.filter(v=>v.lat==null).sort(byName);
   const row=v=>{
@@ -440,7 +466,7 @@ function renderList(){
     const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
     return `<div class="row ${v.status==='NOSIG'?'dim':''}${soloNo===v.no?' sel':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
-      <div class="nm"><b>${v.name}</b><span>${v.mmsi||'MMSI —'} · ${sub}</span></div>
+      <div class="nm"><b>${v.name}</b><span>${(function(){var r=RESP[v.mmsi||'']||RESP[v.name]; return r? r.team+' · '+r.vm+' · '+r.hseq : (v.mmsi||'MMSI —');})()}</span><span>${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
   };
   document.getElementById('list').innerHTML =
@@ -521,6 +547,26 @@ window.addEventListener('error', function(ev){
 window.addEventListener('unhandledrejection', function(){ try{ healthFromData(); }catch(e){} });
 window.addEventListener('online', function(){ try{ load(); }catch(e){} });
 document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ load(); }catch(e){} } });
+var RESP={};
+function fillSel(id, vals, label){
+  var s=document.getElementById(id); if(!s) return;
+  s.innerHTML='<option value="">'+label+'</option>'+vals.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
+  s.onchange=function(){ s.classList.toggle('act', !!s.value); renderList(); };
+}
+fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){
+  RESP=d.vessels||{};
+  var t=[],v=[],q2=[];
+  Object.keys(RESP).forEach(function(k){ var x=RESP[k];
+    if(x.team && t.indexOf(x.team)<0) t.push(x.team);
+    if(x.vm && v.indexOf(x.vm)<0) v.push(x.vm);
+    if(x.hseq && q2.indexOf(x.hseq)<0) q2.push(x.hseq); });
+  fillSel('fteam', t.sort(), 'Team 전체');
+  fillSel('fvm', v.sort(), 'Vessel Manager 전체');
+  fillSel('fhseq', q2.sort(), 'HSEQ 전체');
+  try{ renderList(); }catch(e){}
+}).catch(function(){});
+var _fc=document.getElementById('fclr');
+if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); renderList(); };
 document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
 load();
