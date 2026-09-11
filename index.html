@@ -370,10 +370,12 @@ function render(){
     }
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
-      .bindPopup(popup(v),{autoPan:false}).addTo(layer);
+      .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false}).addTo(layer);
   });
-  if(soloNo!=null){ var sv=vessels.filter(function(x){return x.no===soloNo;})[0]; drawDest(sv); }
-  else if(typeof destLayer!=='undefined'){ destLayer.clearLayers(); }
+  try{
+    if(soloNo!=null){ var sv=vessels.filter(function(x){return x.no===soloNo;})[0]; drawDest(sv); }
+    else if(destLayer) destLayer.clearLayers();
+  }catch(e){}
   renderBoard(); renderList();
 }
 
@@ -430,7 +432,7 @@ function focusV(no){
 
 async function load(){
   fleet = FLEET;
-  if(!vessels.length) render();                  // 새로고침 직후 선박 목록 즉시 표시                                   // 명부는 내장 — 항상 56척 표시
+  if(!vessels.length){ try{ render(); }catch(e){} }                  // 새로고침 직후 선박 목록 즉시 표시                                   // 명부는 내장 — 항상 56척 표시
   try{
     const t=Date.now();
     store=await (await fetch('fleet-positions.json?t='+t)).json();
@@ -503,7 +505,7 @@ function drawTrack(){
 }
 
 /* ══════════ 항구 정보 레이어 (Port Information) ══════════ */
-const portLayer = L.layerGroup().addTo(map);
+var portLayer = L.layerGroup().addTo(map);
 /* 상단 컨트롤 바 — 선박 / 항구 정보 토글 */
 (function(){
   const board = document.getElementById('board');
@@ -611,7 +613,7 @@ function destLatLng(t){
 function nmDist(a,b,c,d){var R=3440.065,r=Math.PI/180;
   var x=Math.sin((c-a)*r/2), y=Math.sin((d-b)*r/2);
   return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
-const destLayer=L.layerGroup().addTo(map);
+var destLayer=L.layerGroup().addTo(map);
 function drawDest(v){
   destLayer.clearLayers();
   if(!v||!v.data||!v.data.destination||v.lat==null) return null;
@@ -677,7 +679,7 @@ function parseLL(text){
   }
   return out;
 }
-const wpLayer=L.layerGroup().addTo(map);
+var wpLayer=L.layerGroup().addTo(map);
 function wpIcon(){ return L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,14],html:
   '<svg width="28" height="28" viewBox="0 0 28 28">'
  +'<circle cx="14" cy="14" r="10" fill="none" stroke="#C9A7FF" stroke-width="1.4" opacity=".85"/>'
