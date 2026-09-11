@@ -365,7 +365,7 @@ function render(){
     }
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
-      .bindPopup(popup(v)).addTo(layer);
+      .bindPopup(popup(v),{autoPan:false}).addTo(layer);
   });
   if(soloNo!=null){ var sv=vessels.filter(function(x){return x.no===soloNo;})[0]; drawDest(sv); }
   else if(typeof destLayer!=='undefined'){ destLayer.clearLayers(); }
@@ -411,9 +411,13 @@ function focusV(no){
   render();
   if(soloNo!=null && v && v.lat!=null){
     var dxy=(v.data&&v.data.destination)?destLatLng(v.data.destination):null;
-    if(dxy){ var dl=dxy[1]; if(dl-v.lon>180) dl-=360; if(v.lon-dl>180) dl+=360;
-      map.fitBounds([[v.lat,v.lon],[dxy[0],dl]],{padding:[80,80],maxZoom:7}); }
-    else map.flyTo([v.lat,v.lon], Math.max(map.getZoom(),7), {duration:.9});
+    var far=dxy?nmDist(v.lat,v.lon,dxy[0],dxy[1]):0;
+    if(dxy && far>25){
+      var dl=dxy[1]; if(dl-v.lon>180) dl-=360; if(v.lon-dl>180) dl+=360;
+      var pad = far>2500 ? 40 : far>600 ? 70 : 100;          // \uAC70\uB9AC\uBCC4 \uC5EC\uBC31
+      map.flyToBounds([[v.lat,v.lon],[dxy[0],dl]],{padding:[pad,pad],maxZoom:9,duration:1.1});
+    }
+    else map.flyTo([v.lat,v.lon], Math.max(map.getZoom(),8), {duration:.9});
     setTimeout(()=>{ markers[no] && markers[no].openPopup(); }, 950);
   }
   if(innerWidth<=760) document.getElementById('side').classList.remove('open');
