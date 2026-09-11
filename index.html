@@ -418,7 +418,8 @@ function render(){
   if(shipsOn) vessels.forEach(v=>{
    try{
     if(v.lat==null) return;
-    if(soloNo!=null && v.no!==soloNo) return;      // 단일 보기
+    if(soloNo!=null && v.no!==soloNo) return;
+    if(soloNo==null && !passResp(v)) return;      // 필터에 맞는 선박만 지도 표시      // 단일 보기
     if((v.estimated||v.status==='STALE') && v.radiusNm>0){   // 반경 NaN 시 Leaflet 예외 방지
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
@@ -452,10 +453,7 @@ function renderList(){
   const show=vessels.filter(function(v){
     if(filter && v.status!==filter) return false;
     if(q && !(v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q))) return false;
-    if(ft||fv||fh){ var r=rOf(v); if(!r) return false;
-      if(ft && r.team!==ft) return false;
-      if(fv && r.vm!==fv) return false;
-      if(fh && r.hseq!==fh) return false; }
+    if(!passResp(v)) return false;
     return true;
   });
   try{ var fcx=document.getElementById('fcnt'); if(fcx) fcx.textContent=(ft||fv||fh)? show.length+'척' : ''; }catch(e){}
@@ -548,10 +546,21 @@ window.addEventListener('unhandledrejection', function(){ try{ healthFromData();
 window.addEventListener('online', function(){ try{ load(); }catch(e){} });
 document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ load(); }catch(e){} } });
 var RESP={};
+function respOf(v){ return RESP[(v&&v.mmsi)||''] || RESP[(v&&v.name)||''] || null; }
+function selVal(id){ var s=document.getElementById(id); return s?s.value:''; }
+function passResp(v){
+  var ft=selVal('fteam'), fv=selVal('fvm'), fh=selVal('fhseq');
+  if(!ft && !fv && !fh) return true;
+  var r=respOf(v); if(!r) return false;
+  if(ft && r.team!==ft) return false;
+  if(fv && r.vm!==fv) return false;
+  if(fh && r.hseq!==fh) return false;
+  return true;
+}
 function fillSel(id, vals, label){
   var s=document.getElementById(id); if(!s) return;
   s.innerHTML='<option value="">'+label+'</option>'+vals.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
-  s.onchange=function(){ s.classList.toggle('act', !!s.value); renderList(); };
+  s.onchange=function(){ s.classList.toggle('act', !!s.value); soloNo=null; try{ render(); }catch(e){ renderList(); } };
 }
 fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){
   RESP=d.vessels||{};
@@ -563,10 +572,10 @@ fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).t
   fillSel('fteam', t.sort(), 'Team 전체');
   fillSel('fvm', v.sort(), 'Vessel Manager 전체');
   fillSel('fhseq', q2.sort(), 'HSEQ 전체');
-  try{ renderList(); }catch(e){}
+  try{ render(); }catch(e){ try{ renderList(); }catch(e2){} }
 }).catch(function(){});
 var _fc=document.getElementById('fclr');
-if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); renderList(); };
+if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); }catch(e){ renderList(); } };
 document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
 load();
