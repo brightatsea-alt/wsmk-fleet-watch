@@ -69,9 +69,22 @@
   #list::-webkit-scrollbar{width:8px}#list::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
 
   /* ── Port layer ── */
-  .plabel{background:rgba(13,21,34,.85);border:1px solid var(--line);color:var(--text);
-    font-size:10px;font-family:var(--mono);padding:1px 5px;border-radius:3px;box-shadow:none}
+  .plabel{background:rgba(9,16,27,.82);border:1px solid rgba(90,184,214,.35);color:#CFE0EE;
+    font-size:10px;font-family:var(--mono);letter-spacing:.02em;padding:1px 6px;border-radius:3px;
+    box-shadow:0 1px 4px rgba(0,0,0,.5);white-space:nowrap}
   .plabel::before{display:none}
+  .plabel.sec{border-color:rgba(224,112,60,.55);color:#F0C4AE}
+  .vlabel{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.18);color:#fff;
+    font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.6)}
+  .vlabel::before{display:none}
+  /* ── Legend ── */
+  #legend{position:absolute;left:14px;bottom:14px;z-index:800;background:rgba(13,21,34,.88);
+    border:1px solid var(--line);border-radius:7px;padding:9px 11px;font-family:var(--mono);
+    font-size:10.5px;color:var(--muted);backdrop-filter:blur(3px);line-height:1.75;pointer-events:none}
+  #legend b{color:var(--text);font-weight:600;display:block;margin-bottom:3px;letter-spacing:.08em;font-size:10px}
+  #legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  #legend .sep{height:1px;background:var(--line);margin:6px 0}
+  @media(max-width:760px){#legend{display:none}}
   .pbtn{display:block;width:100%;margin-top:5px;padding:7px 10px;border:none;border-radius:5px;
     background:#1a6fb5;color:#fff;font-size:12.5px;cursor:pointer;font-weight:600}
   .pbtn.co{background:#57606e}
@@ -93,6 +106,17 @@
   <div id="map"></div>
 </div>
 <button id="toggle">선박 목록</button>
+<div id="legend">
+  <b>선박 VESSEL</b>
+  <div><i style="background:#3DDC97"></i>실측 (6h 이내)</div>
+  <div><i style="background:#F0B95A"></i>추정 DR</div>
+  <div><i style="background:#E0703C"></i>장기 미수신</div>
+  <div class="sep"></div>
+  <b>항구 PORT</b>
+  <div><i style="background:#5AB8D6"></i>일반 정보 위주</div>
+  <div><i style="background:#E0703C"></i>보안 정보 위주</div>
+  <div style="color:#6E7E92;margin-top:3px">점 크기 = 정보량 · 확대 시 이름 표시</div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -138,8 +162,14 @@ let fleet=[], store={vessels:{}}, vessels=[], markers={}, filter=null;
 
 const map = L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,140],3);
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex = 350;
+map.getPane('geoLabels').style.pointerEvents = 'none';
+map.createPane('portsPane'); map.getPane('portsPane').style.zIndex = 420;
+map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
   {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:12}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
+  {pane:'geoLabels',maxZoom:12,opacity:.5}).addTo(map);
 const layer = L.layerGroup().addTo(map);
 
 const R2D=180/Math.PI, D2R=Math.PI/180;
@@ -185,10 +215,11 @@ function build(){
 
 function shipIcon(v){
   const c=ST[v.status].hex;
+  const ring = v.status==='LIVE' ? `<circle cx="11" cy="11" r="9.5" fill="none" stroke="${c}" stroke-width="1" opacity=".35"/>` : '';
   const svg = v.anchored||v.data.cog==null||v.data.cog>=360
-    ? `<svg class="vmark" width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="${c}" stroke="#08121F" stroke-width="1.5"/></svg>`
-    : `<svg class="vmark" width="20" height="20" style="transform:rotate(${v.data.cog}deg)"><path d="M10 2 L15.5 17 L10 13.5 L4.5 17 Z" fill="${c}" stroke="#08121F" stroke-width="1"/></svg>`;
-  return L.divIcon({html:svg,className:'',iconSize:[20,20],iconAnchor:[10,10]});
+    ? `<svg class="vmark" width="22" height="22" viewBox="0 0 22 22">${ring}<circle cx="11" cy="11" r="5" fill="${c}" stroke="#06101C" stroke-width="1.6"/></svg>`
+    : `<svg class="vmark" width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${v.data.cog}deg)">${ring}<path d="M11 2.5 L16.4 18 L11 14.4 L5.6 18 Z" fill="${c}" stroke="#06101C" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  return L.divIcon({html:svg,className:'',iconSize:[22,22],iconAnchor:[11,11]});
 }
 
 function popup(v){
@@ -202,6 +233,7 @@ function popup(v){
     d.destination?['목적지', d.destination]:null,
     fmtEta(d.eta)?['ETA', fmtEta(d.eta)+' UTC']:null,
     ['MMSI', v.mmsi],
+    ['데이터', (d.source||'').indexOf('polestar')===0 ? '위성 AIS · Pole Star' : '지상 AIS'],
   ].filter(Boolean);
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
@@ -214,9 +246,11 @@ function render(){
   vessels.forEach(v=>{
     if(v.lat==null) return;
     if(v.estimated||v.status==='STALE'){
-      L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05}).addTo(layer);
+      L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
-    markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v)}).bindPopup(popup(v)).addTo(layer);
+    markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
+      .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
+      .bindPopup(popup(v)).addTo(layer);
   });
   renderBoard(); renderList();
 }
@@ -288,27 +322,51 @@ function langQ(){ return (typeof UILANG!=='undefined' && UILANG==='en') ? '&lang
 function openPort(p){ window.open('ports.html?port='+p+langQ(),'_blank'); }
 function openCountry(c){ window.open('ports.html?country='+c+langQ(),'_blank'); }
 
+let PMARKS = [];
+function labelMode(){
+  const z = map.getZoom();
+  return z >= 5 ? 'all' : z >= 4 ? 'major' : 'none';   // 줌에 따라 라벨 노출 단계
+}
+function applyPortLabels(){
+  const mode = labelMode();
+  PMARKS.forEach(({m,p,n})=>{
+    const show = mode==='all' || (mode==='major' && n>=4);
+    m.unbindTooltip();
+    m.bindTooltip(p.port,{permanent:show,direction:'top',offset:[0,-7],
+      className:'plabel'+(p.security>p.general?' sec':''), opacity:1});
+  });
+}
+map.on('zoomend', applyPortLabels);
 function renderPorts(){
-  portLayer.clearLayers();
+  portLayer.clearLayers(); PMARKS = [];
   if(!portsOn || !portData) return;
   const sel = document.getElementById('csel') ? document.getElementById('csel').value : '';
   portData.ports.forEach(p=>{
     if(p.lat==null) return;
     if(sel && p.country!==sel) return;
     const n = p.items.length;
-    const m = L.circleMarker([p.lat,p.lon],{
-      radius: Math.max(7, Math.min(5+n*0.9, 15)),
-      color:'#08121F', weight:1,
-      fillColor: portColor(p), fillOpacity: p.isCountry?.45:.85,
-      dashArray: p.isCountry ? '3 3' : null
+    const sec = p.security > p.general;
+    const r = Math.max(5, Math.min(4+Math.sqrt(n)*1.9, 12));
+    L.circleMarker([p.lat,p.lon],{                       // 외곽 글로우
+      radius: r+3.5, stroke:false, fillColor: portColor(p), fillOpacity:.14,
+      pane:'portsPane', interactive:false
     }).addTo(portLayer);
-    m.bindTooltip(p.port,{permanent:true,direction:'top',offset:[0,-6],
-      className:'plabel', opacity:.9});
+    const m = L.circleMarker([p.lat,p.lon],{
+      radius: r,
+      color: sec ? '#FFD9C6' : '#CDEBF7', weight:1.1, opacity:.75,
+      fillColor: portColor(p), fillOpacity: p.isCountry?.4:.9,
+      dashArray: p.isCountry ? '2 3' : null,
+      pane:'portsPane'
+    }).addTo(portLayer);
+    m.on('mouseover', function(){ this.setStyle({weight:2.2, opacity:1}); });
+    m.on('mouseout',  function(){ this.setStyle({weight:1.1, opacity:.75}); });
+    PMARKS.push({m,p,n});
     m.bindPopup(`<div class="pop"><b class="t">⚓ ${p.port}</b>
       <div style="font-family:var(--mono);font-size:11px;color:#8CA0B8;margin-bottom:6px">${p.country} · 일반 ${p.general} · 보안 ${p.security}</div>
       <button class="pbtn" onclick="openPort('${enc(p.port)}')">이 항구 정보 보기 →</button>
       <button class="pbtn co" onclick="openCountry('${enc(p.country)}')">${p.country} 전체 보기 →</button></div>`);
   });
+  applyPortLabels();
 }
 
 fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
