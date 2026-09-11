@@ -162,6 +162,7 @@
   <div class="brand" onclick="location.reload()" title="새로고침">FLEET WATCH<small>WSM KOREA</small></div>
   <div class="chip" id="langbtn" onclick="toggleLang()" style="cursor:pointer">🌐 English</div>
   <div class="board" id="board"></div>
+  <div class="chip" id="health" title="\uB370\uC774\uD130 \uC218\uC9D1 \uC0C1\uD0DC"><span class="dot" style="background:#6E7E92"></span>\uD655\uC778 \uC911</div>
   <div class="updated" id="updated">데이터 로딩 중…</div>
 </header>
 <div id="wrap">
@@ -185,7 +186,7 @@
   <div class="bt"><button id="posgo">표시</button><button id="posclr" class="alt">지우기</button><button id="posx" class="alt">닫기</button></div>
   <div class="msg" id="posmsg"></div>
 </div>
-<div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span></div>
+<div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span><span class="lbl" id="bld" style="margin-left:auto"></span></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* 선대 명부 내장 — 데이터 파일을 못 읽어도 56척 전원 항상 표시 */
@@ -367,6 +368,7 @@ function render(){
   build();
   layer.clearLayers(); markers={};
   if(shipsOn) vessels.forEach(v=>{
+   try{
     if(v.lat==null) return;
     if(soloNo!=null && v.no!==soloNo) return;      // 단일 보기
     if((v.estimated||v.status==='STALE') && v.radiusNm>0){   // 반경 NaN 시 Leaflet 예외 방지
@@ -375,6 +377,7 @@ function render(){
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{direction:'top',offset:[0,-11],className:'vlabel',opacity:1})
       .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false}).addTo(layer);
+   }catch(e){}
   });
   try{
     if(soloNo!=null){ var sv=vessels.filter(function(x){return x.no===soloNo;})[0]; drawDest(sv); }
@@ -434,29 +437,62 @@ function focusV(no){
   if(innerWidth<=760) document.getElementById('side').classList.remove('open');
 }
 
+var BUILD='2026-09-11T13:40Z', lastOK=null, failCount=0;
+function setHealth(state, txt){
+  var el=document.getElementById('health'); if(!el) return;
+  var c = state==='ok' ? '#3DDC97' : state==='warn' ? '#F0B95A' : '#E0703C';
+  el.innerHTML = '<span class="dot" style="background:'+c+'"></span>'+txt;
+  el.style.borderColor = state==='ok' ? 'var(--line)' : c;
+}
+function ageTxt(ms){ var m=Math.round(ms/60000); return m<60 ? m+'\uBD84' : (m/60).toFixed(1)+'\uC2DC\uAC04'; }
+function healthFromData(){
+  if(!store.updated){ setHealth('err','\uB370\uC774\uD130 \uC5C6\uC74C'); return; }
+  var age = Date.now() - new Date(store.updated).getTime();
+  if(!isFinite(age)) { setHealth('warn','\uC2DC\uAC01 \uD655\uC778 \uBD88\uAC00'); return; }
+  if(age < 95*60e3) setHealth('ok','\uC815\uC0C1 \u00b7 '+ageTxt(age)+' \uC804 \uC218\uC9D1');
+  else if(age < 6*3600e3) setHealth('warn','\uC218\uC9D1 \uC9C0\uC5F0 \u00b7 '+ageTxt(age)+' \uACBD\uACFC');
+  else setHealth('err','\uC218\uC9D1 \uC911\uB2E8 \uC758\uC2EC \u00b7 '+ageTxt(age)+' \uACBD\uACFC');
+}
+async function fetchJSON(url, tries){
+  for(var i=0;i<tries;i++){
+    try{
+      var r = await fetch(url+(url.indexOf('?')>=0?'&':'?')+'t='+Date.now(), {cache:'no-store'});
+      if(r.ok){ var j = await r.json(); if(j) return j; }
+    }catch(e){}
+    await new Promise(function(s){ setTimeout(s, 1200*(i+1)); });
+  }
+  return null;
+}
 async function load(){
   fleet = FLEET;
-  if(!vessels.length){ try{ render(); }catch(e){} }                  // 새로고침 직후 선박 목록 즉시 표시                                   // 명부는 내장 — 항상 56척 표시
-  try{
-    const t=Date.now();
-    store=await (await fetch('fleet-positions.json?t='+t)).json();
-    if(!store.vessels) store.vessels={};
-    document.getElementById('updated').textContent =
-      store.updated ? '최종 수집 '+new Date(store.updated).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' KST · 화면 위치는 DR 실시간 보정'
-                    : '수집 데이터 없음 — 첫 수집 실행 대기 중 (전체 선박 대기 표시)';
-  }catch(e){
-    store={updated:null,vessels:{}};
-    document.getElementById('updated').textContent =
-      '위치 데이터 미연결 (로컬 미리보기이거나 첫 수집 전) — 전체 선박 대기 표시';
+  if(!vessels.length){ try{ render(); }catch(e){} }
+  var data = await fetchJSON('fleet-positions.json', 3);
+  if(data && data.vessels){
+    store = data; store.vessels = store.vessels || {}; lastOK = Date.now(); failCount = 0;
+    try{ document.getElementById('updated').textContent =
+      (store.updated ? '\uCD5C\uC885 \uC218\uC9D1 '+new Date(store.updated).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' KST \u00b7 \uD654\uBA74 \uC704\uCE58\uB294 DR \uC2E4\uC2DC\uAC04 \uBCF4\uC815' : '\uC218\uC9D1 \uB370\uC774\uD130 \uC5C6\uC74C'); }catch(e){}
+  } else {
+    failCount++;
+    if(!store || !store.vessels || !Object.keys(store.vessels).length){ store = {updated:null, vessels:{}}; }
+    try{ document.getElementById('updated').textContent =
+      '\uB370\uC774\uD130 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328 ('+failCount+'\uD68C) \u00b7 \uC9C1\uC804 \uC218\uC2E0\uBD84 \uD45C\uC2DC \uC911'; }catch(e){}
   }
-  render();
+  try{ healthFromData(); }catch(e){}
+  try{ render(); }catch(e){ setHealth('err','\uD654\uBA74 \uAC31\uC2E0 \uC624\uB958'); }
 }
 
+window.addEventListener('error', function(ev){
+  try{ setHealth('err','\uC2A4\uD06C\uB9BD\uD2B8 \uC624\uB958 \u00b7 \uC0C8\uB85C\uACE0\uCE68 \uAD8C\uC7A5'); }catch(e){}
+});
+window.addEventListener('unhandledrejection', function(){ try{ healthFromData(); }catch(e){} });
+window.addEventListener('online', function(){ try{ load(); }catch(e){} });
+document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ load(); }catch(e){} } });
 document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
 load();
-setInterval(render, 60e3);        // 1분마다 DR 위치·현지시간 재계산
-setInterval(load, 10*60e3);       // 10분마다 최신 JSON 재확인
+try{ var _b=document.getElementById('bld'); if(_b) _b.textContent='BUILD '+BUILD; }catch(e){}
+setInterval(function(){ try{ render(); healthFromData(); }catch(e){} }, 60e3);        // 1분마다 DR 위치·현지시간 재계산
+setInterval(function(){ try{ load(); }catch(e){} }, 5*60e3);       // 10분마다 최신 JSON 재확인
 
 
 /* ══ 항적(Track) 패널 ══ */
