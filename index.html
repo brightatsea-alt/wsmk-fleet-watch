@@ -111,6 +111,10 @@
     font-size:10px;font-family:var(--mono);letter-spacing:.02em;padding:1px 6px;border-radius:3px;
     box-shadow:0 1px 4px rgba(0,0,0,.5);white-space:nowrap}
   .plabel::before{display:none}
+  .leaflet-tooltip.plabel{display:none;width:auto!important;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  .zl4 .leaflet-tooltip.plabel.major{display:block}
+  .zl5 .leaflet-tooltip.plabel{display:block}
+  .leaflet-tooltip.plabel.hov{display:block;z-index:900}
   .plabel.sec{border-color:rgba(224,112,60,.55);color:#F0C4AE}
   .vlabel{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.18);color:#fff;
     font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.6)}
@@ -518,6 +522,11 @@ function labelMode(){
   return z >= 5 ? 'all' : z >= 4 ? 'major' : 'none';   // 줌에 따라 라벨 노출 단계
 }
 function applyPortLabels(){
+  const z = map.getZoom(), c = map.getContainer();
+  c.classList.toggle('zl4', z>=4);
+  c.classList.toggle('zl5', z>=5);
+}
+function _legacyPortLabels(){
   const mode = labelMode();
   PMARKS.forEach(({m,p,n})=>{
     const show = mode==='all' || (mode==='major' && n>=4);
@@ -548,8 +557,12 @@ function renderPorts(){
       dashArray: p.isCountry ? '2 3' : null,
       pane:'portsPane'
     }).addTo(portLayer);
-    m.on('mouseover', function(){ this.setStyle({weight:2.2, opacity:1}); });
-    m.on('mouseout',  function(){ this.setStyle({weight:1.1, opacity:.75}); });
+    m.on('mouseover', function(){ this.setStyle({weight:2.2, opacity:1});
+      var t=this.getTooltip&&this.getTooltip(), el=t&&t.getElement&&t.getElement(); if(el) el.classList.add('hov'); });
+    m.on('mouseout',  function(){ this.setStyle({weight:1.1, opacity:.75});
+      var t=this.getTooltip&&this.getTooltip(), el=t&&t.getElement&&t.getElement(); if(el) el.classList.remove('hov'); });
+    m.bindTooltip(p.port,{permanent:true,direction:'top',offset:[0,-7],
+      className:'plabel'+(sec?' sec':'')+(n>=4?' major':''),opacity:1});
     PMARKS.push({m,p,n});
     m.bindPopup(`<div class="pop"><b class="t">⚓ ${p.port}</b>
       <div style="font-family:var(--mono);font-size:11px;color:#8CA0B8;margin-bottom:6px">${p.country} · 일반 ${p.general} · 보안 ${p.security}</div>
