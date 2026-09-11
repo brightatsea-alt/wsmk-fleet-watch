@@ -7,6 +7,7 @@ const BASE = "https://aviso-api.stratumfive.com";
 const ID = process.env.POLESTAR_CLIENT_ID, SECRET = process.env.POLESTAR_CLIENT_SECRET;
 const BACKFILL_DAYS = parseInt(process.env.BACKFILL_DAYS || "7", 10);
 const KEEP_DAYS = parseInt(process.env.KEEP_DAYS || "30", 10);
+const FORCE_BACKFILL = process.env.FORCE_BACKFILL === "1";   // 기존 파일도 전구간 재수집
 const MIN_GAP_MIN = 55;
 const log = console.log;
 if (!ID || !SECRET) { log("tracks: not configured. skip."); process.exit(0); }
@@ -71,9 +72,9 @@ async function fetchWindow(t, tok, fromMs, toMs) {
     const file = "tracks/" + key + ".json";
     let prev = { points: [] };
     try { prev = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) {}
-    const pts = (prev.points || []).filter((p) => new Date(p[0]).getTime() >= keepFrom);
+    const pts = FORCE_BACKFILL ? [] : (prev.points || []).filter((p) => new Date(p[0]).getTime() >= keepFrom);
     const lastMs = pts.length ? new Date(pts[pts.length - 1][0]).getTime() : 0;
-    const from = lastMs ? Math.max(lastMs + 6e4, now - 3 * 864e5) : now - BACKFILL_DAYS * 864e5;
+    const from = (!FORCE_BACKFILL && lastMs) ? Math.max(lastMs + 6e4, now - 3 * 864e5) : now - BACKFILL_DAYS * 864e5;
 
     try {
       const rows = await fetchWindow(t, tok, from, now + 6e5);
