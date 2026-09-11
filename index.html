@@ -50,6 +50,8 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  #tghint{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em;white-space:nowrap}
+  @media(max-width:760px){#tghint{display:none}}
   .sec .lth{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#6E7E92}
 
   /* ── Map markers ── */
@@ -338,7 +340,7 @@ const portLayer = L.layerGroup().addTo(map);
   const bar = document.createElement('div');
   bar.id = 'ctrlbar';
   bar.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-  bar.innerHTML = '<div class="chip on" id="stoggle">\uD83D\uDEA2 \uC120\uBC15</div>';
+  bar.innerHTML = '<div class="chip on" id="stoggle">\uD83D\uDEA2 \uC120\uBC15</div>' + '<span id="tghint">칩을 눌러 지도 표시를 켜고 끕니다 · 기본값 선박만 표시</span>';
   board.parentNode.insertBefore(bar, board.nextSibling);
   document.getElementById('stoggle').onclick = function(){
     shipsOn = !shipsOn; this.classList.toggle('on', shipsOn); render();
@@ -410,6 +412,7 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
        ${d.countries.map(c=>`<option value="${c.country}">${c.country} (${c.general+c.security})</option>`).join('')}
      </select>
      <div class="chip" id="copen" style="display:none">국가 정보 열기 →</div>`);
+  wrap.appendChild(document.getElementById('tghint'));
   document.getElementById('ptoggle').onclick = function(){
     portsOn=!portsOn; this.classList.toggle('on',portsOn);
     document.getElementById('csel').style.display = portsOn ? '' : 'none';
