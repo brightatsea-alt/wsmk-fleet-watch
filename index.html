@@ -50,6 +50,8 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  #langbtn{border-color:var(--accent);color:var(--accent);font-weight:700;background:rgba(90,184,214,.14);box-shadow:inset 0 0 0 1px rgba(90,184,214,.3)}
+  #langbtn:hover{background:var(--accent);color:#08121F}
   body.lightmap .plabel{background:rgba(255,255,255,.92);color:#12263A;border-color:rgba(20,60,90,.35)}
   body.lightmap .plabel.sec{background:rgba(255,241,233,.95);color:#8A3A12;border-color:rgba(200,90,46,.5)}
   body.lightmap .vlabel{background:rgba(255,255,255,.95);color:#10203A;border-color:rgba(20,60,90,.3)}
@@ -265,7 +267,7 @@ function popup(v){
     ['위치', v.lat.toFixed(3)+'°, '+v.lon.toFixed(3)+'°'],
     ['SOG / COG', (d.sog!=null?d.sog.toFixed(1)+' kn':'—')+' / '+(d.cog!=null&&d.cog<360?Math.round(d.cog)+'°':'—')],
     ['최종 AIS', ago(v.elapsed)],
-    d.destination?['목적지', d.destination]:null,
+    d.destination?['목적지', destFull(d.destination)]:null,
     fmtEta(d.eta)?['ETA', fmtEta(d.eta)+' UTC']:null,
     ['MMSI', v.mmsi],
     ['데이터', (d.source||'').indexOf('polestar')===0 ? '위성 AIS · Pole Star' : '지상 AIS'],
@@ -380,6 +382,25 @@ const portLayer = L.layerGroup().addTo(map);
 })();
 let portsOn = false, portData = null;   // 기본: 항구 숨김
 
+const LOCODE={}, CC={};
+(null).split(",").forEach(function(s){var i=s.indexOf(":");LOCODE[s.slice(0,i)]=s.slice(i+1);});
+(undefined).split(",").forEach(function(s){var i=s.indexOf(":");CC[s.slice(0,i)]=s.slice(i+1);});
+function destFull(t){
+  var raw=String(t||"").trim(); if(!raw) return "\u2014";
+  var k=raw.toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(/^[A-Z]{2}[A-Z0-9]{3}$/.test(k)){
+    var p=LOCODE[k], c=CC[k.slice(0,2)];
+    if(p&&c) return p+", "+c+" ("+raw+")";
+    if(c) return raw+" \u00b7 "+c;
+  }
+  if(window.portData && portData.ports){
+    var u=raw.toUpperCase();
+    var hit=portData.ports.filter(function(x){return x.port.toUpperCase()===u;})[0] ||
+            portData.ports.filter(function(x){return x.port.length>3 && u.indexOf(x.port.toUpperCase())>=0;})[0];
+    if(hit) return hit.port+", "+hit.country+" ("+raw+")";
+  }
+  return raw;
+}
 function portColor(p){ return p.security > p.general ? '#E0703C' : '#5AB8D6'; }
 function enc(s){ return encodeURIComponent(s).replace(/'/g,'%27'); }
 function langQ(){ return (typeof UILANG!=='undefined' && UILANG==='en') ? '&lang=en' : ''; }
