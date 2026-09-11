@@ -282,7 +282,7 @@ function localTime(lon){
   return {hm:String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'),
           tz:'UTC'+(tz>=0?'+':'')+tz};
 }
-function ago(h){ return h<1 ? Math.round(h*60)+'분 전' : h<48 ? h.toFixed(1)+'h 전' : Math.floor(h/24)+'일 전'; }
+function ago(h){ if(!isFinite(h)) return '\u2014'; return h<1 ? Math.round(h*60)+'분 전' : h<48 ? h.toFixed(1)+'h 전' : Math.floor(h/24)+'일 전'; }
 function fmtEta(e){ return e&&e.Month ? String(e.Month).padStart(2,'0')+'/'+String(e.Day).padStart(2,'0')+' '+String(e.Hour).padStart(2,'0')+':'+String(e.Minute||0).padStart(2,'0'):null; }
 
 /* Merge registry + AIS store → display model. Every vessel in fleet.json ALWAYS appears. */
@@ -342,7 +342,7 @@ function render(){
   if(shipsOn) vessels.forEach(v=>{
     if(v.lat==null) return;
     if(soloNo!=null && v.no!==soloNo) return;      // 단일 보기
-    if(v.estimated||v.status==='STALE'){
+    if((v.estimated||v.status==='STALE') && v.radiusNm>0){   // 반경 NaN 시 Leaflet 예외 방지
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
