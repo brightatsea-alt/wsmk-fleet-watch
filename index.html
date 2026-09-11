@@ -50,6 +50,18 @@
   .row.dim{opacity:.75}
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
+  #trkpanel{display:none;position:fixed;left:344px;bottom:34px;z-index:900;width:330px;background:rgba(13,21,34,.94);
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text);
+    box-shadow:0 6px 20px rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+  #trkpanel .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  #trkpanel .hd b{font-size:12.5px;color:#fff;font-family:-apple-system,'Malgun Gothic',sans-serif}
+  #trkpanel .x{cursor:pointer;color:var(--muted);padding:0 4px}
+  #trkpanel .x:hover{color:#fff}
+  #trkinfo{color:var(--muted);margin-bottom:7px;line-height:1.5}
+  #trkinfo b{color:#F0B95A}
+  #trkpanel input[type=range]{width:100%;margin:2px 0;accent-color:#F0B95A}
+  #trkpanel .rl{color:#6E7E92;font-size:9.5px;letter-spacing:.08em}
+  @media(max-width:760px){#trkpanel{left:8px;right:8px;width:auto}}
   #coord{position:fixed;left:0;right:0;bottom:0;z-index:900;height:26px;display:flex;align-items:center;gap:16px;
     padding:0 14px;background:rgba(11,18,29,.94);border-top:1px solid var(--line);font-family:var(--mono);
     font-size:11.5px;color:var(--muted);letter-spacing:.03em;pointer-events:none;backdrop-filter:blur(4px);white-space:nowrap;overflow:hidden}
@@ -132,6 +144,12 @@
   <div id="map"></div>
 </div>
 <button id="toggle">선박 목록</button>
+<div id="trkpanel">
+  <div class="hd"><b id="trkname">—</b><span class="x" onclick="closeTrack()">✕</span></div>
+  <div id="trkinfo">—</div>
+  <div class="rl">시작 START</div><input type="range" id="trkfrom" min="0" max="1" value="0" oninput="drawTrack()">
+  <div class="rl">종료 END</div><input type="range" id="trkto" min="0" max="1" value="1" oninput="drawTrack()">
+</div>
 <div id="coord"><span class="lbl">CURSOR</span><span id="cpos">—</span></div>
 <div id="legend">
   <b>선박 VESSEL</b>
@@ -310,6 +328,7 @@ function popup(v){
   ].filter(Boolean);
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
+    <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
     ${v.estimated?'<div style="margin-top:5px;color:var(--muted);font-size:10.5px">⚠ 추정 위치 — 운영 참고용 (PSC·사고조사 등 공식 용도 사용 불가)</div>':''}</div>`;
 }
 
@@ -396,6 +415,56 @@ document.getElementById('toggle').onclick=()=>document.getElementById('side').cl
 load();
 setInterval(render, 60e3);        // 1분마다 DR 위치·현지시간 재계산
 setInterval(load, 10*60e3);       // 10분마다 최신 JSON 재확인
+
+
+/* ══ 항적(Track) 패널 ══ */
+const trkLayer = L.layerGroup().addTo(map);
+let TRK = null;
+function fmtD(s){ const d=new Date(s); return String(d.getUTCMonth()+1).padStart(2,'0')+'/'+String(d.getUTCDate()).padStart(2,'0')+' '+String(d.getUTCHours()).padStart(2,'0')+'Z'; }
+function closeTrack(){ trkLayer.clearLayers(); TRK=null; const p=document.getElementById('trkpanel'); if(p) p.style.display='none'; }
+async function showTrack(key, name){
+  const p=document.getElementById('trkpanel');
+  p.style.display='block';
+  document.getElementById('trkname').textContent=name;
+  document.getElementById('trkinfo').textContent='\ubd88\ub7ec\uc624\ub294 \uc911\u2026';
+  try{
+    const r=await fetch('tracks/'+key+'.json?t='+Date.now());
+    if(!r.ok) throw new Error('no data');
+    const d=await r.json();
+    if(!d.points || d.points.length<2) throw new Error('empty');
+    TRK=d;
+    const n=d.points.length;
+    const f=document.getElementById('trkfrom'), t=document.getElementById('trkto');
+    f.max=n-1; t.max=n-1; f.value=0; t.value=n-1;
+    drawTrack();
+  }catch(e){
+    document.getElementById('trkinfo').textContent='\ud56d\uc801 \ub370\uc774\ud130\uac00 \uc544\uc9c1 \uc218\uc9d1\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4 (\ub9e4\uc77c 05\uc2dc KST \uc218\uc9d1)';
+    trkLayer.clearLayers();
+  }
+}
+function drawTrack(){
+  if(!TRK) return;
+  let a=parseInt(document.getElementById('trkfrom').value,10), b=parseInt(document.getElementById('trkto').value,10);
+  if(a>b){ const z=a; a=b; b=z; }
+  const pts=TRK.points.slice(a,b+1);
+  trkLayer.clearLayers();
+  if(pts.length<2){ document.getElementById('trkinfo').textContent='\uad6c\uac04\uc744 \ub118\ud790\uac8c \uc124\uc815\ud558\uc138\uc694'; return; }
+  const line=pts.map(p=>[p[1],p[2]]);
+  L.polyline(line,{color:'#0B1220',weight:6,opacity:.5,pane:'portsPane',interactive:false}).addTo(trkLayer);
+  L.polyline(line,{color:'#F0B95A',weight:2.5,opacity:.95,pane:'portsPane',interactive:false}).addTo(trkLayer);
+  const step=Math.max(1,Math.floor(pts.length/40));
+  for(let i=0;i<pts.length;i+=step){
+    const p=pts[i];
+    L.circleMarker([p[1],p[2]],{radius:2.6,stroke:false,fillColor:'#F0B95A',fillOpacity:.9,pane:'portsPane'})
+      .bindTooltip(fmtD(p[0])+' \u00b7 '+(p[3]!=null?p[3].toFixed(1)+'kn':'-'),{className:'plabel'}).addTo(trkLayer);
+  }
+  L.circleMarker(line[0],{radius:5,color:'#06101C',weight:1.5,fillColor:'#3DDC97',fillOpacity:1,pane:'portsPane'}).bindTooltip('START '+fmtD(pts[0][0]),{className:'plabel'}).addTo(trkLayer);
+  L.circleMarker(line[line.length-1],{radius:5,color:'#06101C',weight:1.5,fillColor:'#E0703C',fillOpacity:1,pane:'portsPane'}).bindTooltip('END '+fmtD(pts[pts.length-1][0]),{className:'plabel'}).addTo(trkLayer);
+  let nm=0; for(let i=1;i<line.length;i++){ nm += map.distance(line[i-1],line[i])/1852; }
+  const hrs=(new Date(pts[pts.length-1][0])-new Date(pts[0][0]))/3600e3;
+  document.getElementById('trkinfo').innerHTML='<b>'+fmtD(pts[0][0])+'</b> \u2192 <b>'+fmtD(pts[pts.length-1][0])+'</b> \u00b7 '+pts.length+'pts \u00b7 '+Math.round(nm)+' NM \u00b7 '+(hrs>0?(nm/hrs).toFixed(1):'0')+' kn avg';
+  map.fitBounds(line,{padding:[60,60]});
+}
 
 /* ══════════ 항구 정보 레이어 (Port Information) ══════════ */
 const portLayer = L.layerGroup().addTo(map);
