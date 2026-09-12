@@ -311,50 +311,76 @@ function wxColor(kind, v){
   if(kind==='wind'){ return v<11?'#6FD3FF':v<17?'#3DDC97':v<22?'#CDE84B':v<28?'#F0B95A':v<34?'#F08A3C':v<41?'#E0703C':v<48?'#E04C4C':'#C81E1E'; }
   return v<1?'#6FD3FF':v<2?'#3DDC97':v<3?'#CDE84B':v<4?'#F0B95A':v<6?'#F08A3C':v<9?'#E0703C':'#C81E1E';
 }
+var WXCACHE={};
+function wxNote(t){ var c=document.getElementById('wxbtn'); if(c && t) c.title=t; }
 async function drawWxGrid(kind){
   if(!wxGrid){ wxGrid=L.layerGroup().addTo(map); }
   if(wxBusy) return; wxBusy=true;
   try{
-    var b=map.getBounds(), cols=11, rows=7;
+    var b=map.getBounds(), cols=8, rows=5;                 // 40지점 (호출 한도 절감)
     var n=Math.min(b.getNorth(),80), s=Math.max(b.getSouth(),-80);
-    var dLat=(n-s)/rows, dLon=(b.getEast()-b.getWest())/cols;
-    if(dLon>36){ dLon=36; }
-    var pts=[];
+    var w0=b.getWest(), e0=b.getEast();
+    if(e0-w0>355){ w0=map.getCenter().lng-175; e0=map.getCenter().lng+175; }
+    var dLat=(n-s)/rows, dLon=(e0-w0)/cols, pts=[];
     for(var r=0;r<rows;r++) for(var c=0;c<cols;c++){
-      var la=s+dLat*(r+0.5), lo=b.getWest()+ (b.getEast()-b.getWest())/cols*(c+0.5);
+      var la=s+dLat*(r+0.5), lo=w0+dLon*(c+0.5);
       pts.push([+la.toFixed(2), +((((lo+540)%360)-180).toFixed(2))]);
     }
-    var la=pts.map(function(p){return p[0];}).join(','), lo=pts.map(function(p){return p[1];}).join(',');
-    var url = kind==='wind'
-      ? 'https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn'
-      : 'https://marine-api.open-meteo.com/v1/marine?latitude='+la+'&longitude='+lo+'&current=wave_height,wave_direction';
-    var d = await (await fetch(url)).json();
-    if(!Array.isArray(d)) d=[d];
+    var key=kind+'|'+Math.round(n)+','+Math.round(s)+','+Math.round(w0)+','+Math.round(e0)+'|'+Math.floor(Date.now()/18e5);
+    var d=WXCACHE[key];
+    if(!d){
+      var la2=pts.map(function(p){return p[0];}).join(','), lo2=pts.map(function(p){return p[1];}).join(',');
+      var url = kind==='wind'
+        ? 'https://api.open-meteo.com/v1/forecast?latitude='+la2+'&longitude='+lo2+'&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn'
+        : 'https://marine-api.open-meteo.com/v1/marine?latitude='+la2+'&longitude='+lo2+'&current=wave_height,wave_direction';
+      var resp = await fetch(url);
+      d = await resp.json();
+      if(!Array.isArray(d)){
+        if(d && (d.error || d.reason)){
+          var c3=document.getElementById('wxbtn');
+          if(c3) c3.innerHTML='\uD83C\uDF26 '+WXLAYERS[wxIdx].name+' \u26A0';
+          wxNote(String(d.reason||'API \uC624\uB958'));
+          wxBusy=false; return;
+        }
+        d=[d];
+      }
+      WXCACHE[key]=d;
+      var ks=Object.keys(WXCACHE); if(ks.length>12) delete WXCACHE[ks[0]];
+    }
     wxGrid.clearLayers();
+    var drawn=0;
     d.forEach(function(o,i){
-      var cu=o&&o.current; if(!cu) return;
+      var cu=o&&o.current; if(!cu || !pts[i]) return;
       var val = kind==='wind' ? cu.wind_speed_10m : cu.wave_height;
       var dir = kind==='wind' ? cu.wind_direction_10m : cu.wave_direction;
       if(val==null) return;
       var col=wxColor(kind,val), rot=(dir==null?0:dir)+180;
       var txt = kind==='wind' ? Math.round(val) : val.toFixed(1);
-      var svg='<svg width="46" height="46" viewBox="0 0 46 46">'
-        +'<g transform="rotate('+rot+' 23 23)">'
-        +'<line x1="23" y1="7" x2="23" y2="33" stroke="'+col+'" stroke-width="2.6" opacity=".95"/>'
-        +'<path d="M23 36 L18.5 27 L27.5 27 Z" fill="'+col+'"/></g>'
-        +'<text x="23" y="19" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" '
-        +'fill="'+col+'" stroke="#06101C" stroke-width="2.6" paint-order="stroke">'+txt+'</text></svg>';
-      L.marker(pts[i],{icon:L.divIcon({html:svg,className:'',iconSize:[46,46],iconAnchor:[23,23]}),
+      var svg='<svg width="48" height="48" viewBox="0 0 48 48">'
+        +'<g transform="rotate('+rot+' 24 24)">'
+        +'<line x1="24" y1="8" x2="24" y2="36" stroke="'+col+'" stroke-width="3" opacity=".95"/>'
+        +'<path d="M24 40 L19 30 L29 30 Z" fill="'+col+'"/></g>'
+        +'<text x="24" y="20" text-anchor="middle" font-family="monospace" font-size="12" font-weight="700" '
+        +'fill="'+col+'" stroke="#06101C" stroke-width="3" paint-order="stroke">'+txt+'</text></svg>';
+      L.marker(pts[i],{icon:L.divIcon({html:svg,className:'',iconSize:[48,48],iconAnchor:[24,24]}),
         pane:'wxPane', interactive:false}).addTo(wxGrid);
+      drawn++;
     });
-  }catch(e){}
+    var c2=document.getElementById('wxbtn');
+    if(c2) c2.innerHTML='\uD83C\uDF26 '+WXLAYERS[wxIdx].name+(kind==='wind'?' kn':' m')+' '+drawn;
+    wxNote(drawn+' points');
+  }catch(e){
+    var c4=document.getElementById('wxbtn');
+    if(c4) c4.innerHTML='\uD83C\uDF26 '+WXLAYERS[wxIdx].name+' \u26A0';
+    wxNote(String(e && e.message || e));
+  }
   wxBusy=false;
 }
 function wxRefresh(){
   var w=WXLAYERS[wxIdx];
   if(!w || w.kind!=='grid'){ if(wxGrid) wxGrid.clearLayers(); return; }
   clearTimeout(wxTimer);
-  wxTimer=setTimeout(function(){ drawWxGrid(w.id); }, 500);
+  wxTimer=setTimeout(function(){ drawWxGrid(w.id); }, 900);
 }
 map.on('moveend', wxRefresh);
 function setWx(i){
