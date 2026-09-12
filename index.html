@@ -1254,6 +1254,10 @@ function xlate(n){
     for(const [k,e] of EN_PAIRS){ if(s.indexOf(k)>=0) s=s.split(k).join(e); }
     if(s!==o){ if(!KOMEM.has(n)) KOMEM.set(n,o); n.nodeValue=s; }
   } else if(n.nodeType===1 && n.id!=='langbtn'){
+    var cn = (typeof n.className==='string') ? n.className : (n.className && n.className.baseVal) || '';
+    var tag = (n.nodeName||'').toLowerCase();
+    if(tag==='svg' || tag==='canvas' || tag==='img') return;                 // 도형·타일은 번역 제외
+    if(cn.indexOf('leaflet-tile')>=0 || cn.indexOf('wxPane')>=0) return;     // 날씨 오버레이·배경타일 제외
     for(const c of n.childNodes) xlate(c);
   }
 }
@@ -1265,12 +1269,20 @@ const LOBS = new MutationObserver(ms=>{
   if(UILANG!=='en') return;
   ms.forEach(m=>{
     if(m.type==='characterData') xlate(m.target);
-    m.addedNodes && m.addedNodes.forEach(xlate);
+    if(m.addedNodes) m.addedNodes.forEach(function(nd){
+      try{
+        var p=nd.parentNode, skip=false, d=0;
+        while(p && d++<6){ var pc=(typeof p.className==='string')?p.className:((p.className&&p.className.baseVal)||'');
+          if(pc.indexOf('wxPane')>=0 || pc.indexOf('leaflet-tile')>=0){ skip=true; break; } p=p.parentNode; }
+        if(!skip) xlate(nd);
+      }catch(e){}
+    });
   });
 });
 function toggleLang(){
   UILANG = UILANG==='ko' ? 'en' : 'ko';
   document.getElementById('langbtn').textContent = UILANG==='ko' ? '\ud83c\udf10 English' : '\ud83c\udf10 \ud55c\uae00';
+  try{ if(typeof wxRefresh==='function') setTimeout(wxRefresh, 300); }catch(e){}
   const q = document.getElementById('q');
   if(UILANG==='en'){
     xlate(document.body);
