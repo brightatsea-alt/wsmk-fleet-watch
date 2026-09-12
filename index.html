@@ -187,7 +187,7 @@
 </head>
 <body>
 <header>
-  <div class="brand" onclick="location.reload()" title="새로고침">FLEET WATCH<small>WSM KOREA</small></div>
+  <div class="brand" onclick="try{localStorage.removeItem('fw_wx');}catch(e){}; location.reload();" title="새로고침">FLEET WATCH<small>WSM KOREA</small></div>
   <div class="chip" id="langbtn" onclick="toggleLang()" style="cursor:pointer">🌐 English</div>
   <div class="board" id="board"></div>
   <div class="chip" id="health" title="\uB370\uC774\uD130 \uC218\uC9D1 \uC0C1\uD0DC"><span class="dot" style="background:#6E7E92"></span>\uD655\uC778 \uC911</div>
