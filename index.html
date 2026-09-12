@@ -418,6 +418,12 @@ function popup(v){
     ['최종 AIS', ago(v.elapsed)],
     ['목적지', d.destination ? (destFull(d.destination) + (d.destAt ? ' <span style="color:var(--muted);font-size:10px">('+ago((Date.now()-new Date(d.destAt).getTime())/3600e3)+' 수신)</span>' : '')) : '<span style="color:var(--muted)">— AIS 정적정보 미수신</span>'],
     fmtEta(d.eta)?['ETA', fmtEta(d.eta)+' UTC']:null,
+    (function(){ var w=MET[v.no];
+      return (w && w.kn!=null) ? ['풍속 / 풍향',
+        Math.round(w.kn)+' kn (BF'+bft(w.kn)+')'+(w.gust!=null?' · 돌풍 '+Math.round(w.gust)+'kn':'')+' · '+wdTxt(w.wdir)+' '+(w.wdir!=null?Math.round(w.wdir)+'°':'')] : null; })(),
+    (function(){ var w=MET[v.no];
+      return (w && w.hs!=null) ? ['파고 / 주기',
+        w.hs.toFixed(1)+' m ('+seaState(w.hs)+')'+(w.tp!=null?' · '+Math.round(w.tp)+'s':'')+(w.wvdir!=null?' · '+wdTxt(w.wvdir):'')] : null; })(),
     ['MMSI', v.mmsi],
     ['데이터', (d.source||'').indexOf('polestar')===0 ? '위성 AIS · Pole Star' : '지상 AIS'],
   ].filter(Boolean);
@@ -447,7 +453,7 @@ function render(){
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{permanent:true,direction:'top',offset:[0,-12],className:'vlabel',opacity:1})
       .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false})
-      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} })
+      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} try{ loadMet(); }catch(e){} })
       .on('mouseover', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.add('hov'); }catch(e){} })
       .on('mouseout', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.remove('hov'); }catch(e){} })
       .addTo(layer);
@@ -562,6 +568,7 @@ async function load(){
       '\uB370\uC774\uD130 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328 ('+failCount+'\uD68C) \u00b7 \uC9C1\uC804 \uC218\uC2E0\uBD84 \uD45C\uC2DC \uC911'; }catch(e){}
   }
   try{ healthFromData(); }catch(e){}
+  try{ loadMet(); }catch(e){}
   try{ render(); }catch(e){ setHealth('err','\uD654\uBA74 \uAC31\uC2E0 \uC624\uB958'); }
 }
 
@@ -686,7 +693,37 @@ function detectCalls(pts){
   }
   return out;
 }
-var TRKC={};
+var TRKC={}, MET={}, METAT=0;
+function bft(kn){ var t=[1,4,7,11,17,22,28,34,41,48,56,64];
+  for(var i=0;i<t.length;i++) if(kn<t[i]) return i; return 12; }
+function seaState(hs){ if(hs==null) return '';
+  return hs<0.5?'잔잔':hs<1.25?'약간 넓음':hs<2.5?'넓음':hs<4?'거침':hs<6?'매우 거침':hs<9?'높음':'매우 높음'; }
+function wdTxt(d){ if(d==null) return '';
+  var s=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return s[Math.round(d/22.5)%16]; }
+async function loadMet(){
+  if(Date.now()-METAT < 15*60e3) return;
+  var list=vessels.filter(function(v){ return v.lat!=null; }).slice(0,90);
+  if(!list.length) return;
+  var la=list.map(function(v){ return v.lat.toFixed(3); }).join(',');
+  var lo=list.map(function(v){ return (((v.lon+540)%360)-180).toFixed(3); }).join(',');
+  try{
+    var res = await Promise.all([
+      fetch('https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn').then(function(r){return r.json();}),
+      fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la+'&longitude='+lo+'&current=wave_height,wave_period,wave_direction').then(function(r){return r.json();})
+    ]);
+    var W=res[0], M=res[1];
+    if(!Array.isArray(W)) W=[W];
+    if(!Array.isArray(M)) M=[M];
+    list.forEach(function(v,i){
+      var w=(W[i]&&W[i].current)||{}, m=(M[i]&&M[i].current)||{};
+      MET[v.no]={ kn:w.wind_speed_10m, gust:w.wind_gusts_10m, wdir:w.wind_direction_10m,
+                  hs:m.wave_height, tp:m.wave_period, wvdir:m.wave_direction };
+    });
+    METAT=Date.now();
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
 async function loadCalls(v){
   var el=document.getElementById('pc_'+v.no); if(!el) return;
   var key=(v.mmsi)||(v.data&&v.data.imo)||'';
