@@ -297,27 +297,76 @@ map.createPane('shipsPane'); map.getPane('shipsPane').style.zIndex = 650;
 var GIBS='https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/';
 function gibsDate(hoursAgo){ return new Date(Date.now()-hoursAgo*3600e3).toISOString().slice(0,10); }
 var WXLAYERS=[
- {id:'off',  name:'날씨 꺼짐', layer:null},
- {id:'cloud',name:'구름·기상계', layer:'VIIRS_NOAA20_CorrectedReflectance_TrueColor', lv:9, ext:'jpg', hrs:30, op:.75, src:'NASA VIIRS'},
- {id:'rain', name:'강수', layer:'IMERG_Precipitation_Rate', lv:6, ext:'png', hrs:30, tm:'T00:00:00Z', op:.6, src:'NASA GPM IMERG'},
- {id:'ctt',  name:'운정온도', layer:'MODIS_Aqua_Cloud_Top_Temp_Day', lv:6, ext:'png', hrs:54, op:.6, src:'NASA MODIS'},
- {id:'sst',  name:'해수면온도', layer:'GHRSST_L4_MUR_Sea_Surface_Temperature', lv:7, ext:'png', hrs:54, op:.6, src:'NASA GHRSST'}
+ {id:'off',  name:'날씨 꺼짐', kind:null},
+ {id:'wind', name:'풍속', kind:'grid'},
+ {id:'wave', name:'파고', kind:'grid'},
+ {id:'cloud',name:'구름', kind:'tile', layer:'VIIRS_NOAA20_CorrectedReflectance_TrueColor', lv:9, ext:'jpg', hrs:30, op:.75, src:'NASA VIIRS'},
+ {id:'rain', name:'강수', kind:'tile', layer:'IMERG_Precipitation_Rate', lv:6, ext:'png', hrs:30, tm:'T00:00:00Z', op:.6, src:'NASA GPM'},
+ {id:'sst',  name:'해수면온도', kind:'tile', layer:'GHRSST_L4_MUR_Sea_Surface_Temperature', lv:7, ext:'png', hrs:54, op:.6, src:'NASA GHRSST'}
 ];
-var wxIdx=0, wxL=null, wxErr=0;
+var wxIdx=0, wxL=null, wxErr=0, wxGrid=null, wxBusy=false, wxTimer=null;
+function wxColor(kind, v){
+  if(kind==='wind'){ return v<11?'#6FD3FF':v<17?'#3DDC97':v<22?'#CDE84B':v<28?'#F0B95A':v<34?'#F08A3C':v<41?'#E0703C':v<48?'#E04C4C':'#C81E1E'; }
+  return v<1?'#6FD3FF':v<2?'#3DDC97':v<3?'#CDE84B':v<4?'#F0B95A':v<6?'#F08A3C':v<9?'#E0703C':'#C81E1E';
+}
+async function drawWxGrid(kind){
+  if(!wxGrid){ wxGrid=L.layerGroup().addTo(map); }
+  if(wxBusy) return; wxBusy=true;
+  try{
+    var b=map.getBounds(), cols=11, rows=7;
+    var n=Math.min(b.getNorth(),80), s=Math.max(b.getSouth(),-80);
+    var dLat=(n-s)/rows, dLon=(b.getEast()-b.getWest())/cols;
+    if(dLon>36){ dLon=36; }
+    var pts=[];
+    for(var r=0;r<rows;r++) for(var c=0;c<cols;c++){
+      var la=s+dLat*(r+0.5), lo=b.getWest()+ (b.getEast()-b.getWest())/cols*(c+0.5);
+      pts.push([+la.toFixed(2), +((((lo+540)%360)-180).toFixed(2))]);
+    }
+    var la=pts.map(function(p){return p[0];}).join(','), lo=pts.map(function(p){return p[1];}).join(',');
+    var url = kind==='wind'
+      ? 'https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn'
+      : 'https://marine-api.open-meteo.com/v1/marine?latitude='+la+'&longitude='+lo+'&current=wave_height,wave_direction';
+    var d = await (await fetch(url)).json();
+    if(!Array.isArray(d)) d=[d];
+    wxGrid.clearLayers();
+    d.forEach(function(o,i){
+      var cu=o&&o.current; if(!cu) return;
+      var val = kind==='wind' ? cu.wind_speed_10m : cu.wave_height;
+      var dir = kind==='wind' ? cu.wind_direction_10m : cu.wave_direction;
+      if(val==null) return;
+      var col=wxColor(kind,val), rot=(dir==null?0:dir)+180;
+      var txt = kind==='wind' ? Math.round(val) : val.toFixed(1);
+      var svg='<svg width="46" height="46" viewBox="0 0 46 46">'
+        +'<g transform="rotate('+rot+' 23 23)">'
+        +'<line x1="23" y1="7" x2="23" y2="33" stroke="'+col+'" stroke-width="2.6" opacity=".95"/>'
+        +'<path d="M23 36 L18.5 27 L27.5 27 Z" fill="'+col+'"/></g>'
+        +'<text x="23" y="19" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" '
+        +'fill="'+col+'" stroke="#06101C" stroke-width="2.6" paint-order="stroke">'+txt+'</text></svg>';
+      L.marker(pts[i],{icon:L.divIcon({html:svg,className:'',iconSize:[46,46],iconAnchor:[23,23]}),
+        pane:'wxPane', interactive:false}).addTo(wxGrid);
+    });
+  }catch(e){}
+  wxBusy=false;
+}
+function wxRefresh(){
+  var w=WXLAYERS[wxIdx];
+  if(!w || w.kind!=='grid'){ if(wxGrid) wxGrid.clearLayers(); return; }
+  clearTimeout(wxTimer);
+  wxTimer=setTimeout(function(){ drawWxGrid(w.id); }, 500);
+}
+map.on('moveend', wxRefresh);
 function setWx(i){
   wxIdx=((i%WXLAYERS.length)+WXLAYERS.length)%WXLAYERS.length;
   var w=WXLAYERS[wxIdx]; wxErr=0;
   if(wxL){ map.removeLayer(wxL); wxL=null; }
-  if(w.layer){
-    var t=gibsDate(w.hrs)+(w.tm||'');
+  if(wxGrid) wxGrid.clearLayers();
+  if(w.kind==='tile'){
+    var t=new Date(Date.now()-w.hrs*3600e3).toISOString().slice(0,10)+(w.tm||'');
     wxL=L.tileLayer(GIBS+w.layer+'/default/'+t+'/GoogleMapsCompatible_Level'+w.lv+'/{z}/{y}/{x}.'+w.ext,
-      {pane:'wxPane', opacity:w.op, maxNativeZoom:w.lv, maxZoom:16,
-       attribution:w.src+' (NASA, public domain)'}).addTo(map);
-    wxL.on('tileerror', function(){ if(++wxErr>6){ var c2=document.getElementById('wxbtn');
-      if(c2) c2.innerHTML='\uD83C\uDF26 '+w.name+' \u26A0'; } });
-  }
+      {pane:'wxPane', opacity:w.op, maxNativeZoom:w.lv, maxZoom:16, attribution:w.src+' (NASA)'}).addTo(map);
+  } else if(w.kind==='grid'){ drawWxGrid(w.id); }
   var c=document.getElementById('wxbtn');
-  if(c){ c.innerHTML='\uD83C\uDF26 '+w.name; c.classList.toggle('on', !!w.layer); }
+  if(c){ c.innerHTML='\uD83C\uDF26 '+w.name+(w.kind==='grid'?(w.id==='wind'?' kn':' m'):''); c.classList.toggle('on', !!w.kind); }
   try{ localStorage.setItem('fw_wx', w.id); }catch(e){}
 }
 /* \u2500\u2500 \uBCA0\uC774\uC2A4\uB9F5 (API \uD0A4 \uBD88\uD544\uC694 \u00b7 \uC2E4\uD328 \uC2DC \uC790\uB3D9 \uB300\uCCB4) \u2500\u2500 */
