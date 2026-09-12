@@ -27,6 +27,8 @@
   .board{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
   .chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none}
   .chip.on{border-color:var(--accent)}
+  .chip.off{opacity:.4}
+  .chip.off .dot{opacity:.5}
   .dot{width:8px;height:8px;border-radius:50%}
   .updated{font-family:var(--mono);font-size:11px;color:var(--muted);width:100%;text-align:right}
   @media(min-width:900px){.updated{width:auto}}
@@ -494,7 +496,7 @@ function render(){
    try{
     if(v.lat==null) return;
     if(soloNo!=null && v.no!==soloNo) return;
-    if(soloNo==null && !passResp(v)) return;      // 필터에 맞는 선박만 지도 표시      // 단일 보기
+    if(soloNo==null && (!passResp(v) || !passSt(v))) return;      // 필터에 맞는 선박만 지도 표시      // 단일 보기
     if((v.estimated||v.status==='STALE') && v.radiusNm>0){   // 반경 NaN 시 Leaflet 예외 방지
       L.circle([v.lat,v.lon],{radius:v.radiusNm*1852,color:ST[v.status].hex,weight:1,dashArray:'4 5',fillOpacity:.05,pane:'portsPane',interactive:false}).addTo(layer);
     }
@@ -519,11 +521,19 @@ function renderBoard(){
   const c={LIVE:0,DR:0,STALE:0,NOSIG:0};
   vessels.forEach(v=>c[v.status]++);
   document.getElementById('board').innerHTML =
-    Object.keys(ST).map(k=>`<div class="chip ${filter===k?'on':''}" onclick="setFilter('${k}')">
+    Object.keys(ST).map(k=>`<div class="chip ${SHOWST[k]?'on':'off'}" onclick="setFilter('${k}')">
       <span class="dot" style="background:${ST[k].hex}"></span>${ST[k].label} <b>${c[k]}</b></div>`).join('')
-    + `<div class="chip ${filter===null?'on':''}" onclick="setFilter(null)">전체 <b>${vessels.length}</b></div>`;
+    + `<div class="chip ${(SHOWST.LIVE&&SHOWST.DR&&SHOWST.STALE&&SHOWST.NOSIG)?'on':''}" onclick="setFilter(null)">전체 <b>${vessels.length}</b></div>`;
 }
-function setFilter(k){ filter=k; soloNo=null; render(); }
+var SHOWST={LIVE:1,DR:1,STALE:1,NOSIG:1};
+function passSt(v){ return !!SHOWST[v.status]; }
+function setFilter(k){
+  if(k===null || k==='ALL'){ SHOWST={LIVE:1,DR:1,STALE:1,NOSIG:1}; }
+  else { SHOWST[k]=SHOWST[k]?0:1;
+    if(!SHOWST.LIVE && !SHOWST.DR && !SHOWST.STALE && !SHOWST.NOSIG) SHOWST[k]=1; }
+  soloNo=null;
+  try{ render(); fitFiltered(); }catch(e){ try{ renderList(); }catch(e2){} }
+}
 
 function renderList(){
   const q=(document.getElementById('q').value||'').toLowerCase();
@@ -531,7 +541,7 @@ function renderList(){
   var ft=gv('fteam'), fv=gv('fvm'), fh=gv('fhseq');
   var rOf=function(v){ return RESP[v.mmsi||''] || RESP[v.name] || null; };
   const show=vessels.filter(function(v){
-    if(filter && v.status!==filter) return false;
+    if(!passSt(v)) return false;
     if(q && !(v.name.toLowerCase().includes(q)||(v.mmsi||'').includes(q))) return false;
     if(!passResp(v)) return false;
     return true;
@@ -633,7 +643,7 @@ function fitFiltered(){
   try{
     var pts=[], ref=null;
     vessels.forEach(function(v){
-      if(v.lat==null || !passResp(v)) return;
+      if(v.lat==null || !passResp(v) || !passSt(v)) return;
       var lo=v.lon;
       if(ref===null) ref=lo; else { if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; }
       pts.push([v.lat, lo]);
