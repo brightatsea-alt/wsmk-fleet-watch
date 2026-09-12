@@ -397,8 +397,7 @@ function setBase(i){
   const c=document.getElementById('mapstyle'); if(c) c.innerHTML='\uD83D\uDDFA '+b.name;
   try{ localStorage.setItem('fw_base', b.id); }catch(e){}
 }
-let _bi=0; try{ const s=localStorage.getItem('fw_base'); if(s){ const k=BASEMAPS.findIndex(x=>x.id===s); if(k>=0) _bi=k; } }catch(e){}
-setBase(_bi);
+setBase(0);   // 기본값: 해도
 const layer = L.layerGroup().addTo(map);
 let shipsOn = true;          // 기본: 선박만 표시
 let soloNo = null;           // 선택 시 해당 선박만 지도에 표시
@@ -886,7 +885,6 @@ var portLayer = L.layerGroup().addTo(map);
     var ks=Object.keys(d.ports||{}).sort();
     ps.innerHTML="<option value=''>⚓ 기항 항구 ("+ks.length+")</option>"+ks.map(function(k){ return "<option value='"+k+"'>"+k+" ("+d.ports[k].n+")</option>"; }).join("");
   }).catch(function(){});
-  try{ const s=localStorage.getItem('fw_wx'); const k=WXLAYERS.findIndex(x=>x.id===s); if(k>0) setWx(k); }catch(e){}
 })();
 let portsOn = false, portData = null;   // 기본: 항구 숨김
 
