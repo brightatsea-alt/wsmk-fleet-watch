@@ -110,7 +110,72 @@ function draw(){
     var ves=null, best=0;
     fleet.forEach(function(v){ var n2=v.name.toUpperCase().split('(')[0].trim();
       if(qu.indexOf(n2)>=0 && n2.length>best){ best=n2.length; ves=v; } });
-    if(!ves) throw new Error('선박명을 찾지 못했습니다');
+    if(!ves){
+      /* 선박명이 없으면 지역·국가·항구 기준으로 기항 예정 선박을 목록화 */
+      var REG={'호주':'Australia','AUSTRALIA':'Australia','뉴질랜드':'New Zealand','NEW ZEALAND':'New Zealand',
+        '미국':'USA','USA':'USA','US ':'USA','UNITED STATES':'USA','일본':'Japan','JAPAN':'Japan','중국':'China','CHINA':'China',
+        '한국':'Korea','KOREA':'Korea','유럽':'Europe','EUROPE':'Europe','독일':'Germany','GERMANY':'Germany',
+        '벨기에':'Belgium','BELGIUM':'Belgium','영국':'United Kingdom','UK':'United Kingdom','남미':'South America',
+        '브라질':'Brazil','BRAZIL':'Brazil','칠레':'Chile','CHILE':'Chile','페루':'Peru','PERU':'Peru',
+        '파나마':'Panama','PANAMA':'Panama','남아프리카':'South Africa','싱가포르':'Singapore'};
+      var PC={Australia:['Melbourne','Brisbane','Port Kembla','Sydney','Fremantle','Adelaide','Gladstone','Newcastle','Darwin','Townsville','Bell Bay'],
+        'New Zealand':['Auckland','Wellington','Lyttelton','Napier','Tauranga','Port Chalmers'],
+        USA:['Brunswick','Baltimore','Philadelphia','Houston','Galveston','Long Beach','Port Hueneme','Tacoma','New York','Norfolk','Savannah','Charleston','Los Angeles','Jacksonville','Miami','Boston','Mobile','New Orleans','Seattle','Portland','Oakland','Honolulu'],
+        Japan:['Yokohama','Nagoya','Tokyo','Kobe','Osaka','Toyohashi','Kanmon','Hakata','Moji','Shimizu','Kawasaki','Chiba','Mizushima','Yokkaichi','Oita','Hiroshima','Tomakomai','Sendai'],
+        China:['Shanghai','Qingdao','Tianjin','Nansha','Guangzhou','Shekou','Yantian','Ningbo','Dalian','Xiamen','Taicang','Huangpu','Zhoushan','Zhenjiang'],
+        Korea:['Busan','Incheon','Pyeongtaek','Ulsan','Gwangyang','Masan','Pohang','Mokpo','Gunsan','Dangjin','Yeosu','Donghae'],
+        Germany:['Bremerhaven','Hamburg','Emden','Cuxhaven','Wilhelmshaven'],
+        Belgium:['Antwerp','Zeebrugge','Ghent'],
+        'United Kingdom':['Southampton','Bristol','Immingham','Tilbury','Liverpool','Teesport'],
+        Brazil:['Santos','Rio de Janeiro','Paranagua','Vitoria','Itajai','Suape','Rio Grande'],
+        Chile:['San Antonio','Valparaiso','Iquique'], Peru:['Callao','Pisco'],
+        Panama:['Panama Canal','Balboa','Cristobal','Manzanillo Intl'],
+        'South Africa':['Durban','Richards Bay','Cape Town','Port Elizabeth','Saldanha Bay','East London'],
+        Singapore:['Singapore'],
+        Europe:['Bremerhaven','Hamburg','Antwerp','Zeebrugge','Southampton','Bristol','Rotterdam','Goteborg','Piraeus','Civitavecchia','Koper','Algeciras','Sagunto','Le Havre','Derince','Izmir']};
+      var reg=null;
+      for(var rk in REG){ if(qu.indexOf(rk.toUpperCase())>=0 || Q.indexOf(rk)>=0){ reg=REG[rk]; break; } }
+      var sc2=(await (await fetch('schedule.json?t='+Date.now())).json()).v||{};
+      var want=null;
+      if(reg) want=PC[reg]||[];
+      else { for(var pk in XY){ var pn=(NAME[pk]||'').toUpperCase(); if(pn.length>3 && qu.indexOf(pn)>=0){ want=[NAME[pk]]; reg=NAME[pk]; break; } } }
+      if(!want) throw new Error('선박명이나 지역·항구를 찾지 못했습니다');
+      var W=want.map(function(x){return x.toUpperCase();}), now=Date.now(), yy=new Date().getUTCFullYear(), hits=[];
+      fleet.forEach(function(vv){
+        (sc2[vv.mmsi]||[]).forEach(function(l){
+          var s=(l[2]||l[1]||''), p2=s.split('-');
+          var t=p2.length>1? Date.UTC(yy,parseInt(p2[0],10)-1,parseInt(p2[1],10),23,59) : 0;
+          if(t && t-now < -200*864e5) t=Date.UTC(yy+1,parseInt(p2[0],10)-1,parseInt(p2[1],10),23,59);
+          if(t && t<now) return;
+          if(W.indexOf(l[0].toUpperCase())<0) return;
+          hits.push({v:vv, port:l[0], eta:l[1], etd:l[2], lat:l[3], lon:l[4]});
+        });
+      });
+      hits.sort(function(a,b){ return a.eta<b.eta?-1:1; });
+      if(!hits.length) throw new Error(reg+' 기항 예정 선박이 없습니다');
+      document.getElementById('side').innerHTML =
+        '<div class="sum"><h2>'+reg+'</h2><div class="big">기항 예정 '+hits.length+'건 · 선박 '+(new Set(hits.map(function(x){return x.v.name;}))).size+'척</div>'
+        +'<div class="sub">WSMK Vessel Schedule 기준 · 오늘 이후 일정만</div></div>'
+        + hits.map(function(x,i){ return '<div class="leg"><div class="t"><div class="no">'+(i+1)+'</div>'
+          +'<div class="nm">'+x.v.name+'</div><div class="d">'+x.port+'</div></div>'
+          +'<div class="m">ETA '+x.eta+(x.etd?' / ETD '+x.etd:'')+'</div></div>'; }).join('');
+      RT.clearLayers();
+      var bb=[];
+      hits.forEach(function(x,i){
+        var pd2=pos[x.v.mmsi];
+        if(pd2 && pd2.lat!=null){
+          L.polyline([[pd2.lat,pd2.lon],[x.lat,x.lon]],{color:'#FF2D2D',weight:2.4,opacity:.75,dashArray:'3 9'}).addTo(RT);
+          L.marker([pd2.lat,pd2.lon],{icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],html:'<svg width="18" height="18"><circle cx="9" cy="9" r="5" fill="#3DDC97" stroke="#06101C" stroke-width="1.6"/></svg>'})})
+            .bindTooltip(x.v.name,{permanent:true,direction:'top',offset:[0,-9],className:'vlbl'}).addTo(RT);
+          bb.push([pd2.lat,pd2.lon]);
+        }
+        L.marker([x.lat,x.lon],{icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<svg width="30" height="30"><circle cx="15" cy="15" r="12" fill="#12200A" stroke="#FF2D2D" stroke-width="2.6"/><text x="15" y="20" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#5CE01E">'+(i+1)+'</text></svg>'})})
+          .bindTooltip((i+1)+'. '+x.v.name+' → '+x.port+' ETA '+x.eta,{permanent:true,direction:'top',offset:[0,-14],className:'plbl'}).addTo(RT);
+        bb.push([x.lat,x.lon]);
+      });
+      try{ map.fitBounds(bb,{padding:[70,70],maxZoom:5}); }catch(e){}
+      return;
+    }
     var pd=pos[ves.mmsi];
     if(!pd) for(var kk in pos){ if(String(pos[kk].name||'').toUpperCase()===ves.name.toUpperCase()){ pd=pos[kk]; break; } }
     if(!pd || pd.lat==null) throw new Error(ves.name+' 현재 위치 데이터가 없습니다');
