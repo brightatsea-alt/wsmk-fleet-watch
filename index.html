@@ -27,6 +27,9 @@
   .board{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
   .chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none}
   .chip.on{border-color:var(--accent)}
+  #ask{flex:1;min-width:230px;max-width:480px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;color:var(--text);font-size:12.5px;padding:6px 10px;outline:none}
+  #ask:focus{border-color:var(--accent)}
+  #ask::placeholder{color:#6E7E92}
   .chip.off{opacity:.4}
   .chip.off .dot{opacity:.5}
   .dot{width:8px;height:8px;border-radius:50%}
@@ -195,6 +198,7 @@
 <header>
   <div class="brand" onclick="try{localStorage.removeItem('fw_wx');}catch(e){}; location.reload();" title="새로고침">FLEET WATCH<small>WSM KOREA</small></div>
   <div class="chip" id="langbtn" onclick="toggleLang()" style="cursor:pointer">🌐 English</div>
+  <input id="ask" type="search" placeholder="자연어 항해 질의 — 예) Asian Trust 현위치에서 New York 기항 후 Bremerhaven까지">
   <div class="board" id="board"></div>
   <div class="chip" id="health" title="\uB370\uC774\uD130 \uC218\uC9D1 \uC0C1\uD0DC"><span class="dot" style="background:#6E7E92"></span>\uD655\uC778 \uC911</div>
   <div class="updated" id="updated">데이터 로딩 중…</div>
@@ -717,6 +721,10 @@ fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).t
 }).catch(function(){});
 var _fc=document.getElementById('fclr');
 if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); fitFiltered(); }catch(e){ renderList(); } };
+var _ask=document.getElementById('ask');
+if(_ask) _ask.addEventListener('keydown', function(e){
+  if(e.key==='Enter'){ var t=(_ask.value||'').trim(); if(t) window.open('voyage.html?q='+encodeURIComponent(t),'_blank'); }
+});
 document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('toggle').onclick=()=>document.getElementById('side').classList.toggle('open');
 load();
