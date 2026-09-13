@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upcoming Calls — WSMK Fleet Watch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ html,body{height:100%}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;overflow:hidden}
+ header{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .brand{font-family:var(--cond);font-weight:600;font-size:20px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--accent);font-size:12px;letter-spacing:.16em;margin-left:7px}
+ select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ select:focus{border-color:var(--accent)}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ #wrap{display:flex;height:calc(100% - 48px)}
+ aside{width:520px;min-width:420px;background:var(--panel2);border-right:1px solid var(--line);overflow-y:auto}
+ #map{flex:1}
+ .sum{padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .sum b{color:var(--text)}
+ table{width:100%;border-collapse:collapse}
+ th{position:sticky;top:0;background:var(--panel);font-family:var(--cond);font-size:13px;letter-spacing:.08em;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+ td{padding:7px 10px;border-bottom:1px solid rgba(34,51,74,.45);font-size:12.5px;white-space:nowrap}
+ tr:hover td{background:rgba(90,184,214,.07)}
+ td.d{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ td.v{font-weight:600}
+ td.eta{font-family:var(--mono);color:var(--amber);font-weight:600}
+ .soon td.eta{color:#FF6B6B}
+ .empty{padding:26px 14px;color:var(--muted);line-height:1.9}
+ .plbl{background:rgba(26,8,8,.94);border:1px solid rgba(255,45,45,.7);color:#FFC9C9;font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+ .plbl::before{display:none}
+ .vlbl{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:3px}
+ .vlbl::before{display:none}
+</style></head><body>
+<header>
+  <div class="brand">UPCOMING CALLS<small>WSM KOREA</small></div>
+  <select id="psel"><option value="">항구 선택</option></select>
+  <select id="dsel"><option value="0">기간 전체</option><option value="7">7일 이내</option><option value="14">14일 이내</option><option value="30">30일 이내</option></select>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div id="wrap"><aside id="side"><div class="empty" id="info">불러오는 중…</div></aside><div id="map"></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map=L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,120],2);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,attribution:'&copy; Esri Ocean'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,opacity:.85}).addTo(map);
+var LY=L.layerGroup().addTo(map), SC=null, FL=[], POS={};
+function q(id){return document.getElementById(id);}
+function tsOf(md){ if(!md) return 0; var p=String(md).split('-'); if(p.length<2) return 0;
+  var yy=new Date().getUTCFullYear(), t=Date.UTC(yy,parseInt(p[0],10)-1,parseInt(p[1],10),12,0);
+  if(t-Date.now() < -200*864e5) t=Date.UTC(yy+1,parseInt(p[0],10)-1,parseInt(p[1],10),12,0);
+  return t; }
+function fmt(t){var d=new Date(t);return String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
+function draw(){
+  var pv=q('psel').value, dy=parseInt(q('dsel').value,10)||0, now=Date.now(), rows=[];
+  Object.keys(SC.v||{}).forEach(function(mmsi){
+    (SC.v[mmsi]||[]).forEach(function(l){
+      var eta=tsOf(l[1]), etd=tsOf(l[2]||l[1]);
+      if(etd && etd<now) return;
+      if(pv && l[0]!==pv) return;
+      if(dy && eta && eta > now+dy*864e5) return;
+      var f=FL.filter(function(x){return x.mmsi===mmsi;})[0], p=POS[mmsi];
+      rows.push({v:f?f.name:mmsi, mmsi:mmsi, port:l[0], eta:eta, etd:l[2], lat:l[3], lon:l[4],
+        pl:(p&&p.lat!=null)?p.lat:null, pn:(p&&p.lat!=null)?p.lon:null, sog:p?p.sog:null});
+    });
+  });
+  rows.sort(function(a,b){ return (a.eta||9e15)-(b.eta||9e15); });
+  var vs={}; rows.forEach(function(r){vs[r.mmsi]=1;});
+  q('side').innerHTML='<div class="sum">'+(pv?('<b>'+pv+'</b> \uD5A5\uD6C4 \uAE30\uD56D '):'\uC804\uCCB4 \uD5A5\uD6C4 \uAE30\uD56D ')
+    +'<b>'+rows.length+'</b>\uAC74 \u00b7 \uC120\uBC15 <b>'+Object.keys(vs).length+'</b>\uCC99 \u00b7 \uAE30\uC900 '+(SC.u||'')+'</div>'
+    +(rows.length? '<table><thead><tr><th>ETA</th><th>ETD</th><th>\uC120\uBC15</th><th>\uD56D\uAD6C</th><th>\uB0A8\uC740\uC77C</th><th>\uD604\uC7AC\uC18D\uB825</th></tr></thead><tbody>'
+      +rows.map(function(r){ var days=r.eta? Math.round((r.eta-now)/864e5) : null;
+        return '<tr class="'+(days!=null&&days<=3?'soon':'')+'"><td class="eta">'+(r.eta?fmt(r.eta):'\u2014')+'</td>'
+          +'<td class="d">'+(r.etd||'\u2014')+'</td><td class="v">'+r.v+'</td><td class="d">'+r.port+'</td>'
+          +'<td class="d">'+(days!=null?(days<=0?'\uC784\uBC15':'D-'+days):'\u2014')+'</td>'
+          +'<td class="d">'+(r.sog!=null? r.sog.toFixed(1)+' kn':'\u2014')+'</td></tr>'; }).join('')+'</tbody></table>'
+      : '<div class="empty">\uD574\uB2F9 \uC870\uAC74\uC758 \uD5A5\uD6C4 \uAE30\uD56D \uC608\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</div>');
+  LY.clearLayers(); var bnds=[];
+  if(pv && rows.length){
+    var p0=rows[0];
+    L.circleMarker([p0.lat,p0.lon],{radius:9,color:'#FF2D2D',weight:3,fillColor:'#1A0A0A',fillOpacity:.95})
+      .bindTooltip(pv,{permanent:true,direction:'top',offset:[0,-10],className:'plbl'}).addTo(LY);
+    bnds.push([p0.lat,p0.lon]);
+    var seen={};
+    rows.forEach(function(r){ if(r.pl==null||seen[r.mmsi]) return; seen[r.mmsi]=1;
+      var lo=r.pn, plo=p0.lon; if(plo-lo>180) lo+=360; if(lo-plo>180) lo-=360;
+      L.polyline([[r.pl,lo],[p0.lat,p0.lon]],{color:'#FF2D2D',weight:2,opacity:.55,dashArray:'3 8'}).addTo(LY);
+      L.circleMarker([r.pl,lo],{radius:5,color:'#06101C',weight:1.5,fillColor:'#3DDC97',fillOpacity:.95})
+        .bindTooltip(r.v+' \u00b7 D-'+Math.max(0,Math.round((r.eta-now)/864e5)),{permanent:true,direction:'top',offset:[0,-8],className:'vlbl'}).addTo(LY);
+      bnds.push([r.pl,lo]); });
+  } else {
+    var s2={};
+    rows.forEach(function(r){ if(s2[r.port]) return; s2[r.port]=1;
+      L.circleMarker([r.lat,r.lon],{radius:6,color:'#FF2D2D',weight:2,fillColor:'#1A0A0A',fillOpacity:.9}).bindTooltip(r.port,{className:'plbl'}).addTo(LY);
+      bnds.push([r.lat,r.lon]); });
+  }
+  if(bnds.length>1){ try{ map.fitBounds(bnds,{padding:[60,60],maxZoom:6}); }catch(e){} }
+  else if(bnds.length===1){ map.setView(bnds[0],5); }
+}
+(async function(){
+  try{
+    SC=await (await fetch('schedule.json?t='+Date.now())).json();
+    FL=(await (await fetch('fleet.json?t='+Date.now())).json()).vessels;
+    POS=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
+    var ports={};
+    Object.keys(SC.v||{}).forEach(function(k){ (SC.v[k]||[]).forEach(function(l){ ports[l[0]]=(ports[l[0]]||0)+1; }); });
+    var ks=Object.keys(ports).sort();
+    q('psel').innerHTML='<option value="">\uD56D\uAD6C \uC120\uD0DD \u2014 \uC804\uCCB4 ('+ks.length+')</option>'+ks.map(function(k){ return '<option value="'+k+'">'+k+' ('+ports[k]+')</option>'; }).join('');
+    var want=(new URLSearchParams(location.search).get('port')||'').trim();
+    if(want){ var u=want.toUpperCase();
+      var hit=ks.filter(function(k){return k.toUpperCase()===u;})[0] || ks.filter(function(k){return k.toUpperCase().indexOf(u)>=0 || u.indexOf(k.toUpperCase())>=0;})[0];
+      if(hit) q('psel').value=hit; }
+    q('psel').onchange=draw; q('dsel').onchange=draw;
+    draw();
+  }catch(e){ q('info').textContent='\uC2A4\uCF00\uC904 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: '+(e.message||e); }
+})();
+</script></body></html>
