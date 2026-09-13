@@ -1185,83 +1185,74 @@ var destLayer=L.layerGroup().addTo(map);
 var SCHED={}, schLayer=null, schOn=null;
 fetch('schedule.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){ SCHED=d.v||{}; }).catch(function(){});
 function schKey(v){ return (v&&v.mmsi)||''; }
-function clearSched(){ if(schLayer){ map.removeLayer(schLayer); schLayer=null; } schOn=null; }
-function showSched(no){
-  var v=vessels.filter(function(x){return x.no===no;})[0]; if(!v) return;
-  var all=SCHED[schKey(v)]; if(!all || !all.length) return;
-  var now=new Date(), yy=now.getUTCFullYear();
-  function legTime(l){
-    var s=(l[2]||l[1]||''); if(!s) return 0;
-    var p=s.split('-'); if(p.length<2) return 0;
-    var mo=parseInt(p[0],10)-1, dd=parseInt(p[1],10);
-    var t=Date.UTC(yy,mo,dd,23,59);
-    if(t - now.getTime() < -200*864e5) t=Date.UTC(yy+1,mo,dd,23,59);   // 연도 경계 보정
-    return t;
-  }
-  var legs=all.filter(function(l){ var t=legTime(l); return !t || t>=now.getTime(); });
-  var skipped=all.length-legs.length;
-  if(!legs.length){ legs=all.slice(-1); skipped=all.length-1; }
-  if(schOn===no){ clearSched(); soloNo=null; try{ render(); }catch(e){} return; }
-  clearSched(); schLayer=L.layerGroup().addTo(map); schOn=no;
-  soloNo=no; try{ render(); }catch(e){}                 // 해당 선박만 표시
-  var raw=[], cur=(v.lat!=null)?[v.lat,v.lon]:[legs[0][3],legs[0][4]];
-  raw.push(cur);
-  legs.forEach(function(l){
-    var seg=seaRoute(cur[0],cur[1],l[3],l[4]);
-    for(var k=1;k<seg.length;k++) raw.push(seg[k]);
-    cur=[l[3],l[4]];
+function clearSched(){ if(schLayer){ map.removeLayer(schLayer); schLayer=null; } schOn=null; SCHST=null; }
+var SCHST=null;
+function schLegTime(l){
+  var s=(l[2]||l[1]||''); if(!s) return 0;
+  var p=s.split('-'); if(p.length<2) return 0;
+  var y=new Date().getUTCFullYear(), n=Date.now();
+  var t=Date.UTC(y,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+  if(t-n < -200*864e5) t=Date.UTC(y+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+  return t;
+}
+function drawSchedNow(fit){
+  if(!SCHST) return;
+  if(schLayer){ map.removeLayer(schLayer); }
+  schLayer=L.layerGroup().addTo(map);
+  var v=SCHST.v, legs=SCHST.legs, past=SCHST.past;
+  var ref=map.getCenter().lng, pts=[], lbl=[];
+  function wrap(lo){ while(lo-ref>180) lo-=360; while(ref-lo>180) lo+=360; return lo; }
+  if(v.lat!=null) pts.push([v.lat, wrap(v.lon)]);
+  past.forEach(function(l){
+    L.circleMarker([l[3],wrap(l[4])],{radius:5,color:'#6E7E92',weight:1.2,fillColor:'#2A3648',fillOpacity:.9,pane:'portsPane'})
+      .bindTooltip(l[0]+' \u00b7 '+l[1]+' \uC644\uB8CC',{className:'plabel'}).addTo(schLayer);
   });
-  var pts=wrapPts(raw), ref=(v.lat!=null? v.lon : legs[0][4]);
-  if(skipped>0){
-    all.slice(0,skipped).forEach(function(l){
-      L.circleMarker([l[3],l[4]],{radius:5,color:'#6E7E92',weight:1.2,fillColor:'#2A3648',fillOpacity:.9,pane:'portsPane'})
-        .bindTooltip(l[0]+' · '+l[1]+' 완료',{className:'plabel'}).addTo(schLayer);
-    });
-  }
+  legs.forEach(function(l){ pts.push([l[3], wrap(l[4])]); });
   L.polyline(pts,{color:'#1A0A0A',weight:8,opacity:.45,pane:'shipsPane',interactive:false}).addTo(schLayer);
   L.polyline(pts,{color:'#FF2D2D',weight:4.5,opacity:.95,dashArray:'3 10',lineCap:'round',pane:'shipsPane',interactive:false}).addTo(schLayer);
-  var ref2=(v.lat!=null? v.lon : legs[0][4]);
-  var _lbl=[];
   legs.forEach(function(l,i){
-    var lo=l[4]; if(lo-ref2>180) lo-=360; if(ref2-lo>180) lo+=360; ref2=lo;
+    var lo=wrap(l[4]);
     var svg='<svg width="30" height="30" viewBox="0 0 30 30">'
       +'<circle cx="15" cy="15" r="11" fill="#1A0A0A" stroke="#FF2D2D" stroke-width="2.6"/>'
       +'<text x="15" y="19.5" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#FF6B6B">'+(i+1)+'</text></svg>';
-    L.marker([l[3],lo],{icon:L.divIcon({html:svg,className:'',iconSize:[30,30],iconAnchor:[15,15]}),pane:'shipsPane'})
-      .bindTooltip((i+1)+'. '+l[0]+'  ETA '+l[1]+(l[2]?' / ETD '+l[2]:''),{direction:'top',offset:[0,-13],className:'schlbl',opacity:1})
-      .addTo(schLayer);
-    _lbl.push({i:i,lat:l[3],lon:lo,txt:(i+1)+'. '+l[0]+'  ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')});
+    var mk=L.marker([l[3],lo],{icon:L.divIcon({html:svg,className:'',iconSize:[30,30],iconAnchor:[15,15]}),pane:'shipsPane'}).addTo(schLayer);
+    lbl.push({mk:mk, lat:l[3], lon:lo, txt:(i+1)+'. '+l[0]+'  ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')});
   });
-  /* \uB77C\uBCA8 \uACB9\uCE68 \uBC29\uC9C0: \uD654\uBA74\uC88C\uD45C \uAE30\uC900\uC73C\uB85C \uBC29\uD5A5\u00b7\uAC04\uACA9 \uC790\uB3D9 \uBC30\uCE58 */
-  function layoutSchLabels(){
-    try{
-      if(!schLayer) return;
-      var used=[];
-      _lbl.slice().sort(function(a,b){ return map.latLngToContainerPoint([a.lat,a.lon]).y - map.latLngToContainerPoint([b.lat,b.lon]).y; })
-        .forEach(function(o){
-          var p=map.latLngToContainerPoint([o.lat,o.lon]);
-          var w=Math.min(340, 9 + o.txt.length*6.6), hgt=19;
-          var cand=[[0,-15,'top'],[0,15,'bottom'],[w/2+16,0,'right'],[-(w/2+16),0,'left'],[0,-40,'top'],[0,40,'bottom'],[w/2+16,-26,'right'],[-(w/2+16),-26,'left'],[0,-62,'top'],[0,62,'bottom']];
-          var best=cand[0], okFound=false;
-          for(var c=0;c<cand.length;c++){
-            var cx=p.x+cand[c][0], cy=p.y+cand[c][1];
-            var box={x1:cx-w/2,y1:cy-hgt/2,x2:cx+w/2,y2:cy+hgt/2};
-            var hit=false;
-            for(var u=0;u<used.length;u++){ var b=used[u];
-              if(box.x1<b.x2+4 && box.x2>b.x1-4 && box.y1<b.y2+3 && box.y2>b.y1-3){ hit=true; break; } }
-            if(!hit){ best=cand[c]; used.push(box); okFound=true; break; }
-          }
-          if(!okFound){ var cx2=p.x+best[0], cy2=p.y+best[1];
-            used.push({x1:cx2-w/2,y1:cy2-hgt/2,x2:cx2+w/2,y2:cy2+hgt/2}); }
-          var dir=best[2], off=(dir==='top')?[best[0],best[1]] : (dir==='bottom')?[best[0],best[1]] : [best[0]>0?16:-16, best[1]];
-          var mk=null; schLayer.eachLayer(function(L2){ if(L2.getLatLng && L2.getTooltip && L2.getLatLng().lat===o.lat) { if(!mk) mk=L2; } });
-          if(mk && mk.getTooltip()){ mk.unbindTooltip();
-            mk.bindTooltip(o.txt,{permanent:true,direction:dir,offset:off,className:'schlbl',opacity:1}); }
-        });
-    }catch(e){}
-  }
-  layoutSchLabels();
-  map.off('zoomend', layoutSchLabels); map.on('zoomend', layoutSchLabels);
+  var used=[];
+  lbl.slice().sort(function(a,b){ return map.latLngToContainerPoint([a.lat,a.lon]).y - map.latLngToContainerPoint([b.lat,b.lon]).y; })
+    .forEach(function(o){
+      var p=map.latLngToContainerPoint([o.lat,o.lon]);
+      var w=Math.min(330, 10+o.txt.length*6.6), hh=19;
+      var cand=[[0,-16,'top'],[0,16,'bottom'],[w/2+18,0,'right'],[-(w/2+18),0,'left'],[0,-40,'top'],[0,40,'bottom'],[0,-64,'top'],[0,64,'bottom'],[w/2+18,-30,'right'],[-(w/2+18),-30,'left']];
+      var pick=cand[0];
+      for(var c=0;c<cand.length;c++){
+        var cx=p.x+cand[c][0], cy=p.y+cand[c][1], hit=false;
+        var bx={x1:cx-w/2,y1:cy-hh/2,x2:cx+w/2,y2:cy+hh/2};
+        for(var u=0;u<used.length;u++){ var b=used[u];
+          if(bx.x1<b.x2+4 && bx.x2>b.x1-4 && bx.y1<b.y2+3 && bx.y2>b.y1-3){ hit=true; break; } }
+        if(!hit){ pick=cand[c]; used.push(bx); break; }
+        if(c===cand.length-1){ used.push(bx); }
+      }
+      var dir=pick[2];
+      var off=(dir==='right')?[16,pick[1]] : (dir==='left')?[-16,pick[1]] : [pick[0],pick[1]];
+      o.mk.bindTooltip(o.txt,{permanent:true,direction:dir,offset:off,className:'schlbl',opacity:1});
+    });
+  if(fit){ try{ map.flyToBounds(pts,{padding:[90,90],maxZoom:7,duration:1.0}); }catch(e){} }
+}
+function showSched(no){
+  var v=vessels.filter(function(x){return x.no===no;})[0]; if(!v) return;
+  var all=SCHED[schKey(v)]; if(!all || !all.length) return;
+  if(schOn===no){ clearSched(); SCHST=null; soloNo=null; try{ render(); }catch(e){} return; }
+  var now=Date.now();
+  var legs=all.filter(function(l){ var t=schLegTime(l); return !t || t>=now; });
+  var past=all.filter(function(l){ var t=schLegTime(l); return t && t<now; });
+  if(!legs.length){ legs=all.slice(-1); past=all.slice(0,-1); }
+  clearSched(); schOn=no; soloNo=no;
+  SCHST={v:{lat:v.lat,lon:v.lon}, legs:legs, past:past};
+  try{ render(); }catch(e){}
+  drawSchedNow(true);
+}
+map.on('moveend zoomend', function(){ if(schOn!=null && SCHST) drawSchedNow(false); });
   try{ map.flyToBounds(pts,{padding:[80,80],maxZoom:7,duration:1.0}); }catch(e){}
 }
 function drawDest(v){
