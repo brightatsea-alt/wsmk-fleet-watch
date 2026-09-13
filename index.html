@@ -592,7 +592,7 @@ function popup(v){
       var _rem=lg.filter(function(l){ var s=(l[2]||l[1]||''); if(!s) return true; var p=s.split('-');
         if(p.length<2) return true; var t=Date.UTC(_yy,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
         if(t-_now < -200*864e5) t=Date.UTC(_yy+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t>=_now; }).length;
-      return `<button class="pbtn pinf" onclick="openSchedPorts(${v.no})">\u2693 Port Information \u00b7 ${_rem||lg.length}\uAD6C\uAC04 \u21D7</button>`
+      return `<button class="pbtn pinf" onclick="openSchedPorts(${v.no})">\u2693 Port Information \u00b7 ${_rem||lg.length}\uAD6C\uAC04 \uD1B5\uD569 \u21D7</button>`
         + `<button class="pbtn sch" onclick="showSched(${v.no})">\uD83D\uDCC5 Schedule Leg \u00b7 \uC794\uC5EC ${_rem||lg.length}/${lg.length}\uAD6C\uAC04 \u2192</button>`;
     }catch(e){ return ''; } })()}
     <div class="pch">\uCD5C\uADFC \uAE30\uD56D</div><div class="pcl" id="pc_${v.no}">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>
@@ -944,10 +944,7 @@ function openSchedPorts(no){
       var p=l[0]; if(seen[p]) return; seen[p]=1; ports.push(p);
     });
     if(!ports.length){ alert('\uC608\uC815 \uAE30\uD56D\uC9C0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4'); return; }
-    if(ports.length>6 && !confirm(ports.length+'\uAC1C \uCC3D\uC744 \uC5FD\uB2C8\uB2E4. \uACC4\uC18D\uD560\uAE4C\uC694?')) return;
-    ports.forEach(function(p,i){
-      setTimeout(function(){ try{ window.open('ports.html?port='+encodeURIComponent(p),'pi_'+i); }catch(e){} }, i*320);
-    });
+    window.open('ports.html?ports='+encodeURIComponent(ports.join('|')), 'pi_all_'+no);
   }catch(e){}
 }
 function pickPsc(no){ try{ closeR(); showSched(no); var m=markers[no]; if(m) m.openPopup(); }catch(e){} }
