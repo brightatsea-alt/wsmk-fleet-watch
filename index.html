@@ -35,11 +35,13 @@
   .rulerlbl{background:rgba(11,20,32,.95);border:1px solid #B24BF3;color:#E8CFFB;font-family:var(--mono);
     font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap}
   .rulerlbl::before{display:none}
-  #rtabs{position:absolute;right:0;top:110px;z-index:840;display:flex;flex-direction:column;gap:4px}
+  #rtabs{position:absolute;right:0;top:190px;z-index:840;display:flex;flex-direction:column;gap:4px}
   .rtab{writing-mode:vertical-rl;background:#18273A;border:1px solid var(--line);border-right:none;font-weight:600;
     border-radius:6px 0 0 6px;padding:12px 6px;font-family:var(--cond);font-size:14px;letter-spacing:.14em;
-    color:var(--muted);cursor:pointer;user-select:none}
-  .rtab:hover,.rtab.on{color:var(--accent);border-color:var(--accent)}
+    color:#5CE01E;cursor:pointer;user-select:none;letter-spacing:.1em}
+  .rtab:hover,.rtab.on{color:#8CFF4A;border-color:#5CE01E;background:#16301A}
+  .rtab.ext{color:#7FD8F5;font-size:12px;padding:10px 6px}
+  .rtab.ext:hover{color:#BFEFFF;border-color:#7FD8F5;background:#12283A}
   #rside{position:absolute;right:0;top:0;bottom:0;width:410px;z-index:845;display:none;flex-direction:column;
     background:#0C1420;border-left:2px solid var(--accent);box-shadow:-10px 0 30px rgba(0,0,0,.65)}
   #rside.on{display:flex}
@@ -278,6 +280,9 @@
     <div id="rtabs">
     <div class="rtab" id="tabPsc" title="PSC 위험 선박">PSC</div>
     <div class="rtab" id="tabPort" title="항구 이슈">PORT</div>
+    <div class="rtab ext" onclick="window.open('https://s-insight.stormgeo.com/map','_blank')" title="StormGeo s-Insight">STORMGEO</div>
+    <div class="rtab ext" onclick="window.open('https://login.polestarglobal.com/','_blank')" title="Pole Star Global">POLESTAR</div>
+    <div class="rtab ext" onclick="window.open('https://login.polestarglobal.com/','_blank')" title="DNK">DNK</div>
   </div>
   <div id="rside"><div class="rhd"><b id="rttl">PSC</b><span class="x" onclick="closeR()">✕</span></div><div id="rbody"></div></div>
 </div>
