@@ -711,7 +711,9 @@ function render(){
     markers[v.no]=L.marker([v.lat,v.lon],{icon:shipIcon(v),pane:'shipsPane',riseOnHover:true})
       .bindTooltip(v.name,{permanent:true,direction:'top',offset:[0,-12],className:'vlabel',opacity:1})
       .bindPopup(function(){ try{ return popup(v); }catch(e){ return '<div class="pop"><b class="t">'+v.name+'</b></div>'; } }(),{autoPan:false})
-      .on('popupopen', function(){ try{ loadCalls(v); }catch(e){} try{ loadMet(); }catch(e){} })
+      .on('popupopen', function(){
+        try{ var k=(v.mmsi||(v.data&&v.data.imo)||''); if(TRKKEY && String(TRKKEY)!==String(k)) clearTrack(); }catch(e){}
+        try{ loadCalls(v); }catch(e){} try{ loadMet(); }catch(e){} })
       .on('mouseover', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.add('hov'); }catch(e){} })
       .on('mouseout', function(){ try{ var t=this.getTooltip(), el=t&&t.getElement(); if(el) el.classList.remove('hov'); }catch(e){} })
       .addTo(layer);
@@ -923,7 +925,17 @@ const trkLayer = L.layerGroup().addTo(map);
 let TRK = null;
 function fmtD(s){ const d=new Date(s); return String(d.getUTCMonth()+1).padStart(2,'0')+'/'+String(d.getUTCDate()).padStart(2,'0')+' '+String(d.getUTCHours()).padStart(2,'0')+'Z'; }
 function closeTrack(){ trkLayer.clearLayers(); TRK=null; const p=document.getElementById('trkpanel'); if(p) p.style.display='none'; }
+var TRKKEY=null;
+function clearTrack(){
+  try{ trkLayer.clearLayers(); }catch(e){}
+  TRK=null; TRKKEY=null;
+  var c=document.getElementById('trkcalls'); if(c) c.innerHTML='';
+  var p2=document.getElementById('trkpanel'); if(p2) p2.style.display='none';
+}
 async function showTrack(key, name){
+  try{ trkLayer.clearLayers(); }catch(e){}
+  TRK=null; TRKKEY=key;
+  var _tc=document.getElementById('trkcalls'); if(_tc) _tc.innerHTML='';
   const p=document.getElementById('trkpanel');
   p.style.display='block';
   document.getElementById('trkname').textContent=name;
@@ -939,6 +951,8 @@ async function showTrack(key, name){
     f.max=n-1; t.max=n-1; f.value=0; t.value=n-1;
     drawTrack();
   }catch(e){
+    try{ trkLayer.clearLayers(); }catch(e2){}
+    TRK=null;
     document.getElementById('trkinfo').textContent='\ud56d\uc801 \ub370\uc774\ud130\uac00 \uc544\uc9c1 \uc218\uc9d1\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4 (\ub9e4\uc77c 05\uc2dc KST \uc218\uc9d1)';
     trkLayer.clearLayers();
   }
@@ -1748,7 +1762,7 @@ fetch('ports-data.json?t='+Date.now()).then(r=>r.json()).then(d=>{
        ${d.countries.map(c=>`<option value="${c.country}">${c.country} (${c.general+c.security})</option>`).join('')}
      </select>
      <div class="chip" id="copen" style="display:none">국가 정보 열기 →</div>`);
-  wrap.appendChild(document.getElementById('tghint'));
+  var _th=document.getElementById('tghint'); if(_th) wrap.appendChild(_th);
   document.getElementById('ptoggle').onclick = function(){
     portsOn=!portsOn; this.classList.toggle('on',portsOn);
     document.getElementById('csel').style.display = portsOn ? '' : 'none';
