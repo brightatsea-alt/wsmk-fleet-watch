@@ -1076,6 +1076,111 @@ function destLatLng(t){
 function nmDist(a,b,c,d){var R=3440.065,r=Math.PI/180;
   var x=Math.sin((c-a)*r/2), y=Math.sin((d-b)*r/2);
   return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
+/* 해상 항로 네트워크 — 운하·해협·대양 경유점 */
+var WP={
+ NEA:[33.0,127.5],YEL:[36.5,123.5],ECS:[29.0,124.0],SEA:[13.0,113.0],LUZ:[20.5,121.0],
+ MAL:[2.0,101.5],SGP:[1.2,104.3],JAV:[-6.0,108.0],IND:[0.0,75.0],BEN:[10.0,88.0],
+ ARA:[18.0,62.0],HOR:[26.3,56.5],RED:[12.6,43.4],RSN:[24.0,36.5],SUZ:[30.0,32.4],
+ MED:[34.0,25.0],MEW:[37.5,7.0],GIB:[35.9,-5.9],BIS:[45.0,-8.0],NEU:[50.0,-1.6],
+ DOV:[51.1,1.6],NSE:[54.0,4.0],BAL:[56.0,11.5],CGH:[-35.5,19.0],MOZ:[-22.0,38.0],
+ WAF:[0.0,3.0],DAK:[14.0,-19.0],SAE:[-25.0,-43.0],RIO:[-30.0,-47.0],MAG:[-56.8,-67.0],
+ SAW:[-25.0,-72.0],PEC:[-8.0,-80.0],PNW:[7.5,-79.6],PNE:[10.0,-79.7],CAR:[15.5,-70.0],
+ FLO:[25.5,-79.5],USE:[34.0,-75.0],USN:[41.0,-69.0],USG:[26.0,-90.0],NAT:[45.0,-45.0],
+ NEP:[33.0,-124.0],USW:[45.0,-127.0],HAW:[21.5,-158.0],NPC:[40.0,-170.0],NWP:[40.0,175.0],
+ BER:[52.0,170.0],TOR:[-11.0,147.0],AUE:[-33.5,152.5],AUN:[-20.0,152.0],AUW:[-32.0,113.0],
+ AUS:[-39.0,141.0],NZL:[-37.5,176.0],FIJ:[-18.0,178.0],TAH:[-17.5,-149.5],JPE:[35.0,142.0]
+};
+var EDGES=[['NEA','YEL'],['NEA','ECS'],['NEA','JPE'],['ECS','SEA'],['ECS','LUZ'],['LUZ','SEA'],['LUZ','JPE'],
+['SEA','SGP'],['SGP','MAL'],['SGP','JAV'],['MAL','BEN'],['MAL','IND'],['BEN','IND'],['IND','ARA'],['ARA','HOR'],
+['ARA','RED'],['RED','RSN'],['RSN','SUZ'],['SUZ','MED'],['MED','MEW'],['MEW','GIB'],['GIB','BIS'],['BIS','NEU'],
+['NEU','DOV'],['DOV','NSE'],['NSE','BAL'],['GIB','DAK'],['DAK','WAF'],['WAF','CGH'],['CGH','MOZ'],['MOZ','IND'],
+['CGH','IND'],['WAF','SAE'],['SAE','RIO'],['RIO','MAG'],['MAG','SAW'],['SAW','PEC'],['PEC','PNW'],['PNW','PNE'],
+['PNE','CAR'],['CAR','FLO'],['FLO','USE'],['USE','USN'],['CAR','USG'],['USN','NAT'],['NAT','BIS'],['NAT','GIB'],
+['PNW','NEP'],['NEP','USW'],['NEP','HAW'],['HAW','NPC'],['NPC','NWP'],['NWP','JPE'],['NWP','BER'],['BER','NEA'],
+['SEA','TOR'],['TOR','AUN'],['AUN','AUE'],['AUE','AUS'],['AUE','NZL'],['AUE','FIJ'],['FIJ','TAH'],['TAH','PEC'],
+['JAV','AUW'],['AUW','AUS'],['AUW','IND'],['AUW','CGH'],['SAE','CGH'],['NPC','HAW'],['USW','HAW'],['DAK','SAE'],
+['USN','FLO'],['NEP','PEC'],['MAL','CGH'],['BEN','CGH'],['HAW','PEC'],['JPE','HAW'],['SGP','IND'],
+['NPC','PEC'],['NWP','HAW'],['AUE','PEC'],['NZL','PEC'],['MOZ','CGH'],['SAE','WAF'],['USG','FLO'],
+['NPC','NEP'],['NPC','USW'],['JPE','NPC'],['NWP','NEP']];
+var ADJ={};
+EDGES.forEach(function(e){ (ADJ[e[0]]=ADJ[e[0]]||[]).push(e[1]); (ADJ[e[1]]=ADJ[e[1]]||[]).push(e[0]); });
+function rtEntry(la,lo){
+  var L=((lo+540)%360)-180;
+  if(la>-6&&la<7&&L>98&&L<108) return 'SGP';
+  if(la>20&&la<47&&L>117&&L<135) return (la>34&&L<127)?'YEL':'NEA';
+  if(la>=25&&la<48&&L>=135) return 'JPE';
+  if(la>=18&&la<30&&L>105&&L<=122) return 'LUZ';
+  if(la>-11&&la<=20&&L>99&&L<=122) return 'SEA';
+  if(la<=-5&&la>-12&&L>105&&L<=120) return 'JAV';
+  if(la>5&&la<25&&L>78&&L<=99) return 'BEN';
+  if(la>-10&&la<26&&L>=40&&L<=78) return (la>20&&L>50)?'HOR':'IND';
+  if(la>=12&&la<30&&L>32&&L<44) return 'RED';
+  if(la>=28&&la<34&&L>=30&&L<36) return 'SUZ';
+  if(la>=30&&la<47&&L>=-6&&L<37) return (L>15)?'MED':'MEW';
+  if(la>=35&&la<45&&L>=-10&&L<-5) return 'GIB';
+  if(la>=43&&la<52&&L>=-12&&L<0) return 'BIS';
+  if(la>=48&&la<54&&L>=-8&&L<3) return 'NEU';
+  if(la>=50&&la<58&&L>=2&&L<10) return 'NSE';
+  if(la>=53&&la<62&&L>=9&&L<31) return 'BAL';
+  if(la>=8&&la<30&&L>=-20&&L<-5) return 'DAK';
+  if(la>-15&&la<10&&L>=-12&&L<15) return 'WAF';
+  if(la<=-15&&la>-38&&L>=10&&L<32) return 'CGH';
+  if(la<=-10&&la>-30&&L>=32&&L<50) return 'MOZ';
+  if(la<=-5&&la>-28&&L>=-48&&L<-30) return 'SAE';
+  if(la<=-28&&la>-40&&L>=-60&&L<-40) return 'RIO';
+  if(la<=-40&&L>=-75&&L<-50) return 'MAG';
+  if(la<=-15&&la>-40&&L>=-80&&L<-68) return 'SAW';
+  if(la<=0&&la>-16&&L>=-85&&L<-70) return 'PEC';
+  if(la>=6&&la<12&&L>=-83&&L<-77) return (L<-79.7)?'PNW':'PNE';
+  if(la>=8&&la<26&&L>=-90&&L<-58) return 'CAR';
+  if(la>=24&&la<31&&L>=-84&&L<-74) return 'FLO';
+  if(la>=30&&la<40&&L>=-82&&L<-70) return 'USE';
+  if(la>=38&&la<49&&L>=-75&&L<-58) return 'USN';
+  if(la>=17&&la<31&&L>=-98&&L<-84) return 'USG';
+  if(la>=28&&la<42&&L>=-126&&L<-110) return 'NEP';
+  if(la>=42&&la<62&&L>=-135&&L<-118) return 'USW';
+  if(la>=15&&la<26&&L>=-165&&L<-150) return 'HAW';
+  if(la<=-8&&la>-25&&L>=140&&L<156) return 'AUN';
+  if(la<=-25&&la>-45&&L>=140&&L<156) return 'AUE';
+  if(la<=-25&&la>-40&&L>=108&&L<130) return 'AUW';
+  if(la<=-33&&la>-45&&L>=129&&L<=142) return 'AUS';
+  if(la<=-32&&la>-48&&L>=165&&L<=180) return 'NZL';
+  if(la>=35&&la<=60&&L>=150&&L<=180) return 'NWP';
+  var best=null,bd=1e9;
+  for(var k in WP){ var d=gcNm(la,L,WP[k][0],WP[k][1]); if(d<bd){bd=d;best=k;} }
+  return best;
+}
+function gcNm(a,b,c,d){var R=3440.065,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);
+  return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
+function rtDij(s,t){
+  if(s===t) return [s];
+  var dist={},prev={},Q=Object.keys(WP);
+  Q.forEach(function(k){dist[k]=1e12;}); dist[s]=0;
+  while(Q.length){
+    Q.sort(function(a,b){return dist[a]-dist[b];});
+    var u=Q.shift(); if(u===t) break; if(dist[u]>=1e12) break;
+    (ADJ[u]||[]).forEach(function(v){
+      var w=gcNm(WP[u][0],WP[u][1],WP[v][0],WP[v][1]);
+      if(dist[u]+w<dist[v]){ dist[v]=dist[u]+w; prev[v]=u; }
+    });
+  }
+  var p=[t],c=t; while(prev[c]){ c=prev[c]; p.unshift(c); }
+  return p[0]===s?p:[s,t];
+}
+function seaRoute(la1,lo1,la2,lo2){
+  var e1=rtEntry(la1,lo1), e2=rtEntry(la2,lo2);
+  if(e1===e2 || gcNm(la1,lo1,la2,lo2)<600) return [[la1,lo1],[la2,lo2]];
+  var path=rtDij(e1,e2), pts=[[la1,lo1]];
+  path.forEach(function(k){ pts.push([WP[k][0],WP[k][1]]); });
+  pts.push([la2,lo2]);
+  return pts;
+}
+function routeNm(pts){ var s=0; for(var i=1;i<pts.length;i++) s+=gcNm(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]); return s; }
+function wrapPts(pts){ var out=[], ref=null;
+  pts.forEach(function(p){ var lo=p[1];
+    if(ref===null) ref=lo; else { if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo; }
+    out.push([p[0],lo]); });
+  return out; }
 var destLayer=L.layerGroup().addTo(map);
 var SCHED={}, schLayer=null, schOn=null;
 fetch('schedule.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){ SCHED=d.v||{}; }).catch(function(){});
@@ -1099,12 +1204,14 @@ function showSched(no){
   if(schOn===no){ clearSched(); soloNo=null; try{ render(); }catch(e){} return; }
   clearSched(); schLayer=L.layerGroup().addTo(map); schOn=no;
   soloNo=no; try{ render(); }catch(e){}                 // 해당 선박만 표시
-  var pts=[], ref=(v.lat!=null? v.lon : legs[0][4]);
-  if(v.lat!=null) pts.push([v.lat, v.lon]);
+  var raw=[], cur=(v.lat!=null)?[v.lat,v.lon]:[legs[0][3],legs[0][4]];
+  raw.push(cur);
   legs.forEach(function(l){
-    var lo=l[4]; if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo;
-    pts.push([l[3], lo]);
+    var seg=seaRoute(cur[0],cur[1],l[3],l[4]);
+    for(var k=1;k<seg.length;k++) raw.push(seg[k]);
+    cur=[l[3],l[4]];
   });
+  var pts=wrapPts(raw), ref=(v.lat!=null? v.lon : legs[0][4]);
   if(skipped>0){
     all.slice(0,skipped).forEach(function(l){
       L.circleMarker([l[3],l[4]],{radius:5,color:'#6E7E92',weight:1.2,fillColor:'#2A3648',fillOpacity:.9,pane:'portsPane'})
@@ -1163,7 +1270,8 @@ function drawDest(v){
   var xy=destLatLng(v.data.destination); if(!xy) return null;
   var dlon=xy[1]; if(dlon-v.lon>180) dlon-=360; if(v.lon-dlon>180) dlon+=360;
   var P=[xy[0],dlon];
-  L.polyline([[v.lat,v.lon],P],{color:'#F0B95A',weight:2,opacity:.7,dashArray:'9 7',pane:'shipsPane',interactive:false}).addTo(destLayer);
+  var dseg=wrapPts(seaRoute(v.lat,v.lon,xy[0],xy[1]));
+  L.polyline(dseg,{color:'#F0B95A',weight:2.2,opacity:.75,dashArray:'9 7',pane:'shipsPane',interactive:false}).addTo(destLayer);
   var svg='<svg class="destmk" width="36" height="36" viewBox="0 0 36 36">'
    +'<circle class="ring" cx="18" cy="18" r="11" fill="none" stroke="#F0B95A" stroke-width="2"/>'
    +'<circle cx="18" cy="18" r="9.5" fill="none" stroke="#F0B95A" stroke-width="1.6" stroke-dasharray="4 3" opacity=".9"/>'
