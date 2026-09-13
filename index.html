@@ -180,7 +180,8 @@
   .pop .pcn{color:var(--muted);font-size:10.5px}
   .pop .pbtn.sch{background:#1f7a8c;margin-top:6px}
   .pop .pbtn.pinf{background:#2E7D32;margin-top:6px}
-  .schno{z-index:900!important}
+  .schno{z-index:900!important;cursor:pointer}
+  .schno:hover{filter:brightness(1.35)}
   .leaflet-marker-icon.schno{z-index:900!important}
   .schlbl{z-index:700;max-width:330px;overflow:hidden;text-overflow:ellipsis;background:rgba(26,8,8,.96);border:1px solid rgba(255,45,45,.7);color:#FFC9C9;font-family:var(--mono);
     font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.5)}
@@ -1356,8 +1357,10 @@ function drawSchedNow(fit){
     var svg='<svg width="34" height="34" viewBox="0 0 34 34">'
       +'<circle cx="17" cy="17" r="13" fill="#12200A" stroke="#FF2D2D" stroke-width="2.8"/>'
       +'<text x="17" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#5CE01E" stroke="#0A1405" stroke-width="2.4" paint-order="stroke">'+(i+1)+'</text></svg>';
-    var mk=L.marker([l[3],lo],{icon:L.divIcon({html:svg,className:'',iconSize:[34,34],iconAnchor:[17,17],className:'schno'}),pane:'shipsPane',zIndexOffset:1200}).addTo(schLayer);
-    lbl.push({mk:mk, lat:l[3], lon:lo, txt:(i+1)+'. '+l[0]+'  ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')});
+    var mk=L.marker([l[3],lo],{icon:L.divIcon({html:svg,iconSize:[34,34],iconAnchor:[17,17],className:'schno'}),pane:'shipsPane',zIndexOffset:1200,riseOnHover:true,title:l[0]+' — Port Information'}).addTo(schLayer);
+    mk.on('click', function(ev){ try{ if(ev&&ev.originalEvent) L.DomEvent.stop(ev.originalEvent);
+      window.open('ports.html?port='+encodeURIComponent(l[0]), 'pi_'+encodeURIComponent(l[0])); }catch(e){} });
+    lbl.push({mk:mk, lat:l[3], lon:lo, txt:(i+1)+'. '+l[0]+'  ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')+'  ⓘ'});
   });
   var used=[];
   lbl.slice().sort(function(a,b){ return map.latLngToContainerPoint([a.lat,a.lon]).y - map.latLngToContainerPoint([b.lat,b.lon]).y; })
