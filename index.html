@@ -101,8 +101,12 @@
   #fbar select.act{border-color:var(--accent);color:var(--accent)}
   #fbar .fx{display:flex;align-items:center;justify-content:flex-end;gap:6px}
   #fbar #fcnt{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
-  #fbar #fclr{background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:3px 8px;font-size:10.5px;cursor:pointer}
-  #fbar #fclr:hover{border-color:var(--accent);color:var(--accent)}
+  .search{display:flex;gap:6px;align-items:center}
+  .search input{flex:1;min-width:0}
+  .search #fclr{flex:none;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:4px;
+    padding:6px 10px;font-size:11px;cursor:pointer;white-space:nowrap}
+  .search #fclr:hover{border-color:var(--accent);color:var(--accent)}
+
   .row.sel{background:rgba(90,184,214,.16);box-shadow:inset 3px 0 0 var(--accent)}
   .brand{cursor:pointer}
   #posbox{position:absolute;top:12px;right:12px;z-index:850;width:290px;background:rgba(13,21,34,.96);
@@ -260,13 +264,13 @@
 </header>
 <div id="wrap">
   <aside id="side" class="open">
-    <div class="search"><input id="q" type="search" placeholder="선박명 · MMSI 검색"></div>
+    <div class="search"><input id="q" type="search" placeholder="선박명 · MMSI 검색"><button id="fclr">초기화</button></div>
     <div id="fbar">
       <select id="fteam"><option value="">Team 전체</option></select>
       <select id="fvm"><option value="">Vessel Manager 전체</option></select>
       <select id="fhseq"><option value="">HSEQ 전체</option></select>
       <select id="fflag"><option value="">Flag 전체</option></select>
-      <div class="fx"><span id="lhd2" style="font-family:var(--mono);font-size:9.5px;color:#6E7E92;margin-right:6px"></span><span id="fcnt"></span><button id="fclr">초기화</button></div>
+      <div class="fx"><span id="lhd2" style="font-family:var(--mono);font-size:9.5px;color:#6E7E92;margin-right:6px"></span><span id="fcnt"></span></div>
     </div>
     <div id="list"></div>
   </aside>
