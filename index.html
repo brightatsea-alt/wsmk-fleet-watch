@@ -27,6 +27,14 @@
   .board{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
   .chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none}
   .chip.on{border-color:var(--accent)}
+  #rulerbar{position:absolute;right:12px;top:12px;z-index:850;display:flex;gap:5px}
+  #rulerbar .rb{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+    background:rgba(19,31,48,.95);border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:15px;color:var(--muted);user-select:none}
+  #rulerbar .rb:hover{border-color:var(--accent);color:var(--accent)}
+  #rulerbar .rb.on{background:#0B4DA2;border-color:#5AB8D6;color:#fff}
+  .rulerlbl{background:rgba(11,20,32,.95);border:1px solid #B24BF3;color:#E8CFFB;font-family:var(--mono);
+    font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap}
+  .rulerlbl::before{display:none}
   #rtabs{position:absolute;right:0;top:110px;z-index:840;display:flex;flex-direction:column;gap:4px}
   .rtab{writing-mode:vertical-rl;background:#18273A;border:1px solid var(--line);border-right:none;font-weight:600;
     border-radius:6px 0 0 6px;padding:12px 6px;font-family:var(--cond);font-size:14px;letter-spacing:.14em;
@@ -257,11 +265,13 @@
       <select id="fteam"><option value="">Team 전체</option></select>
       <select id="fvm"><option value="">Vessel Manager 전체</option></select>
       <select id="fhseq"><option value="">HSEQ 전체</option></select>
+      <select id="fflag"><option value="">Flag 전체</option></select>
       <div class="fx"><span id="lhd2" style="font-family:var(--mono);font-size:9.5px;color:#6E7E92;margin-right:6px"></span><span id="fcnt"></span><button id="fclr">초기화</button></div>
     </div>
     <div id="list"></div>
   </aside>
   <div id="map"></div>
+  <div id="rulerbar"><div class="rb" id="rulerBtn" title="거리 측정 (두 지점 클릭)">📏</div><div class="rb" id="rulerDel" title="측정 지우기">✕</div></div>
   <div id="rtabs">
     <div class="rtab" id="tabPsc" title="PSC 위험 선박">PSC</div>
     <div class="rtab" id="tabPort" title="항구 이슈">PORT</div>
@@ -454,6 +464,7 @@ document.addEventListener('keydown', function(ev){
   var t=ev.target, tn=(t&&t.tagName||'').toLowerCase();
   if(tn==='input'||tn==='textarea'||tn==='select') { if(t.value){ return; } }
   var acted=false;
+  try{ rulerClear(); rulerToggle(false); }catch(e){}
   try{ if(typeof schOn!=='undefined' && schOn!=null){ clearSched(); acted=true; } }catch(e){}
   try{ if(typeof destLayer!=='undefined' && destLayer){ destLayer.clearLayers(); } }catch(e){}
   try{ if(typeof trkLayer!=='undefined' && trkLayer){ trkLayer.clearLayers(); }
@@ -462,6 +473,43 @@ document.addEventListener('keydown', function(ev){
   try{ map.closePopup(); }catch(e){}
   try{ render(); }catch(e){}
 });
+/* 거리 측정 도구 */
+var rulerOn=false, rulerPts=[], rulerLayer=null;
+function rulerClear(){ if(rulerLayer){ map.removeLayer(rulerLayer); rulerLayer=null; } rulerPts=[]; }
+function rulerToggle(on){
+  rulerOn = (on===undefined)? !rulerOn : !!on;
+  var b=document.getElementById('rulerBtn'); if(b) b.classList.toggle('on', rulerOn);
+  var c=document.getElementById('map'); if(c) c.style.cursor = rulerOn ? 'crosshair' : '';
+  if(!rulerOn) return;
+  if(!rulerLayer) rulerLayer=L.layerGroup().addTo(map);
+}
+map.on('click', function(e){
+  if(!rulerOn) return;
+  if(!rulerLayer) rulerLayer=L.layerGroup().addTo(map);
+  if(rulerPts.length>=2){ rulerLayer.clearLayers(); rulerPts=[]; }
+  var p=[e.latlng.lat, e.latlng.lng];
+  rulerPts.push(p);
+  L.circleMarker(p,{radius:5,color:'#B24BF3',weight:2,fillColor:'#1A0A2A',fillOpacity:1,pane:'shipsPane'}).addTo(rulerLayer);
+  if(rulerPts.length===2){
+    var a=rulerPts[0], b2=rulerPts[1];
+    var d=gcNm(a[0],a[1],b2[0],b2[1]);
+    var km=d*1.852;
+    var spd=parseFloat((document.getElementById('posspd')||{}).value)||14;
+    var hrs=d/spd;
+    L.polyline([a,b2],{color:'#06180A',weight:6,opacity:.5,pane:'shipsPane',interactive:false}).addTo(rulerLayer);
+    L.polyline([a,b2],{color:'#B24BF3',weight:2.8,opacity:.95,dashArray:'5 5',pane:'shipsPane',interactive:false}).addTo(rulerLayer);
+    var mid=[(a[0]+b2[0])/2,(a[1]+b2[1])/2];
+    L.marker(mid,{icon:L.divIcon({className:'',iconSize:[0,0]}),pane:'shipsPane',interactive:false})
+      .bindTooltip(Math.round(d).toLocaleString()+' nm · '+Math.round(km).toLocaleString()+' km · '
+        +(hrs<24? hrs.toFixed(1)+'h' : (hrs/24).toFixed(1)+'일')+' @'+spd+'kn',
+        {permanent:true,direction:'top',className:'rulerlbl',opacity:1}).addTo(rulerLayer);
+  }
+});
+setTimeout(function(){
+  var b=document.getElementById('rulerBtn'), d=document.getElementById('rulerDel');
+  if(b) b.onclick=function(){ rulerToggle(); };
+  if(d) d.onclick=function(){ rulerClear(); rulerToggle(false); };
+}, 400);
 map.on('popupopen', function(e){
   try{
     var el=e.popup && e.popup.getElement && e.popup.getElement(); if(!el || el.__drg) return;
@@ -687,7 +735,7 @@ function setFilter(k){
 function renderList(){
   const q=(document.getElementById('q').value||'').toLowerCase();
   var gv=function(id){ var s=document.getElementById(id); return s?s.value:''; };
-  var ft=gv('fteam'), fv=gv('fvm'), fh=gv('fhseq');
+  var ft=gv('fteam'), fv=gv('fvm'), fh=gv('fhseq'), fgv=gv('fflag');
   var rOf=function(v){ return RESP[v.mmsi||''] || RESP[v.name] || null; };
   const show=vessels.filter(function(v){
     if(!passSt(v)) return false;
@@ -804,15 +852,16 @@ function fitFiltered(){
       if(ref===null) ref=lo; else { if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; }
       pts.push([v.lat, lo]);
     });
-    var f1=document.getElementById('fteam'), f2=document.getElementById('fvm'), f3=document.getElementById('fhseq');
-    var any=(f1&&f1.value)||(f2&&f2.value)||(f3&&f3.value);
+    var f1=document.getElementById('fteam'), f2=document.getElementById('fvm'), f3=document.getElementById('fhseq'), f4=document.getElementById('fflag');
+    var any=(f1&&f1.value)||(f2&&f2.value)||(f3&&f3.value)||(f4&&f4.value);
     if(!any){ map.flyTo([14,118], 3, {duration:.9}); return; }
     if(pts.length>1) map.flyToBounds(pts,{padding:[80,80],maxZoom:7,duration:1.0});
     else if(pts.length===1) map.flyTo(pts[0], Math.max(map.getZoom(),6), {duration:.9});
   }catch(e){}
 }
 function passResp(v){
-  var ft=selVal('fteam'), fv=selVal('fvm'), fh=selVal('fhseq');
+  var ft=selVal('fteam'), fv=selVal('fvm'), fh=selVal('fhseq'), fg=selVal('fflag');
+  if(fg && flagOf(v)!==fg) return false;
   if(!ft && !fv && !fh) return true;
   var r=respOf(v); if(!r) return false;
   if(ft && r.team!==ft) return false;
@@ -835,10 +884,12 @@ fetch('responsibility.json?t='+Date.now()).then(function(r){return r.json();}).t
   fillSel('fteam', t.sort(), 'Team 전체');
   fillSel('fvm', v.sort(), 'Vessel Manager 전체');
   fillSel('fhseq', q2.sort(), 'HSEQ 전체');
+  var fgs=[]; vessels.forEach(function(v){ var f=flagOf(v); if(f && f!=='TBN' && fgs.indexOf(f)<0) fgs.push(f); });
+  fillSel('fflag', fgs.sort(), 'Flag 전체');
   try{ render(); }catch(e){ try{ renderList(); }catch(e2){} }
 }).catch(function(){});
 var _fc=document.getElementById('fclr');
-if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); fitFiltered(); }catch(e){ renderList(); } };
+if(_fc) _fc.onclick=function(){ ['fteam','fvm','fhseq','fflag'].forEach(function(id){ var s=document.getElementById(id); if(s){ s.value=''; s.classList.remove('act'); } }); soloNo=null; try{ render(); fitFiltered(); }catch(e){ renderList(); } };
 var _dst=document.getElementById('dest');
 if(_dst) _dst.addEventListener('keydown', function(e){
   if(e.key==='Enter'){ var t=(_dst.value||'').trim(); window.open('upcoming.html'+(t?('?port='+encodeURIComponent(t)):''),'_blank'); }
