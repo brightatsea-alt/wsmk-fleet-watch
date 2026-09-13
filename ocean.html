@@ -42,7 +42,9 @@
 <div class="bar">
   기준거리 <select id="fmin"><option value="1000">1,000 nm 이상</option><option value="2000" selected>2,000 nm 이상</option><option value="3000">3,000 nm 이상</option><option value="500">500 nm 이상</option></select>
   정렬 <select id="fsort"><option value="nm">잔여거리 순</option><option value="days">도착일 순</option><option value="name">선명 순</option></select>
-  <input id="fq" type="search" placeholder="선박 검색" style="min-width:130px">
+  VM <select id="fvm"><option value="">Vessel Manager 전체</option></select>
+  Team <select id="fteam"><option value="">전체</option></select>
+  <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
   <span id="hint" style="margin-left:auto"></span>
 </div>
 <div class="sum" id="sum">불러오는 중…</div>
@@ -62,7 +64,9 @@ function draw(){
   var min=parseFloat(document.getElementById('fmin').value)||2000;
   var srt=document.getElementById('fsort').value;
   var q=(document.getElementById('fq').value||'').toLowerCase();
-  var rows=DATA.filter(function(r){ return r.nm>=min && (!q || r.name.toLowerCase().indexOf(q)>=0); });
+  var fv=(document.getElementById('fvm')||{}).value||'', ft=(document.getElementById('fteam')||{}).value||'';
+  var rows=DATA.filter(function(r){ return r.nm>=min && (!q || r.name.toLowerCase().indexOf(q)>=0)
+    && (!fv || r.vm===fv) && (!ft || r.team===ft); });
   rows.sort(function(a,b){ if(srt==='name') return a.name.localeCompare(b.name);
     if(srt==='days') return a.eta-b.eta; return b.nm-a.nm; });
   document.getElementById('sum').innerHTML='장기항해 <b>'+rows.length+'</b>척 · 최장 <b>'
@@ -82,6 +86,8 @@ function draw(){
       +'<div><span>예상 항해</span> '+dur(r.hrs)+'</div>'
       +'<div><span>잔여 기항</span> '+r.legs+'구간</div>'
       +'<div><span>최종 AIS</span> '+r.age+'</div>'
+      +(r.vm?'<div><span>VM</span> '+r.vm+(r.team?' ('+r.team+')':'')+'</div>':'')
+      +(r.hseq?'<div><span>HSEQ</span> '+r.hseq+'</div>':'')
       +'</div>'
       +'<div class="legs">'+r.route+'</div>'
       + (r.note? '<div class="note">⚠ '+r.note+'</div>' : '')
@@ -93,6 +99,7 @@ function draw(){
     var sc=(await (await fetch('schedule.json?t='+Date.now())).json()).v||{};
     var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
     var ps={}; try{ ps=(await (await fetch('psc-alerts.json?t='+Date.now())).json()).v||{}; }catch(e){}
+    var rs={}; try{ rs=(await (await fetch('responsibility.json?t='+Date.now())).json()).vessels||{}; }catch(e){}
     Object.keys(sc).forEach(function(k){
       var pos=fp[k]; if(!pos || pos.lat==null) return;
       var up=sc[k].filter(function(l){ var t=legT(l[2]||l[1]); return !t || t>=NOW; });
@@ -104,6 +111,7 @@ function draw(){
       if(pos.lastReceived){ var a=(NOW-new Date(pos.lastReceived).getTime())/3600e3;
         age = a<48? a.toFixed(1)+'h 전' : (a/24).toFixed(1)+'일 전'; }
       var p=ps[k]||null, notes=[];
+      var rr=rs[k]||rs[pos.name]||null;
       if(d>=3000) notes.push('대양 황단 — 중간 보선·수리 기회 없음');
       if(hrs/24>=14) notes.push('14일 이상 연속 항해 — 물자·부품 사전 적재 필요');
       if(p&&p[0]) notes.push('PSC Alert — 다음 기항지 검사 대비');
@@ -112,9 +120,17 @@ function draw(){
         dleft:Math.max(0,Math.round((eta-NOW)/864e5)), port:nx[0], legs:up.length,
         sog:(pos.sog!=null?pos.sog:null), age:age,
         flag:MIDF[String(k).slice(0,3)]||'', mou:(p?p[1]:''), alert:(p?p[0]:0),
+        vm:(rr?rr.vm:''), team:(rr?rr.team:''), hseq:(rr?rr.hseq:''),
         route: up.slice(0,6).map(function(l,i){ return '<b>'+(i+1)+'.</b> '+l[0]+' '+l[1]; }).join('  →  '),
         note: notes.join(' · ')});
     });
+    var vms=[], tms=[];
+    DATA.forEach(function(r){ if(r.vm && vms.indexOf(r.vm)<0) vms.push(r.vm); if(r.team && tms.indexOf(r.team)<0) tms.push(r.team); });
+    var sv=document.getElementById('fvm');
+    sv.innerHTML='<option value="">Vessel Manager 전체 ('+vms.length+')</option>'+vms.sort().map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+    var st=document.getElementById('fteam');
+    st.innerHTML='<option value="">전체</option>'+tms.sort().map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+    sv.onchange=draw; st.onchange=draw;
     draw();
   }catch(e){ document.getElementById('sum').textContent='데이터를 불러오지 못했습니다: '+(e.message||e); }
 })();
