@@ -101,6 +101,14 @@
     border:1px solid var(--line);border-radius:8px;padding:11px 12px;box-shadow:0 6px 24px rgba(0,0,0,.55);display:none}
   #posbox.on{display:block}
   #posbox h4{font-size:12px;color:var(--accent);margin-bottom:6px;letter-spacing:.05em}
+  #posbox .p1{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--text);
+    font-family:var(--mono);font-size:12px;padding:6px 8px;margin-bottom:5px;outline:none}
+  #posbox .p1:focus{border-color:var(--accent)}
+  #posbox .spdrow{font-family:var(--mono);font-size:11px;color:var(--muted);margin:2px 0 6px}
+  #posbox .lgrow{font-family:var(--mono);font-size:10.5px;color:#BFD6E8;margin-top:3px}
+  #posbox .lgrow b{color:#B24BF3;margin-right:5px}
+  #posbox .spdrow input{width:58px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+    color:var(--text);font-family:var(--mono);font-size:12px;padding:3px 6px;outline:none}
   #posbox textarea{width:100%;height:64px;resize:vertical;background:var(--panel);border:1px solid var(--line);
     border-radius:5px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;outline:none}
   #posbox textarea:focus{border-color:var(--accent)}
@@ -270,7 +278,11 @@
 </div>
 <div id="posbox">
   <h4>📍 위경도 입력</h4>
-  <textarea id="posin" placeholder="예) 23-40N 123-40E&#10;3506.5N 12902.4E&#10;북위 35도 06분 동경 129도 02분&#10;35.0994, 129.0403&#10;부산 / Singapore"></textarea>
+  <input class="p1" id="pos1" placeholder="1) 23-40N 123-40E / 부산">
+  <input class="p1" id="pos2" placeholder="2) 다음 지점 (선택)">
+  <input class="p1" id="pos3" placeholder="3) 다음 지점 (선택)">
+  <div class="spdrow">항해속력 <input id="posspd" type="number" value="14" min="1" max="30" step="0.5"> kn</div>
+  <textarea id="posin" placeholder="여러 줄 한거번에 붙여넣기 (선택)" style="height:52px"></textarea>
   <div class="ex">도-분 · 십진도 · DDMM · 북위/동경 · 항구명(부산, Busan) 모두 인식<br>여러 줄을 한거번에 붙여넣을 수 있습니다</div>
   <div class="bt"><button id="posgo">표시</button><button id="posclr" class="alt">지우기</button><button id="posx" class="alt">닫기</button></div>
   <div class="msg" id="posmsg"></div>
@@ -1127,12 +1139,37 @@ var portLayer = L.layerGroup().addTo(map);
   pb.onclick=function(){ var b=document.getElementById('posbox'); b.classList.toggle('on'); if(b.classList.contains('on')) document.getElementById('posin').focus(); };
   bar.appendChild(pb);
   document.getElementById('posgo').onclick=function(){
-    var v=document.getElementById('posin').value, list=parseLL(v), msg=document.getElementById('posmsg');
+    var parts=[];
+    ['pos1','pos2','pos3'].forEach(function(id){ var e=document.getElementById(id); if(e&&e.value.trim()) parts.push(e.value.trim()); });
+    var extra=(document.getElementById('posin').value||'').trim();
+    if(extra) parts.push(extra);
+    var list=parseLL(parts.join('\n')), msg=document.getElementById('posmsg');
     if(!list.length){ msg.style.color='#E0703C'; msg.textContent='\uD574\uC11D\uD560 \uC218 \uC5C6\uB294 \uD615\uC2DD\uC785\uB2C8\uB2E4'; return; }
-    var n=addWP(list); msg.style.color='#3DDC97'; msg.textContent=n+'\uAC1C \uC704\uCE58 \uD45C\uC2DC\uB428';
+    var cnt=addWP(list);
+    if(list.length<2){ msg.style.color='#3DDC97'; msg.textContent=cnt+'\uAC1C \uC704\uCE58 \uD45C\uC2DC\uB428'; return; }
+    var spd=parseFloat((document.getElementById('posspd')||{}).value)||14;
+    var tot=0, rows=[], ref=list[0].lon, pts=[[list[0].lat, list[0].lon]];
+    for(var i=1;i<list.length;i++){
+      var d=gcNm(list[i-1].lat,list[i-1].lon,list[i].lat,list[i].lon); tot+=d;
+      var hrs=d/spd;
+      rows.push('<div class="lgrow"><b>'+i+'\u2192'+(i+1)+'</b> '+Math.round(d).toLocaleString()+' nm \u00b7 '
+        +(hrs<24? hrs.toFixed(1)+'h' : (hrs/24).toFixed(1)+'\uC77C')+'</div>');
+      var lo=list[i].lon; if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo;
+      pts.push([list[i].lat, lo]);
+    }
+    try{ L.polyline(pts,{color:'#06180A',weight:6,opacity:.5,pane:'shipsPane',interactive:false}).addTo(wpLayer);
+      L.polyline(pts,{color:'#B24BF3',weight:2.6,opacity:.95,dashArray:'6 6',pane:'shipsPane',interactive:false}).addTo(wpLayer); }catch(e){}
+    var th=tot/spd;
+    msg.style.color='#3DDC97';
+    msg.innerHTML=cnt+'\uAC1C \uC704\uCE58 \u00b7 \uCD1D <b>'+Math.round(tot).toLocaleString()+' nm</b> \u00b7 '
+      +(th<24? th.toFixed(1)+'h' : (th/24).toFixed(1)+'\uC77C')+' @'+spd+'kn'+rows.join('');
   };
-  document.getElementById('posclr').onclick=function(){ wpLayer.clearLayers(); document.getElementById('posmsg').textContent=''; };
+  document.getElementById('posclr').onclick=function(){ wpLayer.clearLayers();
+    ['pos1','pos2','pos3','posin'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+    document.getElementById('posmsg').innerHTML=''; };
   document.getElementById('posx').onclick=function(){ document.getElementById('posbox').classList.remove('on'); };
+  ['pos1','pos2','pos3','posspd'].forEach(function(id){ var e=document.getElementById(id);
+    if(e) e.addEventListener('keydown',function(ev){ if(ev.key==='Enter') document.getElementById('posgo').click(); }); });
   document.getElementById('posin').addEventListener('keydown',function(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) document.getElementById('posgo').click(); });
   const ms=document.createElement('div');
   ms.className='chip'; ms.id='mapstyle'; ms.title='\uC9C0\uB3C4 \uC2A4\uD0C0\uC77C \uC804\uD658';
