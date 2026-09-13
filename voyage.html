@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voyage Plan — WSMK Fleet Watch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ html,body{height:100%}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;overflow:hidden}
+ header{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .brand{font-family:var(--cond);font-weight:600;font-size:20px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--accent);font-size:12px;letter-spacing:.16em;margin-left:7px}
+ .q{font-family:var(--mono);font-size:12px;color:var(--muted);flex:1;min-width:200px}
+ a.back{color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ #wrap{display:flex;height:calc(100% - 48px)}
+ aside{width:360px;min-width:360px;background:var(--panel2);border-right:1px solid var(--line);overflow-y:auto}
+ #map{flex:1}
+ .sum{padding:11px 14px;border-bottom:1px solid var(--line)}
+ .sum h2{font-family:var(--cond);font-size:19px;letter-spacing:.04em;color:#fff;margin-bottom:5px}
+ .sum .big{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+ .sum .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;line-height:1.7}
+ .spd{display:flex;align-items:center;gap:7px;padding:9px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .spd input{width:64px;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:3px 6px;font-family:var(--mono);font-size:12px;outline:none}
+ .leg{padding:9px 14px;border-bottom:1px solid rgba(34,51,74,.55)}
+ .leg .t{display:flex;gap:8px;align-items:baseline}
+ .leg .no{font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;width:18px}
+ .leg .nm{font-weight:600;flex:1}
+ .leg .d{font-family:var(--mono);font-size:11px;color:var(--amber)}
+ .leg .m{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-left:26px;margin-top:2px}
+ .err{padding:20px 14px;color:var(--amber);font-size:12.5px;line-height:1.8}
+ .vlbl{background:rgba(9,16,27,.9);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px}
+ .vlbl::before{display:none}
+ .plbl{background:rgba(9,20,30,.92);border:1px solid rgba(90,184,214,.6);color:#CDEBF7;font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+ .plbl::before{display:none}
+</style></head><body>
+<header>
+  <div class="brand">VOYAGE PLAN<small>WSM KOREA</small></div>
+  <div class="q" id="q">…</div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div id="wrap"><aside id="side"><div class="err" id="info">불러오는 중…</div></aside><div id="map"></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var KO={'부산':'Busan','울산':'Ulsan','인천':'Incheon','평택':'Pyeongtaek','광양':'Gwangyang','여수':'Yeosu','포항':'Pohang','목포':'Mokpo','군산':'Gunsan','마산':'Masan','요코하마':'Yokohama','나고야':'Nagoya','도쿄':'Tokyo','고베':'Kobe','오사카':'Osaka','상하이':'Shanghai','칠다오':'Qingdao','홍콩':'Hong Kong','싱가포르':'Singapore','로테르담':'Rotterdam','함부르크':'Hamburg','브레머하펜':'Bremerhaven','앤트워프':'Antwerp','뉴욕':'New York','휴스턴':'Houston','파나마':'Panama Canal','더반':'Durban','시드니':'Sydney','멜본':'Melbourne'};
+var map=L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,120],3);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,attribution:'&copy; Esri Ocean'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,opacity:.85}).addTo(map);
+function nm(a,b,c,d){var R=3440.065,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
+function fmtDate(ms){var d=new Date(ms);return String(d.getUTCMonth()+1).padStart(2,'0')+'/'+String(d.getUTCDate()).padStart(2,'0')+' '+String(d.getUTCHours()).padStart(2,'0')+'Z';}
+function dur(h){return h<24?h.toFixed(1)+'h':(h/24).toFixed(1)+'일';}
+var Q=new URLSearchParams(location.search).get('q')||'';
+document.getElementById('q').textContent='"'+Q+'"';
+var STATE={legs:[],start:null,vessel:null,speed:14};
+var RT=L.layerGroup().addTo(map);
+function draw(){
+  var s=STATE, spd=Math.max(1,s.speed), t=Date.now(), total=0, pts=[], ref=s.start.lon, out=[];
+  pts.push([s.start.lat,s.start.lon]);
+  var prev={lat:s.start.lat,lon:s.start.lon};
+  s.legs.forEach(function(p,i){
+    var d=nm(prev.lat,prev.lon,p.lat,p.lon); total+=d;
+    var hrs=d/spd; t+=hrs*3600e3;
+    out.push({no:i+1,name:p.name,country:p.country,d:d,hrs:hrs,eta:t});
+    var lo=p.lon; if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo;
+    pts.push([p.lat,lo]); prev=p;
+  });
+  var totH=total/spd;
+  document.getElementById('side').innerHTML =
+    '<div class="sum"><h2>'+(s.vessel?s.vessel.name:'선박 미상')+'</h2>'
+    +'<div class="big">총 '+Math.round(total).toLocaleString()+' nm · '+dur(totH)+' · 도착 '+fmtDate(t)+'</div>'
+    +'<div class="sub">출발 현재 위치 '+s.start.lat.toFixed(2)+'°, '+s.start.lon.toFixed(2)+'°'
+    +'<br>직선(대권) 거리 기준 · 운하·해협 우회 미반영</div></div>'
+    +'<div class="spd">항해속력 <input id="spd" type="number" value="'+spd+'" min="1" max="30" step="0.5"> kn</div>'
+    +out.map(function(o){
+        return '<div class="leg"><div class="t"><div class="no">'+o.no+'</div><div class="nm">'+o.name
+        +(o.country?' <span style="color:var(--muted);font-weight:400;font-size:11px">'+o.country+'</span>':'')+'</div>'
+        +'<div class="d">'+Math.round(o.d).toLocaleString()+' nm</div></div>'
+        +'<div class="m">구간 '+dur(o.hrs)+' · 도착 예상 '+fmtDate(o.eta)+' UTC</div></div>';
+      }).join('');
+  var si=document.getElementById('spd');
+  si.onchange=function(){ STATE.speed=parseFloat(si.value)||14; draw(); };
+  RT.clearLayers();
+  L.polyline(pts,{color:'#5AB8D6',weight:2.6,opacity:.9,dashArray:'3 7'}).addTo(RT);
+  L.marker([s.start.lat,s.start.lon],{icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:'<svg width="22" height="22"><circle cx="11" cy="11" r="6" fill="#3DDC97" stroke="#06101C" stroke-width="2"/></svg>'})})
+    .bindTooltip((s.vessel?s.vessel.name:'출발')+' 현위치',{permanent:true,direction:'top',offset:[0,-10],className:'vlbl'}).addTo(RT);
+  out.forEach(function(o,i){
+    L.marker([pts[i+1][0],pts[i+1][1]],{icon:L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,14],html:'<svg width="28" height="28"><circle cx="14" cy="14" r="10" fill="#0D1522" stroke="#5AB8D6" stroke-width="2"/><text x="14" y="18" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#5AB8D6">'+o.no+'</text></svg>'})})
+      .bindTooltip(o.no+'. '+o.name+' · '+Math.round(o.d)+'nm · '+fmtDate(o.eta),{permanent:true,direction:'top',offset:[0,-12],className:'plbl'}).addTo(RT);
+  });
+  try{ map.fitBounds(pts,{padding:[70,70],maxZoom:6}); }catch(e){}
+}
+(async function(){
+  try{
+    var idx = await (await fetch('index.html?t='+Date.now())).text();
+    var seg = idx.split('const PORTXY={};')[1].split('function destLatLng')[0];
+    var XY={}; (seg.match(/[A-Z]{2}[A-Z0-9]{3}:-?\d+\.?\d*\|-?\d+\.?\d*/g)||[]).forEach(function(t){
+      var a=t.split(':'), b=a[1].split('|'); XY[a[0]]=[parseFloat(b[0]),parseFloat(b[1])]; });
+    var lseg = idx.split('const LOCODE={}, CC={};')[1].split('function destLegs')[0];
+    var NAME={}, CCM={};
+    (lseg.match(/[A-Z]{2}[A-Z0-9]{3}:[^,"]+/g)||[]).forEach(function(t){ var i=t.indexOf(':'); NAME[t.slice(0,i)]=t.slice(i+1); });
+    (lseg.match(/(?:^|,)[A-Z]{2}:[A-Za-z .]+/g)||[]).forEach(function(t){ t=t.replace(/^,/,''); var i=t.indexOf(':'); CCM[t.slice(0,i)]=t.slice(i+1); });
+    var fleet=(await (await fetch('fleet.json?t='+Date.now())).json()).vessels;
+    var pos=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels;
+    var qu=Q.toUpperCase();
+    for(var k in KO){ if(Q.indexOf(k)>=0) qu=qu.split(k).join(KO[k].toUpperCase()); }
+    var ves=null, best=0;
+    fleet.forEach(function(v){ var n2=v.name.toUpperCase().split('(')[0].trim();
+      if(qu.indexOf(n2)>=0 && n2.length>best){ best=n2.length; ves=v; } });
+    if(!ves) throw new Error('선박명을 찾지 못했습니다');
+    var pd=pos[ves.mmsi];
+    if(!pd) for(var kk in pos){ if(String(pos[kk].name||'').toUpperCase()===ves.name.toUpperCase()){ pd=pos[kk]; break; } }
+    if(!pd || pd.lat==null) throw new Error(ves.name+' 현재 위치 데이터가 없습니다');
+    var found=[], vu=ves.name.toUpperCase();
+    Object.keys(XY).forEach(function(c){
+      var nv=(NAME[c]||'').toUpperCase(); if(nv.length<4) return;
+      var at=qu.indexOf(nv); if(at<0) return;
+      if(vu.indexOf(nv)>=0) return;
+      found.push({at:at,code:c,name:NAME[c],country:CCM[c.slice(0,2)]||'',lat:XY[c][0],lon:XY[c][1]});
+    });
+    found.sort(function(a,b){ return a.at-b.at; });
+    var seen={}, legs=[];
+    found.forEach(function(f){ if(seen[f.code]) return; seen[f.code]=1; legs.push(f); });
+    if(!legs.length) throw new Error('기항 항구를 찾지 못했습니다');
+    var sm=Q.match(/(\d+(?:\.\d+)?)\s*(?:kn|kt|노트|knots)/i);
+    STATE={legs:legs, start:{lat:pd.lat,lon:pd.lon}, vessel:{name:ves.name},
+           speed: sm? parseFloat(sm[1]) : ((pd.sog&&pd.sog>5)? Math.round(pd.sog*10)/10 : 14)};
+    draw();
+  }catch(e){
+    document.getElementById('info').innerHTML='해석할 수 없습니다: '+(e.message||e)
+      +'<br><br>예시)<br>· Asian Trust 현위치에서 New York 기항 후 Bremerhaven 까지<br>· Morning Cara 부산 → 싱가포르 → 로테르담 15kn';
+  }
+})();
+</script></body></html>
