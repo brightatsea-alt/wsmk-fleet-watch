@@ -1473,13 +1473,22 @@ function drawSchedNow(fit){
   var ref=map.getCenter().lng, pts=[], lbl=[];
   function wrap(lo){ while(lo-ref>180) lo-=360; while(ref-lo>180) lo+=360; return lo; }
   if(v.lat!=null) pts.push([v.lat, wrap(v.lon)]);
+  var line=[], prevP=(v.lat!=null)? [v.lat, v.lon] : [legs[0][3], legs[0][4]];
+  if(v.lat!=null) line.push([v.lat, wrap(v.lon)]);
   past.forEach(function(l){
     L.circleMarker([l[3],wrap(l[4])],{radius:5,color:'#6E7E92',weight:1.2,fillColor:'#2A3648',fillOpacity:.9,pane:'portsPane'})
       .bindTooltip(l[0]+' \u00b7 '+l[1]+' \uC644\uB8CC',{className:'plabel'}).addTo(schLayer);
   });
-  legs.forEach(function(l){ pts.push([l[3], wrap(l[4])]); });
-  L.polyline(pts,{color:'#1A0A0A',weight:8,opacity:.45,pane:'shipsPane',interactive:false}).addTo(schLayer);
-  L.polyline(pts,{color:'#FF2D2D',weight:4.5,opacity:.95,dashArray:'3 10',lineCap:'round',pane:'shipsPane',interactive:false}).addTo(schLayer);
+  legs.forEach(function(l){
+    pts.push([l[3], wrap(l[4])]);
+    var seg;
+    try{ seg=seaRoute(prevP[0],prevP[1],l[3],l[4]); }catch(e){ seg=[[prevP[0],prevP[1]],[l[3],l[4]]]; }
+    seg.slice(1).forEach(function(p){ line.push([p[0], wrap(p[1])]); });
+    prevP=[l[3],l[4]];
+  });
+  if(line.length<2) line=pts;
+  L.polyline(line,{color:'#1A0A0A',weight:8,opacity:.45,pane:'shipsPane',interactive:false}).addTo(schLayer);
+  L.polyline(line,{color:'#FF2D2D',weight:4.5,opacity:.95,dashArray:'3 10',lineCap:'round',pane:'shipsPane',interactive:false}).addTo(schLayer);
   legs.forEach(function(l,i){
     var lo=wrap(l[4]);
     var svg='<svg width="34" height="34" viewBox="0 0 34 34">'
