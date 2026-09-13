@@ -535,7 +535,11 @@ function popup(v){
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
     <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
     ${(function(){ try{ var lg=SCHED[v.mmsi||'']; if(!lg||!lg.length) return '';
-      return `<button class="pbtn sch" onclick="showSched(${v.no})">\uD83D\uDCC5 Schedule Leg \u00b7 ${lg.length}\uAD6C\uAC04 \u2192</button>`;
+      var _now=Date.now(), _yy=new Date().getUTCFullYear();
+      var _rem=lg.filter(function(l){ var s=(l[2]||l[1]||''); if(!s) return true; var p=s.split('-');
+        if(p.length<2) return true; var t=Date.UTC(_yy,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+        if(t-_now < -200*864e5) t=Date.UTC(_yy+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t>=_now; }).length;
+      return `<button class="pbtn sch" onclick="showSched(${v.no})">\uD83D\uDCC5 Schedule Leg \u00b7 \uC794\uC5EC ${_rem||lg.length}/${lg.length}\uAD6C\uAC04 \u2192</button>`;
     }catch(e){ return ''; } })()}
     <div class="pch">\uCD5C\uADFC \uAE30\uD56D</div><div class="pcl" id="pc_${v.no}">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>
     ${(function(){ try{ var pe=d.destination?destPortEntry(d.destination):null; if(!pe) return '';
@@ -1042,7 +1046,19 @@ function schKey(v){ return (v&&v.mmsi)||''; }
 function clearSched(){ if(schLayer){ map.removeLayer(schLayer); schLayer=null; } schOn=null; }
 function showSched(no){
   var v=vessels.filter(function(x){return x.no===no;})[0]; if(!v) return;
-  var legs=SCHED[schKey(v)]; if(!legs || !legs.length) return;
+  var all=SCHED[schKey(v)]; if(!all || !all.length) return;
+  var now=new Date(), yy=now.getUTCFullYear();
+  function legTime(l){
+    var s=(l[2]||l[1]||''); if(!s) return 0;
+    var p=s.split('-'); if(p.length<2) return 0;
+    var mo=parseInt(p[0],10)-1, dd=parseInt(p[1],10);
+    var t=Date.UTC(yy,mo,dd,23,59);
+    if(t - now.getTime() < -200*864e5) t=Date.UTC(yy+1,mo,dd,23,59);   // 연도 경계 보정
+    return t;
+  }
+  var legs=all.filter(function(l){ var t=legTime(l); return !t || t>=now.getTime(); });
+  var skipped=all.length-legs.length;
+  if(!legs.length){ legs=all.slice(-1); skipped=all.length-1; }
   if(schOn===no){ clearSched(); soloNo=null; try{ render(); }catch(e){} return; }
   clearSched(); schLayer=L.layerGroup().addTo(map); schOn=no;
   soloNo=no; try{ render(); }catch(e){}                 // 해당 선박만 표시
@@ -1052,6 +1068,12 @@ function showSched(no){
     var lo=l[4]; if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo;
     pts.push([l[3], lo]);
   });
+  if(skipped>0){
+    all.slice(0,skipped).forEach(function(l){
+      L.circleMarker([l[3],l[4]],{radius:5,color:'#6E7E92',weight:1.2,fillColor:'#2A3648',fillOpacity:.9,pane:'portsPane'})
+        .bindTooltip(l[0]+' · '+l[1]+' 완료',{className:'plabel'}).addTo(schLayer);
+    });
+  }
   L.polyline(pts,{color:'#1A0A0A',weight:8,opacity:.45,pane:'shipsPane',interactive:false}).addTo(schLayer);
   L.polyline(pts,{color:'#FF2D2D',weight:4.5,opacity:.95,dashArray:'3 10',lineCap:'round',pane:'shipsPane',interactive:false}).addTo(schLayer);
   var ref2=(v.lat!=null? v.lon : legs[0][4]);
