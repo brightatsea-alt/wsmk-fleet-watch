@@ -38,7 +38,9 @@
 </style></head><body>
 <header>
   <div class="brand">MRCC / SAR<small>EMERGENCY</small></div>
-  <div class="note">선박 클릭 → 가까운 MRCC 3곳 · MRCC 클릭 → 연락처</div>
+  <div class="note">선박 클릭 → 가까운 구조조정본부 3곳</div>
+  <div id="tf"></div>
+  <a class="ext" href="https://sarcontacts.info/glossary/" target="_blank">용어 ↗</a>
   <a class="ext" href="https://sarcontacts.info/" target="_blank">SAR Contacts ↗</a>
   <a class="back" href="index.html">← Fleet Watch</a>
 </header>
@@ -78,6 +80,10 @@ function mpop(m){
 function pickVessel(i){
   var v=VES[i]; if(!v) return;
   lnk.clearLayers();
+  L.circleMarker([v.lat,v.lon],{radius:26,color:'#5CE01E',weight:3,fill:false,className:'selring'}).addTo(lnk);
+  L.circleMarker([v.lat,v.lon],{radius:14,color:'#5CE01E',weight:2,fillColor:'#0B2A0B',fillOpacity:.55}).addTo(lnk);
+  L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',iconSize:[0,0]}),interactive:false})
+    .bindTooltip(v.name+'  '+v.lat.toFixed(2)+'°, '+v.lon.toFixed(2)+'°',{permanent:true,direction:'bottom',offset:[0,16],className:'vsel'}).addTo(lnk);
   var near=MR.map(function(m){ return {m:m, d:gc(v.lat,v.lon,m[2],m[3]), b:brg(v.lat,v.lon,m[2],m[3])}; })
     .sort(function(a,b){ return a.d-b.d; }).slice(0,3);
   near.forEach(function(x,k){
@@ -103,10 +109,28 @@ function listVessels(){
   try{
     var md=await (await fetch('mrcc-data.json?v1',{cache:'force-cache'})).json();
     MR=md.v||[];
-    MR.forEach(function(m){
-      L.marker([m[2],m[3]],{icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],
-        html:'<svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="#2A0808" stroke="#FF3B3B" stroke-width="2"/><text x="9" y="12.5" text-anchor="middle" font-family="monospace" font-size="8" font-weight="700" fill="#FF8A8A">R</text></svg>'})})
-        .bindPopup(mpop(m)).bindTooltip(m[0],{direction:'top',className:'mlbl'}).addTo(mLayer);
+    var TCOL={MRCC:'#FF3B3B',JRCC:'#FF8A00',ARCC:'#7B61FF',MRSC:'#FF6BD6',RSC:'#FF6BD6',USCG:'#FF3B3B',JCG:'#FF3B3B',CROSS:'#FF3B3B',SALVAMAR:'#FF3B3B',RCC:'#C8C8C8'};
+    MR.forEach(function(m,mi){
+      var tp=ctype(m[0]), col=TCOL[tp]||'#FF3B3B';
+      var mk=L.marker([m[2],m[3]],{icon:L.divIcon({className:'mk-'+tp,iconSize:[18,18],iconAnchor:[9,9],
+        html:'<svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="#1A0505" stroke="'+col+'" stroke-width="2"/><text x="9" y="12.5" text-anchor="middle" font-family="monospace" font-size="7" font-weight="700" fill="'+col+'">'+tp.slice(0,1)+'</text></svg>'})})
+        .bindPopup(mpop(m)).bindTooltip(m[0]+'  ['+tp+']',{direction:'top',className:'mlbl'});
+      mk._tp=tp; mk.addTo(mLayer);
+    });
+    var types=['ALL'];
+    MR.forEach(function(m){ var t=ctype(m[0]); if(types.indexOf(t)<0) types.push(t); });
+    var tf=document.getElementById('tf');
+    tf.innerHTML=types.map(function(t){ return '<span class="tc'+(t==='ALL'?' on':'')+'" data-t="'+t+'">'+(t==='ALL'?'전체 '+MR.length:t)+'</span>'; }).join('');
+    [].forEach.call(tf.querySelectorAll('.tc'), function(el){
+      el.onclick=function(){
+        [].forEach.call(tf.querySelectorAll('.tc'), function(x){ x.classList.remove('on'); });
+        el.classList.add('on');
+        var want=el.getAttribute('data-t');
+        mLayer.eachLayer(function(L2){
+          var show=(want==='ALL')||(L2._tp===want);
+          if(L2._icon) L2._icon.style.display = show?'':'none';
+        });
+      };
     });
     var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
     Object.keys(fp).forEach(function(k){ var p=fp[k];
