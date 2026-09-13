@@ -76,6 +76,7 @@
 <script>
 const q = new URLSearchParams(location.search);
 const wantPort = q.get('port'), wantCountry = q.get('country');
+const wantPorts = (q.get('ports')||'').split('|').map(function(s){return s.trim();}).filter(Boolean);
 
 let LANG = (q.get('lang')==='en') ? 'en' : 'ko';
 function TXT(k,e){ return LANG==='ko' ? k : e; }
@@ -225,7 +226,14 @@ Promise.all([
   KO = Object.assign({}, koMap||{}, ko2||{});
   let entries = data.ports;
   let title = '전체 항구 정보';
-  if(wantPort){
+  if(wantPorts.length){
+    const set = {}; wantPorts.forEach(function(p){ set[p]=1; });
+    const sel = data.ports.filter(function(p){ return set[p.port]; });
+    const cns = {}; sel.forEach(function(p){ cns[p.country]=1; });
+    const cw = data.ports.filter(function(p){ return p.isCountry && cns[p.country] && !set[p.port]; });
+    entries = sel.concat(cw);
+    title = wantPorts.length + TXT('개 기항지 · 국가 공통 포함',' scheduled ports · incl. country-wide');
+  } else if(wantPort){
     entries = entries.filter(p=>p.port===wantPort);
     title = wantPort + (entries[0]?` · ${entries[0].country}`:'');
   } else if(wantCountry){
@@ -243,7 +251,7 @@ Promise.all([
     const cn = entries[0].country;
     common = data.ports.filter(p=>p.country===cn && p.isCountry && p.port!==wantPort);
   }
-  window.__tmode = wantPort ? 'port' : (wantCountry ? 'country' : 'all');
+  window.__tmode = wantPorts.length ? 'ports' : (wantPort ? 'port' : (wantCountry ? 'country' : 'all'));
   window.__meta = {g, s, generated:(data.generated||'').slice(0,10), ko:Object.keys(KO).length};
   window.__view = {title, entries, isCountry: !!wantCountry, common};
   renderAll();
