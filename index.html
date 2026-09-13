@@ -1253,8 +1253,6 @@ function showSched(no){
   drawSchedNow(true);
 }
 map.on('moveend zoomend', function(){ if(schOn!=null && SCHST) drawSchedNow(false); });
-  try{ map.flyToBounds(pts,{padding:[80,80],maxZoom:7,duration:1.0}); }catch(e){}
-}
 function drawDest(v){
   destLayer.clearLayers();
   if(!v||!v.data||!v.data.destination||v.lat==null) return null;
