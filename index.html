@@ -392,6 +392,20 @@ function wxRefresh(){
 }
 map.on('moveend', wxRefresh);
 /* 팝업 드래그 이동 */
+/* ESC — 항로·항적·단일보기 해제 */
+document.addEventListener('keydown', function(ev){
+  if(ev.key!=='Escape' && ev.keyCode!==27) return;
+  var t=ev.target, tn=(t&&t.tagName||'').toLowerCase();
+  if(tn==='input'||tn==='textarea'||tn==='select') { if(t.value){ return; } }
+  var acted=false;
+  try{ if(typeof schOn!=='undefined' && schOn!=null){ clearSched(); acted=true; } }catch(e){}
+  try{ if(typeof destLayer!=='undefined' && destLayer){ destLayer.clearLayers(); } }catch(e){}
+  try{ if(typeof trkLayer!=='undefined' && trkLayer){ trkLayer.clearLayers(); }
+       var tp=document.getElementById('trkpanel'); if(tp) tp.style.display='none'; }catch(e){}
+  try{ if(typeof soloNo!=='undefined' && soloNo!=null){ soloNo=null; acted=true; } }catch(e){}
+  try{ map.closePopup(); }catch(e){}
+  try{ render(); }catch(e){}
+});
 map.on('popupopen', function(e){
   try{
     var el=e.popup && e.popup.getElement && e.popup.getElement(); if(!el || el.__drg) return;
