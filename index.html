@@ -27,9 +27,9 @@
   .board{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
   .chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none}
   .chip.on{border-color:var(--accent)}
-  #rulerbar{position:absolute;right:12px;top:12px;z-index:850;display:flex;gap:5px}
-  #rulerbar .rb{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
-    background:rgba(19,31,48,.95);border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:15px;color:var(--muted);user-select:none}
+  #rulerbar{display:inline-flex;gap:4px;margin-left:10px;vertical-align:middle}
+  #rulerbar .rb{width:26px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+    background:var(--panel2);border:1px solid var(--line);border-radius:4px;cursor:pointer;font-size:13px;color:var(--muted);user-select:none}
   #rulerbar .rb:hover{border-color:var(--accent);color:var(--accent)}
   #rulerbar .rb.on{background:#0B4DA2;border-color:#5AB8D6;color:#fff}
   .rulerlbl{background:rgba(11,20,32,.95);border:1px solid #B24BF3;color:#E8CFFB;font-family:var(--mono);
@@ -275,8 +275,7 @@
     <div id="list"></div>
   </aside>
   <div id="map"></div>
-  <div id="rulerbar"><div class="rb" id="rulerBtn" title="거리 측정 (두 지점 클릭)">📏</div><div class="rb" id="rulerDel" title="측정 지우기">✕</div></div>
-  <div id="rtabs">
+    <div id="rtabs">
     <div class="rtab" id="tabPsc" title="PSC 위험 선박">PSC</div>
     <div class="rtab" id="tabPort" title="항구 이슈">PORT</div>
   </div>
@@ -490,25 +489,34 @@ function rulerToggle(on){
 map.on('click', function(e){
   if(!rulerOn) return;
   if(!rulerLayer) rulerLayer=L.layerGroup().addTo(map);
-  if(rulerPts.length>=2){ rulerLayer.clearLayers(); rulerPts=[]; }
   var p=[e.latlng.lat, e.latlng.lng];
   rulerPts.push(p);
-  L.circleMarker(p,{radius:5,color:'#B24BF3',weight:2,fillColor:'#1A0A2A',fillOpacity:1,pane:'shipsPane'}).addTo(rulerLayer);
-  if(rulerPts.length===2){
-    var a=rulerPts[0], b2=rulerPts[1];
-    var d=gcNm(a[0],a[1],b2[0],b2[1]);
-    var km=d*1.852;
-    var spd=parseFloat((document.getElementById('posspd')||{}).value)||14;
-    var hrs=d/spd;
-    L.polyline([a,b2],{color:'#06180A',weight:6,opacity:.5,pane:'shipsPane',interactive:false}).addTo(rulerLayer);
-    L.polyline([a,b2],{color:'#B24BF3',weight:2.8,opacity:.95,dashArray:'5 5',pane:'shipsPane',interactive:false}).addTo(rulerLayer);
-    var mid=[(a[0]+b2[0])/2,(a[1]+b2[1])/2];
-    L.marker(mid,{icon:L.divIcon({className:'',iconSize:[0,0]}),pane:'shipsPane',interactive:false})
-      .bindTooltip(Math.round(d).toLocaleString()+' nm · '+Math.round(km).toLocaleString()+' km · '
-        +(hrs<24? hrs.toFixed(1)+'h' : (hrs/24).toFixed(1)+'일')+' @'+spd+'kn',
-        {permanent:true,direction:'top',className:'rulerlbl',opacity:1}).addTo(rulerLayer);
-  }
+  rulerDraw();
 });
+function rulerDraw(){
+  if(!rulerLayer) return;
+  rulerLayer.clearLayers();
+  var pts=[], ref=rulerPts.length? rulerPts[0][1] : 0, tot=0;
+  rulerPts.forEach(function(p,i){
+    var lo=p[1]; if(lo-ref>180) lo-=360; if(ref-lo>180) lo+=360; ref=lo;
+    pts.push([p[0], lo]);
+    if(i>0) tot += gcNm(rulerPts[i-1][0], rulerPts[i-1][1], p[0], p[1]);
+    L.marker([p[0],lo],{pane:'shipsPane',interactive:false,
+      icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],
+        html:'<svg width="22" height="22"><circle cx="11" cy="11" r="8" fill="#1A0A2A" stroke="#B24BF3" stroke-width="2"/>'
+          +'<text x="11" y="15" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="#E8CFFB">'+(i+1)+'</text></svg>'})
+    }).addTo(rulerLayer);
+  });
+  if(pts.length>1){
+    L.polyline(pts,{color:'#06180A',weight:6,opacity:.5,pane:'shipsPane',interactive:false}).addTo(rulerLayer);
+    L.polyline(pts,{color:'#B24BF3',weight:2.8,opacity:.95,dashArray:'5 5',pane:'shipsPane',interactive:false}).addTo(rulerLayer);
+    var last=pts[pts.length-1];
+    L.marker(last,{icon:L.divIcon({className:'',iconSize:[0,0]}),pane:'shipsPane',interactive:false})
+      .bindTooltip('Δ '+Math.round(tot).toLocaleString()+' nm  ('+Math.round(tot*1.852).toLocaleString()+' km)  · '+pts.length+'pt',
+        {permanent:true,direction:'right',offset:[12,0],className:'rulerlbl',opacity:1}).addTo(rulerLayer);
+  }
+}
+
 setTimeout(function(){
   var b=document.getElementById('rulerBtn'), d=document.getElementById('rulerDel');
   if(b) b.onclick=function(){ rulerToggle(); };
@@ -1244,6 +1252,13 @@ var portLayer = L.layerGroup().addTo(map);
   ps.innerHTML="<option value=''>⚓ 기항 항구 선택…</option>";
   ps.onchange=function(){ if(ps.value){ window.open("calls.html?port="+encodeURIComponent(ps.value),"_blank"); ps.value=""; } };
   bar.appendChild(ps);
+  var rbWrap=document.createElement('div');
+  rbWrap.id='rulerbar';
+  rbWrap.innerHTML='<div class="rb" id="rulerBtn" title="거리 측정 — 여러 지점 연속 클릭">\uD83D\uDCCF</div>'
+    +'<div class="rb" id="rulerDel" title="측정 지우기">\u2715</div>';
+  var updEl=document.getElementById('updated');
+  if(updEl && updEl.parentNode) updEl.parentNode.insertBefore(rbWrap, updEl.nextSibling);
+  else bar.appendChild(rbWrap);
   fetch("calls.json?t="+Date.now()).then(function(x){return x.json();}).then(function(d){
     var ks=Object.keys(d.ports||{}).sort();
     ps.innerHTML="<option value=''>⚓ 기항 항구 ("+ks.length+")</option>"+ks.map(function(k){ return "<option value='"+k+"'>"+k+" ("+d.ports[k].n+")</option>"; }).join("");
