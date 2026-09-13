@@ -686,7 +686,15 @@ function renderList(){
     const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
     return `<div class="row ${v.status==='NOSIG'?'dim':''}${soloNo===v.no?' sel':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
-      <div class="nm"><b>${v.name}</b><span>${(function(){var r=RESP[v.mmsi||'']||RESP[v.name]; return r? r.team+' · '+r.vm+' · '+r.hseq : '⚠ 책임표 미등재' ;})()}</span><span>${sub}</span></div>
+      <div class="nm"><b>${v.name}</b><span>${(function(){
+        var p=(PSCA&&PSCA[v.mmsi||''])||null, fg=flagOf(v);
+        var mou=p&&p[1]? p[1] : '';
+        var s='<b style="color:#9FD4EA;font-weight:700">'+fg+'</b>';
+        if(mou) s+=' · '+mou;
+        if(p&&p[0]) s+=' <b style="color:#FF6B6B;font-weight:700">· PSC ALERT</b>';
+        else if(p) s+=' <span style="color:#5CE01E">· OK</span>';
+        return s;
+      })()}</span><span>${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
   };
   document.getElementById('list').innerHTML =
@@ -893,7 +901,9 @@ function detectCalls(pts){
 }
 var TRKC={}, MET={}, METAT=0;
 var PSCA=null, RTAB=null;
-fetch('psc-alerts.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){ PSCA=d.v||{}; }).catch(function(){});
+var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','353':'PAN','354':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR','563':'SGP','564':'SGP','565':'SGP','566':'SGP','477':'HKG','431':'JPN','432':'JPN','412':'CHN','413':'CHN','249':'MLT','215':'MLT','256':'MLT','219':'DNK','257':'NOR'};
+function flagOf(v){ var m=String((v&&v.mmsi)||''); return MIDF[m.slice(0,3)] || (m?'—':'TBN'); }
+fetch('psc-alerts.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){ PSCA=d.v||{}; try{ renderList(); }catch(e){} }).catch(function(){});
 var RISK={USA:'USCG','United States':'USCG',Australia:'AMSA','New Zealand':'AMSA',
   Belgium:'Paris MOU',Netherlands:'Paris MOU',Germany:'Paris MOU',France:'Paris MOU','United Kingdom':'Paris MOU',
   Spain:'Paris MOU',Portugal:'Paris MOU',Italy:'Paris MOU',Greece:'Paris MOU',Sweden:'Paris MOU',Norway:'Paris MOU',
