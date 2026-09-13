@@ -932,40 +932,44 @@ function renderPsc(){
     }).join('');
 }
 function pickPsc(no){ try{ closeR(); showSched(no); var m=markers[no]; if(m) m.openPopup(); }catch(e){} }
+var PISS=null;
 function renderPortIssues(){
   var b=document.getElementById('rbody');
-  if(!window.portData || !portData.ports){ b.innerHTML='<div class="rsec">\uD56D\uAD6C \uB370\uC774\uD130 \uB85C\uB529 \uC911\u2026</div>'; return; }
-  var KW=[['fine',3],['penalty',3],['detention',3],['detained',3],['prosecut',3],['arrest',3],['banned',3],['sanction',2],['usd',2]];
-  var out=[];
-  portData.ports.forEach(function(p){
-    var tot=0, best=null;
-    (p.items||[]).forEach(function(it){
-      var t=(it.text||'').toLowerCase(), s=0;
-      KW.forEach(function(k){ if(t.indexOf(k[0])>=0) s+=k[1]; });
-      if(s>0){ tot+=s; if(!best||s>best.s) best={s:s,it:it}; }
-    });
-    if(tot>=3 && best) out.push({p:p, sc:tot, it:best.it});
-  });
-  out.sort(function(a,b2){ return b2.sc-a.sc; });
-  var now=Date.now();
-  b.innerHTML='<div class="rsec">\uBC8C\uAE08\u00b7\uC5B5\uB958 \uB4F1 \uC8FC\uC694 \uC774\uC288 '+out.length+'\uACF3 \u00b7 \uAE30\uD56D \uC608\uC815 \uC120\uBC15 \uD45C\uC2DC</div>'
-   + out.slice(0,20).map(function(o){
-      var pn=o.p.port.split('(')[0].trim().toUpperCase();
+  if(PISS){ paintPortIssues(); return; }
+  b.innerHTML='<div class="rsec">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>';
+  var CK='fw_portissues_v1';
+  try{ var c=sessionStorage.getItem(CK); if(c){ PISS=JSON.parse(c); paintPortIssues(); return; } }catch(e){}
+  fetch('port-issues.json?v1',{cache:'force-cache'}).then(function(r){ return r.ok?r.text():null; })
+   .then(function(t){ if(!t) throw new Error('no data');
+     try{ sessionStorage.setItem(CK,t); }catch(e){}
+     PISS=JSON.parse(t); paintPortIssues(); })
+   .catch(function(){ b.innerHTML='<div class="rsec">\uD56D\uAD6C \uC774\uC288 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4</div>'; });
+}
+function paintPortIssues(){
+  var b=document.getElementById('rbody'), now=Date.now();
+  var list=(PISS&&PISS.v)||[];
+  b.innerHTML='<div class="rsec">\uBC8C\uAE08\u00b7\uC5B5\uB958 \uB4F1 \uC8FC\uC694 \uC774\uC288 '+list.length+'\uACF3 \u00b7 \uAE30\uC900 '+((PISS&&PISS.u)||'')+'</div>'
+   + list.map(function(o){
+      var pn=o.p.split('(')[0].trim().toUpperCase().replace(/ PORTS?$|, ALL PORTS$/,'');
       var vs=[];
       vessels.forEach(function(v){
         (SCHED[v.mmsi||'']||[]).forEach(function(l){
           var t=schLegTime(l); if(t && t<now) return;
           var lp=l[0].toUpperCase();
-          if(lp===pn || (pn.length>4 && lp.indexOf(pn)>=0) || (lp.length>4 && pn.indexOf(lp)>=0)){
-            if(vs.indexOf(v.name+' '+l[1])<0) vs.push(v.name+' '+l[1]);
-          }
+          var hit = (lp===pn) || (pn.length>4 && (lp.indexOf(pn)>=0 || pn.indexOf(lp)>=0));
+          if(!hit && o.c){ var cc=o.c.toUpperCase();
+            if(cc==='USA'&&['BRUNSWICK','BALTIMORE','PHILADELPHIA','HOUSTON','GALVESTON','LONG BEACH','PORT HUENEME','TACOMA','NEW YORK'].indexOf(lp)>=0) hit=true;
+            if(cc==='CHINA'&&['SHANGHAI','TAICANG','QINGDAO','TIANJIN','HUANGPU','ZHOUSHAN','ZHENJIANG'].indexOf(lp)>=0) hit=true;
+            if(cc==='BRAZIL'&&['PARANAGUA','VITORIA','SANTOS','RIO GRANDE','ITAJAI'].indexOf(lp)>=0) hit=true;
+            if(cc==='TURKEY'&&['IZMIR','DERINCE'].indexOf(lp)>=0) hit=true;
+            if(cc==='NEW ZEALAND'&&['AUCKLAND','TAURANGA'].indexOf(lp)>=0) hit=true; }
+          if(hit && vs.indexOf(v.name+' '+l[1])<0) vs.push(v.name+' '+l[1]);
         });
       });
-      var txt=(o.it.text||'').replace(/\s+/g,' ').slice(0,150);
-      return '<div class="rit" onclick="openPort(\''+enc(o.p.port)+'\')">'
-        +'<div class="n1"><span>'+o.p.port+'</span><span class="bd">'+(o.it.ym||'')+'</span></div>'
-        +'<div class="tx">'+txt+'\u2026</div>'
-        +(vs.length?'<div class="vs">\u26F5 \uAE30\uD56D \uC608\uC815: '+vs.slice(0,4).join(' \u00b7 ')+(vs.length>4?' \uC678 '+(vs.length-4):'')+'</div>':'<div class="m1">\uAE30\uD56D \uC608\uC815 \uC120\uBC15 \uC5C6\uC74C</div>')
+      return '<div class="rit" onclick="openPort(\''+enc(o.p)+'\')">'
+        +'<div class="n1"><span>'+o.p+'</span><span class="bd">'+(o.m||'')+'</span></div>'
+        +'<div class="tx">'+o.t+'\u2026</div>'
+        +(vs.length?'<div class="vs">\u26F5 '+vs.slice(0,4).join(' \u00b7 ')+(vs.length>4?' \uC678 '+(vs.length-4):'')+'</div>':'<div class="m1">\uAE30\uD56D \uC608\uC815 \uC120\uBC15 \uC5C6\uC74C</div>')
         +'</div>';
     }).join('');
 }
