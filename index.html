@@ -41,6 +41,8 @@
     color:#5CE01E;cursor:pointer;user-select:none;letter-spacing:.1em}
   .rtab:hover,.rtab.on{color:#8CFF4A;border-color:#5CE01E;background:#16301A}
   .rtab.ext{color:#7FD8F5;font-size:12px;padding:10px 6px}
+  .rtab.ext.sar{color:#FF8A8A;border-color:rgba(255,59,59,.5)}
+  .rtab.ext.sar:hover{color:#FFC9C9;border-color:#FF3B3B;background:#2A0B0B}
   .rtab.ext:hover{color:#BFEFFF;border-color:#7FD8F5;background:#12283A}
   #rside{position:absolute;right:0;top:0;bottom:0;width:410px;z-index:845;display:none;flex-direction:column;
     background:#0C1420;border-left:2px solid var(--accent);box-shadow:-10px 0 30px rgba(0,0,0,.65)}
@@ -280,6 +282,7 @@
     <div id="rtabs">
     <div class="rtab" id="tabPsc" title="PSC 위험 선박">PSC</div>
     <div class="rtab" id="tabPort" title="항구 이슈">PORT</div>
+    <div class="rtab ext sar" onclick="window.open('https://sarcontacts.info/','_blank')" title="SAR Contacts — 전세계 MRCC/RCC 연락처">SAR</div>
     <div class="rtab ext" onclick="window.open('https://s-insight.stormgeo.com/map','_blank')" title="StormGeo s-Insight">STORMGEO</div>
     <div class="rtab ext" onclick="window.open('https://login.polestarglobal.com/','_blank')" title="Pole Star Global">POLESTAR</div>
     <div class="rtab ext" onclick="window.open('https://login.polestarglobal.com/','_blank')" title="DNK">DNK</div>
