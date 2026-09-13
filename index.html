@@ -77,8 +77,13 @@
   .row .st{width:9px;height:9px;border-radius:50%;flex:none}
   .row .nm{flex:1;min-width:0}
   .row .nm b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .nm span{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .nm span+span{color:#6E7E92;margin-top:1px}
+  .row .nm span{display:inline;font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .row .nm{line-height:1.5}
+  .row .nm b{display:inline}
+  .row .nm .fg{display:inline-block;min-width:15px;text-align:center;background:#24384F;color:#BFD6E8;border-radius:3px;padding:0 3px;margin-right:4px;font-weight:700;font-size:10px}
+  .row .nm .fg.k{background:#0B4DA2;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}
+  .row .nm .al{color:#FF5A5A;font-weight:700;margin-left:4px}
+  .row .nm span+span{color:#6E7E92;margin-left:6px}
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
@@ -687,12 +692,11 @@ function renderList(){
     return `<div class="row ${v.status==='NOSIG'?'dim':''}${soloNo===v.no?' sel':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
       <div class="nm"><b>${v.name}</b><span>${(function(){
-        var p=(PSCA&&PSCA[v.mmsi||''])||null, fg=flagOf(v);
-        var mou=p&&p[1]? p[1] : '';
-        var s='<b style="color:#9FD4EA;font-weight:700">'+fg+'</b>';
-        if(mou) s+=' · '+mou;
-        if(p&&p[0]) s+=' <b style="color:#FF6B6B;font-weight:700">· PSC ALERT</b>';
-        else if(p) s+=' <span style="color:#5CE01E">· OK</span>';
+        var p=(PSCA&&PSCA[v.mmsi||''])||null, fc=flagChar(v), isK=(flagOf(v)==='KOR');
+        var mou=p&&p[1]? p[1].replace('VINA DEL MAR','V.MAR').replace('MEDITERRANEAN','MED') : '';
+        var s='<b class="fg'+(isK?' k':'')+'">'+fc+'</b>';
+        if(mou) s+=' '+mou;
+        if(p&&p[0]) s+=' <b class="al">ALERT</b>';
         return s;
       })()}</span><span>${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
@@ -903,6 +907,8 @@ var TRKC={}, MET={}, METAT=0;
 var PSCA=null, RTAB=null;
 var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','353':'PAN','354':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR','563':'SGP','564':'SGP','565':'SGP','566':'SGP','477':'HKG','431':'JPN','432':'JPN','412':'CHN','413':'CHN','249':'MLT','215':'MLT','256':'MLT','219':'DNK','257':'NOR'};
 function flagOf(v){ var m=String((v&&v.mmsi)||''); return MIDF[m.slice(0,3)] || (m?'—':'TBN'); }
+var FLTR={KOR:'K',MHL:'M',PAN:'P',LBR:'L',SGP:'S',HKG:'H',JPN:'J',CHN:'C',MLT:'T',DNK:'D',NOR:'N',TBN:'–'};
+function flagChar(v){ var f=flagOf(v); return FLTR[f]||f.slice(0,1); }
 fetch('psc-alerts.json?t='+Date.now()).then(function(r){return r.json();}).then(function(d){ PSCA=d.v||{}; try{ renderList(); }catch(e){} }).catch(function(){});
 var RISK={USA:'USCG','United States':'USCG',Australia:'AMSA','New Zealand':'AMSA',
   Belgium:'Paris MOU',Netherlands:'Paris MOU',Germany:'Paris MOU',France:'Paris MOU','United Kingdom':'Paris MOU',
