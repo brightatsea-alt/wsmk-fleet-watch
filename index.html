@@ -584,6 +584,14 @@ function popup(v){
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
     <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
+    ${(function(){ try{ var lg=SCHED[v.mmsi||'']; if(!lg||!lg.length) return '';
+      var _now=Date.now(), _yy=new Date().getUTCFullYear();
+      var _rem=lg.filter(function(l){ var s=(l[2]||l[1]||''); if(!s) return true; var p=s.split('-');
+        if(p.length<2) return true; var t=Date.UTC(_yy,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+        if(t-_now < -200*864e5) t=Date.UTC(_yy+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t>=_now; }).length;
+      return `<button class="pbtn sch" onclick="showSched(${v.no})">\uD83D\uDCC5 Schedule Leg \u00b7 \uC794\uC5EC ${_rem||lg.length}/${lg.length}\uAD6C\uAC04 \u2192</button>`;
+    }catch(e){ return ''; } })()}
+    <div class="pch">\uCD5C\uADFC \uAE30\uD56D</div><div class="pcl" id="pc_${v.no}">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>
     ${(function(){ try{
       var lg2=SCHED[v.mmsi||'']; if(!lg2||!lg2.length) return '';
       var _n=Date.now(), _y=new Date().getUTCFullYear();
@@ -597,14 +605,6 @@ function popup(v){
             return '<div class="pcr sc"><span style="color:#5CE01E;font-weight:700">'+(i+1)+'.</span> <b>'+l[0]+'</b> <span>ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')+'</span></div>';
           }).join('') + '</div>';
     }catch(e){ return ''; } })()}
-    ${(function(){ try{ var lg=SCHED[v.mmsi||'']; if(!lg||!lg.length) return '';
-      var _now=Date.now(), _yy=new Date().getUTCFullYear();
-      var _rem=lg.filter(function(l){ var s=(l[2]||l[1]||''); if(!s) return true; var p=s.split('-');
-        if(p.length<2) return true; var t=Date.UTC(_yy,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
-        if(t-_now < -200*864e5) t=Date.UTC(_yy+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t>=_now; }).length;
-      return `<button class="pbtn sch" onclick="showSched(${v.no})">\uD83D\uDCC5 Schedule Leg \u00b7 \uC794\uC5EC ${_rem||lg.length}/${lg.length}\uAD6C\uAC04 \u2192</button>`;
-    }catch(e){ return ''; } })()}
-    <div class="pch">\uCD5C\uADFC \uAE30\uD56D</div><div class="pcl" id="pc_${v.no}">\uBD88\uB7EC\uC624\uB294 \uC911\u2026</div>
     ${(function(){ try{ var pe=d.destination?destPortEntry(d.destination):null; if(!pe) return '';
       return pe.countryOnly
         ? `<button class="pbtn co" onclick="openCountry('${enc(pe.country)}')">\uD83C\uDF0F ${pe.country} \uD56D\uB9CC \uC815\uBCF4 \uBCF4\uAE30 \u2192</button>`
@@ -1684,6 +1684,19 @@ const EN_PAIRS = [
  ['거침','Rough'],
  ['높음','High'],
  ['척',' vsl'],
+ ['예정 기항지','Upcoming calls'],
+ ['남은 일정 없음','No remaining calls'],
+ ['PSC 위험 선박','PSC risk vessels'],
+ ['항구 이슈','Port issues'],
+ ['위험권역 기항 예정','risky-area calls'],
+ ['벌금·억류 등 주요 이슈','Fines / detentions'],
+ ['기항 예정 선박 없음','No vessels scheduled'],
+ ['기항 예정','Scheduled'],
+ ['최근검사','Last insp'],
+ ['검사창','Insp window'],
+ ['선령','Age'],
+ ['항적 Track','Track'],
+ ['목적지 입력','Destination'],
 ].sort((a,b)=>b[0].length-a[0].length);
 const KOMEM = new WeakMap();
 function xlate(n){
@@ -1726,6 +1739,11 @@ function toggleLang(){
     xlate(document.body);
     LOBS.observe(document.body,{childList:true,subtree:true,characterData:true});
     if(q) q.placeholder='Search vessel · MMSI';
+    var ak=document.getElementById('ask'); if(ak) ak.placeholder='Natural-language query — e.g. Asian Trust via New York to Bremerhaven';
+    var pi=document.getElementById('posin'); if(pi) pi.placeholder='e.g. 23-40N 123-40E / 3506.5N 12902.4E / 35.0994, 129.0403 / Busan';
+    var ps=document.getElementById('portsel'); if(ps&&ps.options[0]) ps.options[0].text='⚓ Port calls — select';
+    ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id);
+      if(s&&s.options[0]) s.options[0].text=s.options[0].text.replace('전체','All'); });
   } else {
     LOBS.disconnect();
     unxlate(document.body);
