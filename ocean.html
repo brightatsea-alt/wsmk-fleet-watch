@@ -40,8 +40,8 @@
   <a class="back" href="index.html">← Fleet Watch</a>
 </header>
 <div class="bar">
-  기준거리 <select id="fmin"><option value="1000">1,000 nm 이상</option><option value="2000" selected>2,000 nm 이상</option><option value="3000">3,000 nm 이상</option><option value="500">500 nm 이상</option></select>
-  정렬 <select id="fsort"><option value="nm">잔여거리 순</option><option value="days">도착일 순</option><option value="name">선명 순</option></select>
+  구간 항해일수 <select id="fmin"><option value="3">3일 이상</option><option value="5" selected>5일 이상</option><option value="7">7일 이상</option><option value="10">10일 이상</option><option value="14">14일 이상</option></select>
+  정렬 <select id="fsort"><option value="nm">최장구간 순</option><option value="days">도착일 순</option><option value="name">선명 순</option></select>
   VM <select id="fvm"><option value="">Vessel Manager 전체</option></select>
   Team <select id="fteam"><option value="">전체</option></select>
   <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
@@ -61,16 +61,16 @@ function legT(s){ if(!s) return 0; var p=s.split('-'); if(p.length<2) return 0;
 function dur(h){ return h<24? h.toFixed(0)+'h' : (h/24).toFixed(1)+'일'; }
 var DATA=[];
 function draw(){
-  var min=parseFloat(document.getElementById('fmin').value)||2000;
+  var min=parseFloat(document.getElementById('fmin').value)||5;
   var srt=document.getElementById('fsort').value;
   var q=(document.getElementById('fq').value||'').toLowerCase();
   var fv=(document.getElementById('fvm')||{}).value||'', ft=(document.getElementById('fteam')||{}).value||'';
-  var rows=DATA.filter(function(r){ return r.nm>=min && (!q || r.name.toLowerCase().indexOf(q)>=0)
+  var rows=DATA.filter(function(r){ return r.maxDays>=min && (!q || r.name.toLowerCase().indexOf(q)>=0)
     && (!fv || r.vm===fv) && (!ft || r.team===ft); });
   rows.sort(function(a,b){ if(srt==='name') return a.name.localeCompare(b.name);
-    if(srt==='days') return a.eta-b.eta; return b.nm-a.nm; });
-  document.getElementById('sum').innerHTML='장기항해 <b>'+rows.length+'</b>척 · 최장 <b>'
-    +(rows[0]?Math.round(rows[0].nm).toLocaleString()+' nm':'—')+'</b> · 기준 '+Math.round(min).toLocaleString()+' nm 이상 · 전 선대 '+DATA.length+'척 분석';
+    if(srt==='days') return a.eta-b.eta; return b.maxDays-a.maxDays; });
+  document.getElementById('sum').innerHTML='장기항해 <b>'+rows.length+'</b>척 · 최장 구간 <b>'
+    +(rows[0]?rows[0].maxDays.toFixed(1)+'일':'—')+'</b> · 기준 구간 '+min+'일 이상 · 전 선대 '+DATA.length+'척 분석';
   document.getElementById('list').innerHTML = rows.length? rows.map(function(r){
     var cls = r.nm>=5000?'crit' : (r.nm>=3000?'long':'');
     var k = r.flag==='KOR'?' k':'';
@@ -78,12 +78,12 @@ function draw(){
       +'<div class="hd"><h3>'+r.name+'</h3><span class="fg'+k+'">'+(FLTR[r.flag]||'–')+'</span>'
       +(r.mou?'<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+r.mou+'</span>':'')
       +(r.alert?'<span class="bd">PSC ALERT</span>':'')
-      +'<span class="d">'+Math.round(r.nm).toLocaleString()+' nm</span></div>'
+      +'<span class="d">최장 '+r.maxDays.toFixed(1)+'일</span></div>'
       +'<div class="grid">'
       +'<div><span>다음 기항</span> '+r.port+'</div>'
       +'<div><span>ETA</span> '+r.eta0+' (D-'+r.dleft+')</div>'
       +'<div><span>현재속력</span> '+(r.sog!=null?r.sog.toFixed(1)+' kn':'—')+'</div>'
-      +'<div><span>예상 항해</span> '+dur(r.hrs)+'</div>'
+      +'<div><span>최장 구간</span> '+(r.maxSeg? r.maxSeg.from+'→'+r.maxSeg.to+' '+Math.round(r.maxSeg.nm).toLocaleString()+'nm' : '—')+'</div>'
       +'<div><span>잔여 기항</span> '+r.legs+'구간</div>'
       +'<div><span>최종 AIS</span> '+r.age+'</div>'
       +(r.vm?'<div><span>VM</span> '+r.vm+(r.team?' ('+r.team+')':'')+'</div>':'')
@@ -108,12 +108,20 @@ function draw(){
       var eta=legT(nx[1])||NOW;
       var spd=(pos.sog && pos.sog>4)? pos.sog : 14;
       var hrs=d/spd, age='—';
+      /* 구간별 거리·일수 */
+      var segs=[], py=pos.lat, px=pos.lon, pn='현위치', maxD=0, maxS=null;
+      up.forEach(function(l){
+        var dd=gc(py,px,l[3],l[4]), days=dd/spd/24;
+        segs.push({from:pn, to:l[0], nm:dd, days:days, eta:l[1]});
+        if(days>maxD){ maxD=days; maxS={from:pn,to:l[0],nm:dd,days:days,eta:l[1]}; }
+        py=l[3]; px=l[4]; pn=l[0];
+      });
       if(pos.lastReceived){ var a=(NOW-new Date(pos.lastReceived).getTime())/3600e3;
         age = a<48? a.toFixed(1)+'h 전' : (a/24).toFixed(1)+'일 전'; }
       var p=ps[k]||null, notes=[];
       var rr=rs[k]||rs[pos.name]||null;
-      if(d>=3000) notes.push('대양 황단 — 중간 보선·수리 기회 없음');
-      if(hrs/24>=14) notes.push('14일 이상 연속 항해 — 물자·부품 사전 적재 필요');
+      if(maxD>=10) notes.push('최장 '+maxD.toFixed(1)+'일 무기항 구간 — 물자·부품 사전 적재 필수');
+      else if(maxD>=5) notes.push('최장 '+maxD.toFixed(1)+'일 구간 — 중간 보선 기회 없음');
       if(p&&p[0]) notes.push('PSC Alert — 다음 기항지 검사 대비');
       if(pos.sog!=null && pos.sog<4 && d>1500) notes.push('현재 저속/정지 — 일정 지연 가능성');
       DATA.push({key:k, name:pos.name||k, nm:d, hrs:hrs, eta:eta, eta0:nx[1],
@@ -121,7 +129,13 @@ function draw(){
         sog:(pos.sog!=null?pos.sog:null), age:age,
         flag:MIDF[String(k).slice(0,3)]||'', mou:(p?p[1]:''), alert:(p?p[0]:0),
         vm:(rr?rr.vm:''), team:(rr?rr.team:''), hseq:(rr?rr.hseq:''),
-        route: up.slice(0,6).map(function(l,i){ return '<b>'+(i+1)+'.</b> '+l[0]+' '+l[1]; }).join('  →  '),
+        segs:segs, maxDays:maxD, maxSeg:maxS,
+        route: segs.slice(0,6).map(function(s,i){
+          var hot = s.days>=5;
+          return '<b>'+(i+1)+'.</b> '+s.from+' → '+s.to+' '
+            +'<span style="color:'+(hot?'#F0B95A':'#6E7E92')+'">'+Math.round(s.nm).toLocaleString()+'nm / '+s.days.toFixed(1)+'일</span>'
+            +(s.eta?' <span style="color:#6E7E92">ETA '+s.eta+'</span>':'');
+        }).join('<br>'),
         note: notes.join(' · ')});
     });
     var vms=[], tms=[];
