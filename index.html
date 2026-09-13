@@ -452,12 +452,15 @@ map.on('popupopen', function(e){
     var head=el.querySelector('.leaflet-popup-content-wrapper')||el;
     head.style.cursor='move';
     var sx=0, sy=0, ox=0, oy=0, on=false;
-    function mv(ev){ if(!on) return; el.style.marginLeft=(ox+ev.clientX-sx)+'px'; el.style.marginTop=(oy+ev.clientY-sy)+'px'; }
+    function mv(ev){ if(!on) return;
+      el.style.marginLeft=(ox+(ev.clientX-sx))+'px';
+      el.style.marginBottom=(oy-(ev.clientY-sy))+'px';   // bottom 기준 → 부호 반전
+    }
     function up(){ on=false; try{ map.dragging.enable(); }catch(e2){} document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
     head.addEventListener('mousedown', function(ev){
       if(ev.target.closest && ev.target.closest('button, a, input, select, textarea, .leaflet-popup-close-button')) return;
       on=true; sx=ev.clientX; sy=ev.clientY;
-      ox=parseFloat(el.style.marginLeft||0)||0; oy=parseFloat(el.style.marginTop||0)||0;
+      ox=parseFloat(el.style.marginLeft||0)||0; oy=parseFloat(el.style.marginBottom||0)||0;
       try{ map.dragging.disable(); }catch(e3){}
       ev.preventDefault(); ev.stopPropagation();
       document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
