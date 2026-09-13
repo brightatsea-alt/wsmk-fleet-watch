@@ -67,14 +67,14 @@ function cslug(c){ return String(c).toLowerCase().replace(/[^a-z0-9]+/g,'-').rep
 function mpop(m){
   return '<div class="pop"><b class="t">'+m[0]+'</b>'
     +'<div style="font-family:var(--mono);font-size:10px;color:#FF8A8A;margin-bottom:5px">'+ctype(m[0])+'</div><table>'
-    +'<tr><td>국가</td><td>'+m[1]+'</td></tr>'
+    +(m[1]?'<tr><td>국가</td><td>'+m[1]+'</td></tr>':'')
     +(m[4]?'<tr><td>전화</td><td class="tel">'+m[4]+'</td></tr>':'<tr><td>전화</td><td style="color:#F0B95A">아래 링크에서 확인</td></tr>')
     +(m[5]?'<tr><td>국내번호</td><td class="tel">'+m[5]+'</td></tr>':'')
     +'<tr><td>위치</td><td>'+m[2].toFixed(2)+'°, '+m[3].toFixed(2)+'°</td></tr>'
     +'</table><div style="margin-top:7px;font-size:11px;color:#F0B95A">⚠ 통화 전 선박 SMS 비상연락망 대조 권장</div>'
     +'<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">'
-    +'<a href="https://sarcontacts.info/?s='+encodeURIComponent(m[0])+'" target="_blank">🔎 이 센터 조회 ↗</a>'
-    +'<a href="https://sarcontacts.info/countries/'+cslug(m[1])+'/" target="_blank">🌐 '+m[1]+' 전체 ↗</a>'
+    +(m[6]? '<a href="https://sarcontacts.info/contacts/'+m[6]+'/" target="_blank">📋 상세 정보 ↗</a>' : '<a href="https://sarcontacts.info/?s='+encodeURIComponent(m[0])+'" target="_blank">🔎 조회 ↗</a>')
+    +(m[1]? '<a href="https://sarcontacts.info/countries/'+cslug(m[1])+'/" target="_blank">🌐 '+m[1]+' 전체 ↗</a>' : '')
     +'</div></div>';
 }
 function pickVessel(i){
@@ -108,7 +108,15 @@ function listVessels(){
 (async function(){
   try{
     var md=await (await fetch('mrcc-data.json?v1',{cache:'force-cache'})).json();
-    MR=md.v||[];
+    MR=(md.v||[]).slice();
+    try{
+      var sc=await (await fetch('sar-centres.json?v1',{cache:'force-cache'})).json();
+      var have={}; MR.forEach(function(m){ have[m[0].toUpperCase()]=1; });
+      (sc.v||[]).forEach(function(a){
+        if(have[a[0].toUpperCase()]) return;
+        MR.push([a[0], '', a[2], a[3], '', '', a[4]]);
+      });
+    }catch(e){}
     var TCOL={MRCC:'#FF3B3B',JRCC:'#FF8A00',ARCC:'#7B61FF',MRSC:'#FF6BD6',RSC:'#FF6BD6',USCG:'#FF3B3B',JCG:'#FF3B3B',CROSS:'#FF3B3B',SALVAMAR:'#FF3B3B',RCC:'#C8C8C8'};
     MR.forEach(function(m,mi){
       var tp=ctype(m[0]), col=TCOL[tp]||'#FF3B3B';
