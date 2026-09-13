@@ -1191,7 +1191,7 @@ var portLayer = L.layerGroup().addTo(map);
   const bar = document.createElement('div');
   bar.id = 'ctrlbar';
   bar.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-  bar.innerHTML = '<div class="chip on" id="stoggle">\uD83D\uDEA2 \uC120\uBC15</div>' + '<span id="tghint">칩을 눌러 지도 표시를 켜고 끕니다 · 기본값 선박만 표시</span>';
+  bar.innerHTML = '<div class="chip on" id="stoggle">\uD83D\uDEA2 \uC120\uBC15</div>';
   board.parentNode.insertBefore(bar, board.nextSibling);
   document.getElementById('stoggle').onclick = function(){
     shipsOn = !shipsOn; this.classList.toggle('on', shipsOn); render();
@@ -1805,7 +1805,6 @@ const EN_PAIRS = [
  ['일반','General'],
  ['항구','Ports'],
  ['전체','All'],
- ['칩을 눌러 지도 표시를 켜고 끕니다 · 기본값 선박만 표시','Tap chips to toggle map layers · default: vessels only'],
  ['Vessel Manager 전체','Vessel Manager — All'],
  ['수집 중단 의심','Collection stalled'],
  ['AIS 정적정보 미수신','No AIS static data'],
