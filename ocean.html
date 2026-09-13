@@ -59,6 +59,7 @@ function legT(s){ if(!s) return 0; var p=s.split('-'); if(p.length<2) return 0;
   var t=Date.UTC(YY,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
   if(t-NOW < -200*864e5) t=Date.UTC(YY+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t; }
 function dur(h){ return h<24? h.toFixed(0)+'h' : (h/24).toFixed(1)+'일'; }
+function fmtD(ms){ var d=new Date(ms); return (d.getUTCMonth()+1)+'/'+d.getUTCDate(); }
 var DATA=[];
 function draw(){
   var min=parseFloat(document.getElementById('fmin').value)||5;
@@ -79,6 +80,10 @@ function draw(){
       +(r.mou?'<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+r.mou+'</span>':'')
       +(r.alert?'<span class="bd">PSC ALERT</span>':'')
       +'<span class="d">최장 '+r.maxDays.toFixed(1)+'일</span></div>'
+      +(r.maxSeg? '<div class="voy">'
+        +'<div class="vt">'+r.maxSeg.from+'  →  '+r.maxSeg.to+'</div>'
+        +'<div class="vd">'+r.maxSeg.depTxt+' → '+r.maxSeg.arrTxt+' · <b>'+r.maxSeg.days.toFixed(1)+'일</b> · '+Math.round(r.maxSeg.nm).toLocaleString()+' nm · 무기항</div>'
+      +'</div>' : '')
       +'<div class="grid">'
       +'<div><span>다음 기항</span> '+r.port+'</div>'
       +'<div><span>ETA</span> '+r.eta0+' (D-'+r.dleft+')</div>'
@@ -110,10 +115,17 @@ function draw(){
       var hrs=d/spd, age='—';
       /* 구간별 거리·일수 */
       var segs=[], py=pos.lat, px=pos.lon, pn='현위치', maxD=0, maxS=null;
-      up.forEach(function(l){
+      var cursor=NOW, prevETD=null;
+      up.forEach(function(l,ix){
         var dd=gc(py,px,l[3],l[4]), days=dd/spd/24;
-        segs.push({from:pn, to:l[0], nm:dd, days:days, eta:l[1]});
-        if(days>maxD){ maxD=days; maxS={from:pn,to:l[0],nm:dd,days:days,eta:l[1]}; }
+        var dep = (ix===0)? NOW : (prevETD||cursor);
+        var arr = legT(l[1]) || (dep + days*864e5);
+        var s={from:pn, to:l[0], nm:dd, days:days, eta:l[1], etd:l[2], dep:dep, arr:arr,
+               depTxt:(ix===0?'지금':fmtD(dep)), arrTxt:fmtD(arr)};
+        segs.push(s);
+        if(days>maxD){ maxD=days; maxS=s; }
+        prevETD = legT(l[2]) || arr;
+        cursor = prevETD;
         py=l[3]; px=l[4]; pn=l[0];
       });
       if(pos.lastReceived){ var a=(NOW-new Date(pos.lastReceived).getTime())/3600e3;
@@ -133,8 +145,7 @@ function draw(){
         route: segs.slice(0,6).map(function(s,i){
           var hot = s.days>=5;
           return '<b>'+(i+1)+'.</b> '+s.from+' → '+s.to+' '
-            +'<span style="color:'+(hot?'#F0B95A':'#6E7E92')+'">'+Math.round(s.nm).toLocaleString()+'nm / '+s.days.toFixed(1)+'일</span>'
-            +(s.eta?' <span style="color:#6E7E92">ETA '+s.eta+'</span>':'');
+            +'<span style="color:'+(hot?'#F0B95A':'#6E7E92')+'">'+s.depTxt+'~'+s.arrTxt+' · '+s.days.toFixed(1)+'일 · '+Math.round(s.nm).toLocaleString()+'nm</span>';
         }).join('<br>'),
         note: notes.join(' · ')});
     });
