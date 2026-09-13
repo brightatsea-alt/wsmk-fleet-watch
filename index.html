@@ -150,6 +150,8 @@
   .pop .pcl{margin-top:3px;font-size:11.5px;max-height:96px;overflow-y:auto}
   .pop .pcr{padding:2px 0;white-space:nowrap}
   .pop .pcr b{color:#F0B95A;font-weight:600}
+  .pop .pcr.sc b{color:#FF6B6B}
+  .pop .pcr.sc{font-family:var(--mono);font-size:11px}
   .pop .pcr span{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:4px}
   .pop .pcn{color:var(--muted);font-size:10.5px}
   .pop .pbtn.sch{background:#1f7a8c;margin-top:6px}
@@ -552,6 +554,19 @@ function popup(v){
   return `<div class="pop"><b class="t">${v.name}<span class="badge" style="background:${ST[v.status].hex}">${ST[v.status].label}</span></b>
     <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
     <button class="pbtn" style="background:#8A6A22" onclick="showTrack('${(d.mmsi||d.imo||v.mmsi||'')}','${v.name.replace(/'/g,"")}')">\uD83D\uDCC8 \uD56D\uC801 Track \uBCF4\uAE30 \u2192</button>
+    ${(function(){ try{
+      var lg2=SCHED[v.mmsi||'']; if(!lg2||!lg2.length) return '';
+      var _n=Date.now(), _y=new Date().getUTCFullYear();
+      function _t(l){ var s=(l[2]||l[1]||''); if(!s) return 0; var p=s.split('-'); if(p.length<2) return 0;
+        var t=Date.UTC(_y,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+        if(t-_n < -200*864e5) t=Date.UTC(_y+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t; }
+      var rem=lg2.filter(function(l){ var t=_t(l); return !t||t>=_n; });
+      if(!rem.length) return '<div class="pch">예정 기항지</div><div class="pcl"><span class="pcn">남은 일정 없음</span></div>';
+      return '<div class="pch">예정 기항지 '+rem.length+'</div><div class="pcl">'
+        + rem.slice(0,6).map(function(l,i){
+            return '<div class="pcr sc">'+(i+1)+'. <b>'+l[0]+'</b> <span>ETA '+l[1]+(l[2]?' / ETD '+l[2]:'')+'</span></div>';
+          }).join('') + '</div>';
+    }catch(e){ return ''; } })()}
     ${(function(){ try{ var lg=SCHED[v.mmsi||'']; if(!lg||!lg.length) return '';
       var _now=Date.now(), _yy=new Date().getUTCFullYear();
       var _rem=lg.filter(function(l){ var s=(l[2]||l[1]||''); if(!s) return true; var p=s.split('-');
