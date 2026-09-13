@@ -142,7 +142,7 @@ function visibleEntries(){ const v=window.__view; return v?applyCut(v.entries):[
 function visibleCommon(){ const v=window.__view; return (v&&v.common)?applyCut(v.common):[]; }
 function renderAll(){
   const v = window.__view; if(!v) return;
-  const tt = window.__tmode==='port' ? v.title
+  const tt = (window.__tmode==='port'||window.__tmode==='ports') ? v.title
            : window.__tmode==='country' ? (wantCountry + TXT(' — 국가 전체',' — Country overview'))
            : TXT('전체 항구 정보','All Ports Information');
   document.getElementById('title').textContent = '⚓ ' + tt;
@@ -171,7 +171,7 @@ function renderAll(){
         <div class="src">📄 <a href="${i.link}" target="_blank" rel="noopener">${i.src||TXT('원문 PDF','Source PDF')}</a></div>
       </div>`;}).join('');
     const head = (wantPort && entries.length===1) ? '' :
-      `<div class="portsec">⚓ ${p.port} <span class="ym">(${p.country} · ${p.items.length}${TXT('건',' items')})</span></div>`;
+      `<div class="portsec">${p.isCountry?'🌏':'⚓'} ${p.port} <span class="ym">(${p.country} · ${p.items.length}${TXT('건',' items')})</span></div>`;
     return head + items;
   }).join('') + commonBlock() + sourcesBlock();
 }
@@ -252,7 +252,7 @@ Promise.all([
     wantPorts.forEach(function(nm){ var c=countryOf(data.ports,nm); if(c) cns[c]=1; });
     const cw = data.ports.filter(function(p){ return p.isCountry && cns[p.country] && sel.indexOf(p)<0; });
     entries = sel.concat(cw);
-    title = wantPorts.length + TXT('개 기항지 · 국가 공통 포함',' scheduled ports · incl. country-wide');
+    title = wantPorts.join(' · ') + TXT(' — 기항지 '+wantPorts.length+'곳 · 국가 공통 포함',' — '+wantPorts.length+' ports · incl. country-wide');
   } else if(wantPort){
     entries = findPort(data.ports, wantPort);
     var _cn = countryOf(data.ports, wantPort);
