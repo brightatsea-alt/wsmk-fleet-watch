@@ -77,6 +77,25 @@
 const q = new URLSearchParams(location.search);
 const wantPort = q.get('port'), wantCountry = q.get('country');
 const wantPorts = (q.get('ports')||'').split('|').map(function(s){return s.trim();}).filter(Boolean);
+const PORT2C={'Ulsan':'South Korea','Busan':'South Korea','Pyeongtaek':'South Korea','Gwangyang':'South Korea','Masan':'South Korea','Mokpo':'South Korea','Gunsan':'South Korea','Pohang':'South Korea','Dangjin':'South Korea','Incheon':'South Korea','Yeosu':'South Korea',
+ 'Singapore':'Singapore','Shanghai':'China','Qingdao':'China','Tianjin':'China','Huangpu':'China','Taicang':'China','Zhoushan':'China','Zhenjiang':'China','Keelung':'Taiwan','Hong Kong':'Hong Kong',
+ 'Paranagua':'Brazil','Vitoria':'Brazil','Santos':'Brazil','Rio Grande':'Brazil','Itajai':'Brazil','Montevideo':'Uruguay','Zarate':'Argentina','San Antonio':'Chile','Iquique':'Chile','Callao':'Peru','Pisco':'Peru','Manta':'Ecuador',
+ 'Brunswick':'USA','Baltimore':'USA','Philadelphia':'USA','Houston':'USA','Galveston':'USA','Long Beach':'USA','Port Hueneme':'USA','Tacoma':'USA','New York':'USA','Halifax':'Canada',
+ 'Melbourne':'Australia','Brisbane':'Australia','Port Kembla':'Australia','Sydney':'Australia','Fremantle':'Australia','Auckland':'New Zealand','Tauranga':'New Zealand',
+ 'Bremerhaven':'Germany','Hamburg':'Germany','Zeebrugge':'Belgium','Antwerp':'Belgium','Southampton':'United Kingdom','Bristol':'United Kingdom','Goteborg':'Sweden','Rotterdam':'Netherlands',
+ 'Algeciras':'Spain','Sagunto':'Spain','Civitavecchia':'Italy','Piraeus':'Greece','Koper':'Slovenia','Izmir':'Turkey','Derince':'Turkey','Yokohama':'Japan','Nagoya':'Japan','Kobe':'Japan','Toyohashi':'Japan','Kanmon':'Japan','Tokyo':'Japan','Osaka':'Japan',
+ 'Panama Canal':'Panama','Balboa':'Panama','Cristobal':'Panama','Manzanillo':'Mexico','Lazaro Cardenas':'Mexico','Durban':'South Africa','Laem Chabang':'Thailand'};
+function findPort(list, name){
+  var u=String(name||'').toUpperCase().trim();
+  var ex=list.filter(function(p){ return p.port===name; }); if(ex.length) return ex;
+  var fz=list.filter(function(p){ var b=p.port.split('(')[0].trim().toUpperCase();
+    return b===u || b===u+' PORTS' || (u.length>3 && (b.indexOf(u)>=0 || u.indexOf(b)>=0)); });
+  return fz;
+}
+function countryOf(list, name){
+  var f=findPort(list,name); if(f.length) return f[0].country;
+  return PORT2C[name] || (PORT2C[String(name).split('(')[0].trim()] || '');
+}
 
 let LANG = (q.get('lang')==='en') ? 'en' : 'ko';
 function TXT(k,e){ return LANG==='ko' ? k : e; }
@@ -228,14 +247,18 @@ Promise.all([
   let title = '전체 항구 정보';
   if(wantPorts.length){
     const set = {}; wantPorts.forEach(function(p){ set[p]=1; });
-    const sel = data.ports.filter(function(p){ return set[p.port]; });
+    var sel=[]; wantPorts.forEach(function(nm){ findPort(data.ports,nm).forEach(function(p){ if(sel.indexOf(p)<0) sel.push(p); }); });
     const cns = {}; sel.forEach(function(p){ cns[p.country]=1; });
-    const cw = data.ports.filter(function(p){ return p.isCountry && cns[p.country] && !set[p.port]; });
+    wantPorts.forEach(function(nm){ var c=countryOf(data.ports,nm); if(c) cns[c]=1; });
+    const cw = data.ports.filter(function(p){ return p.isCountry && cns[p.country] && sel.indexOf(p)<0; });
     entries = sel.concat(cw);
     title = wantPorts.length + TXT('개 기항지 · 국가 공통 포함',' scheduled ports · incl. country-wide');
   } else if(wantPort){
-    entries = entries.filter(p=>p.port===wantPort);
-    title = wantPort + (entries[0]?` · ${entries[0].country}`:'');
+    entries = findPort(data.ports, wantPort);
+    var _cn = countryOf(data.ports, wantPort);
+    if(_cn){ var _cw = data.ports.filter(function(p){ return p.isCountry && p.country===_cn && entries.indexOf(p)<0; });
+      entries = entries.concat(_cw); }
+    title = wantPort + (_cn?` · ${_cn}`:'');
   } else if(wantCountry){
     entries = entries.filter(p=>p.country===wantCountry);
     title = wantCountry + ' — 국가 전체';
