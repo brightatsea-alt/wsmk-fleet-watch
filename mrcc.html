@@ -143,15 +143,22 @@ function listVessels(){
     var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
     Object.keys(fp).forEach(function(k){ var p=fp[k];
       if(p.lat==null) return;
-      VES.push({name:p.name||k, lat:p.lat, lon:p.lon, sog:(p.sog!=null?p.sog:null)});
+      VES.push({name:p.name||k, lat:p.lat, lon:p.lon, sog:(p.sog!=null?p.sog:null), cog:(p.cog!=null?p.cog:null)});
     });
     VES.sort(function(a,b){ return a.name.localeCompare(b.name); });
     VES.forEach(function(v,i){
-      L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',iconSize:[16,16],iconAnchor:[8,8],
-        html:'<svg width="16" height="16"><circle cx="8" cy="8" r="5" fill="#3DDC97" stroke="#06101C" stroke-width="1.6"/></svg>'})})
+      var cog=(v.cog!=null? v.cog : 0);
+      var svg='<svg width="26" height="26" viewBox="0 0 26 26">'
+        +'<g transform="rotate('+cog+' 13 13)">'
+        +'<path d="M13 2 L18 11 L18 21 L13 24 L8 21 L8 11 Z" fill="#3DDC97" stroke="#05240F" stroke-width="1.6" stroke-linejoin="round"/>'
+        +'<line x1="13" y1="5" x2="13" y2="13" stroke="#05240F" stroke-width="1.4"/></g></svg>';
+      L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:svg}),zIndexOffset:600})
         .on('click',function(){ pickVessel(i); })
-        .bindTooltip(v.name,{direction:'top',className:'mlbl'}).addTo(vLayer);
+        .bindTooltip(v.name,{permanent:true,direction:'right',offset:[11,0],className:'vname',opacity:1}).addTo(vLayer);
     });
+    function zl(){ var c=document.getElementById('map'); if(!c) return;
+      c.classList.toggle('zl2', map.getZoom()<3); }
+    map.on('zoomend', zl); zl();
     listVessels();
   }catch(e){ document.getElementById('side').innerHTML='<div class="hd">로딩 실패: '+(e.message||e)+'</div>'; }
 })();
