@@ -55,14 +55,25 @@ function brg(a,b,c,d){var r=Math.PI/180,y=Math.sin((d-b)*r)*Math.cos(c*r),
  x=Math.cos(a*r)*Math.sin(c*r)-Math.sin(a*r)*Math.cos(c*r)*Math.cos((d-b)*r);
  return ((Math.atan2(y,x)/r)+360)%360;}
 var MR=[], VES=[], vLayer=L.layerGroup().addTo(map), mLayer=L.layerGroup().addTo(map), lnk=L.layerGroup().addTo(map);
+function ctype(nm){ var u=nm.toUpperCase();
+  if(u.indexOf('JRCC')>=0) return 'JRCC'; if(u.indexOf('ARCC')>=0) return 'ARCC';
+  if(u.indexOf('MRSC')>=0||u.indexOf('MRSC')>=0) return 'MRSC';
+  if(u.indexOf('MRCC')>=0) return 'MRCC'; if(u.indexOf('SALVAMAR')>=0) return 'RCC';
+  if(u.indexOf('USCG')>=0) return 'USCG'; if(u.indexOf('JCG')>=0) return 'JCG';
+  if(u.indexOf('CROSS')>=0) return 'CROSS'; return 'RCC'; }
+function cslug(c){ return String(c).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function mpop(m){
-  return '<div class="pop"><b class="t">'+m[0]+'</b><table>'
+  return '<div class="pop"><b class="t">'+m[0]+'</b>'
+    +'<div style="font-family:var(--mono);font-size:10px;color:#FF8A8A;margin-bottom:5px">'+ctype(m[0])+'</div><table>'
     +'<tr><td>국가</td><td>'+m[1]+'</td></tr>'
-    +(m[4]?'<tr><td>전화</td><td class="tel">'+m[4]+'</td></tr>':'')
+    +(m[4]?'<tr><td>전화</td><td class="tel">'+m[4]+'</td></tr>':'<tr><td>전화</td><td style="color:#F0B95A">아래 링크에서 확인</td></tr>')
     +(m[5]?'<tr><td>국내번호</td><td class="tel">'+m[5]+'</td></tr>':'')
     +'<tr><td>위치</td><td>'+m[2].toFixed(2)+'°, '+m[3].toFixed(2)+'°</td></tr>'
     +'</table><div style="margin-top:7px;font-size:11px;color:#F0B95A">⚠ 통화 전 선박 SMS 비상연락망 대조 권장</div>'
-    +'<div style="margin-top:4px"><a href="https://sarcontacts.info/" target="_blank">SAR Contacts에서 확인 ↗</a></div></div>';
+    +'<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<a href="https://sarcontacts.info/?s='+encodeURIComponent(m[0])+'" target="_blank">🔎 이 센터 조회 ↗</a>'
+    +'<a href="https://sarcontacts.info/countries/'+cslug(m[1])+'/" target="_blank">🌐 '+m[1]+' 전체 ↗</a>'
+    +'</div></div>';
 }
 function pickVessel(i){
   var v=VES[i]; if(!v) return;
@@ -79,7 +90,7 @@ function pickVessel(i){
   try{ map.fitBounds(pts,{padding:[80,80],maxZoom:6}); }catch(e){}
   document.getElementById('side').innerHTML='<div class="hd">'+v.name+' — 가까운 MRCC</div>'
     + near.map(function(x){ return '<div class="sv"><b>'+x.m[0]+'</b><span>'+Math.round(x.d).toLocaleString()+' nm · '+Math.round(x.b)+'° · '+x.m[1]
-        +(x.m[4]?'<br>'+x.m[4]:'')+'</span></div>'; }).join('')
+        +(x.m[4]?'<br>'+x.m[4]:'')+'<br><a href="https://sarcontacts.info/countries/'+cslug(x.m[1])+'/" target="_blank" style="color:#5AB8D6">SAR Contacts ↗</a></span></div>'; }).join('')
     + '<div class="sv" onclick="listVessels()"><b>← 전체 선박</b></div>';
 }
 function listVessels(){
