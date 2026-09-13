@@ -1364,18 +1364,24 @@ var WP={
  FLO:[25.5,-79.5],USE:[34.0,-75.0],USN:[41.0,-69.0],USG:[26.0,-90.0],NAT:[45.0,-45.0],
  NEP:[33.0,-124.0],USW:[45.0,-127.0],HAW:[21.5,-158.0],NPC:[40.0,-170.0],NWP:[40.0,175.0],
  BER:[52.0,170.0],TOR:[-11.0,147.0],AUE:[-33.5,152.5],AUN:[-20.0,152.0],AUW:[-32.0,113.0],
- AUS:[-39.0,141.0],NZL:[-37.5,176.0],FIJ:[-18.0,178.0],TAH:[-17.5,-149.5],JPE:[35.0,142.0]
+ AUS:[-39.0,141.0],NZL:[-37.5,176.0],FIJ:[-18.0,178.0],TAH:[-17.5,-149.5],JPE:[35.0,142.0],
+ PRD:[21.0,114.3],TWS:[24.5,119.3],AND:[6.5,95.5],SUN:[-6.0,105.4],LOM:[-8.8,115.8],
+ MAK:[-3.0,118.5],CEL:[3.0,125.0],KRS:[34.3,129.0],YSW:[35.0,124.0],HAI:[18.5,110.0],
+ MNL:[14.0,120.0],PNG:[-5.0,148.0]
 };
-var EDGES=[['NEA','YEL'],['NEA','ECS'],['NEA','JPE'],['ECS','SEA'],['ECS','LUZ'],['LUZ','SEA'],['LUZ','JPE'],
-['SEA','SGP'],['SGP','MAL'],['SGP','JAV'],['MAL','BEN'],['MAL','IND'],['BEN','IND'],['IND','ARA'],['ARA','HOR'],
+var EDGES=[['SGP','AND'],['AND','BEN'],['AND','IND'],['AND','MAL'],['SGP','SUN'],['SUN','JAV'],
+['JAV','MAK'],['MAK','CEL'],['CEL','SEA'],['CEL','TOR'],['TOR','PNG'],['PNG','AUN'],['JAV','LOM'],['LOM','AUW'],
+['SEA','HAI'],['HAI','PRD'],['PRD','TWS'],['TWS','ECS'],['PRD','LUZ'],['SEA','MNL'],['MNL','LUZ'],
+['ECS','YSW'],['YSW','NEA'],['NEA','KRS'],['KRS','JPE'],['NEA','YEL'],['NEA','ECS'],['NEA','JPE'],['ECS','SEA'],['ECS','LUZ'],['LUZ','SEA'],['LUZ','JPE'],
+['SEA','SGP'],['SGP','MAL'],['BEN','IND'],['IND','ARA'],['ARA','HOR'],
 ['ARA','RED'],['RED','RSN'],['RSN','SUZ'],['SUZ','MED'],['MED','MEW'],['MEW','GIB'],['GIB','BIS'],['BIS','NEU'],
 ['NEU','DOV'],['DOV','NSE'],['NSE','BAL'],['GIB','DAK'],['DAK','WAF'],['WAF','CGH'],['CGH','MOZ'],['MOZ','IND'],
 ['CGH','IND'],['WAF','SAE'],['SAE','RIO'],['RIO','MAG'],['MAG','SAW'],['SAW','PEC'],['PEC','PNW'],['PNW','PNE'],
 ['PNE','CAR'],['CAR','FLO'],['FLO','USE'],['USE','USN'],['CAR','USG'],['USN','NAT'],['NAT','BIS'],['NAT','GIB'],
 ['PNW','NEP'],['NEP','USW'],['NEP','HAW'],['HAW','NPC'],['NPC','NWP'],['NWP','JPE'],['NWP','BER'],['BER','NEA'],
-['SEA','TOR'],['TOR','AUN'],['AUN','AUE'],['AUE','AUS'],['AUE','NZL'],['AUE','FIJ'],['FIJ','TAH'],['TAH','PEC'],
+['TOR','AUN'],['AUN','AUE'],['AUE','AUS'],['AUE','NZL'],['AUE','FIJ'],['FIJ','TAH'],['TAH','PEC'],
 ['JAV','AUW'],['AUW','AUS'],['AUW','IND'],['AUW','CGH'],['SAE','CGH'],['NPC','HAW'],['USW','HAW'],['DAK','SAE'],
-['USN','FLO'],['NEP','PEC'],['MAL','CGH'],['BEN','CGH'],['HAW','PEC'],['JPE','HAW'],['SGP','IND'],
+['USN','FLO'],['NEP','PEC'],['HAW','PEC'],['JPE','HAW'],
 ['NPC','PEC'],['NWP','HAW'],['AUE','PEC'],['NZL','PEC'],['MOZ','CGH'],['SAE','WAF'],['USG','FLO'],
 ['NPC','NEP'],['NPC','USW'],['JPE','NPC'],['NWP','NEP']];
 var ADJ={};
@@ -1445,7 +1451,7 @@ function rtDij(s,t){
 }
 function seaRoute(la1,lo1,la2,lo2){
   var e1=rtEntry(la1,lo1), e2=rtEntry(la2,lo2);
-  if(e1===e2 || gcNm(la1,lo1,la2,lo2)<600) return [[la1,lo1],[la2,lo2]];
+  if(e1===e2 || gcNm(la1,lo1,la2,lo2)<150) return [[la1,lo1],[la2,lo2]];
   var path=rtDij(e1,e2), pts=[[la1,lo1]];
   path.forEach(function(k){ pts.push([WP[k][0],WP[k][1]]); });
   pts.push([la2,lo2]);
