@@ -244,7 +244,7 @@
       <select id="fteam"><option value="">Team 전체</option></select>
       <select id="fvm"><option value="">Vessel Manager 전체</option></select>
       <select id="fhseq"><option value="">HSEQ 전체</option></select>
-      <div class="fx"><span id="fcnt"></span><button id="fclr">초기화</button></div>
+      <div class="fx"><span id="lhd2" style="font-family:var(--mono);font-size:9.5px;color:#6E7E92;margin-right:6px"></span><span id="fcnt"></span><button id="fclr">초기화</button></div>
     </div>
     <div id="list"></div>
   </aside>
@@ -683,7 +683,7 @@ function renderList(){
     const sub=v.status==='NOSIG'?v.note:`${v.data.sog!=null?v.data.sog.toFixed(1)+' kn · ':''}${ago(v.elapsed)}`;
     return `<div class="row ${v.status==='NOSIG'?'dim':''}${soloNo===v.no?' sel':''}" onclick="focusV(${v.no})" title="${v.name}${lt?' · 현지시간 '+lt.hm+' '+lt.tz:''}">
       <span class="st" style="background:${ST[v.status].hex}"></span>
-      <div class="nm"><b>${v.name}</b><span>${(function(){var r=RESP[v.mmsi||'']||RESP[v.name]; return r? r.team+' · '+r.vm+' · '+r.hseq : (v.mmsi||'MMSI —');})()}</span><span>${sub}</span></div>
+      <div class="nm"><b>${v.name}</b><span>${(function(){var r=RESP[v.mmsi||'']||RESP[v.name]; return r? r.team+' · '+r.vm+' · '+r.hseq : '⚠ 책임표 미등재' ;})()}</span><span>${sub}</span></div>
       <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
   };
   document.getElementById('list').innerHTML =
