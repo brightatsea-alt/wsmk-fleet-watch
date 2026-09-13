@@ -218,8 +218,8 @@
 </div>
 <div id="posbox">
   <h4>📍 위경도 입력</h4>
-  <textarea id="posin" placeholder="예) 23-40N 123-40E &#10;35°06.5′N 129°02.4′E &#10;35.0994, 129.0403"></textarea>
-  <div class="ex">여러 줄을 한거번에 붙여넣을 수 있습니다<br>도-분 / 십진도 / DDMM 형식 모두 인식</div>
+  <textarea id="posin" placeholder="예) 23-40N 123-40E&#10;3506.5N 12902.4E&#10;북위 35도 06분 동경 129도 02분&#10;35.0994, 129.0403&#10;부산 / Singapore"></textarea>
+  <div class="ex">도-분 · 십진도 · DDMM · 북위/동경 · 항구명(부산, Busan) 모두 인식<br>여러 줄을 한거번에 붙여넣을 수 있습니다</div>
   <div class="bt"><button id="posgo">표시</button><button id="posclr" class="alt">지우기</button><button id="posx" class="alt">닫기</button></div>
   <div class="msg" id="posmsg"></div>
 </div>
@@ -1020,10 +1020,19 @@ function drawDest(v){
     {permanent:true,direction:'top',offset:[0,-18],className:'destlbl',opacity:1});
   return P;
 }
+var KOPORT={'부산':'KRPUS','울산':'KRUSN','인천':'KRINC','평택':'KRPTK','광양':'KRKAN','여수':'KRYOS','포항':'KRKPO','목포':'KRMOK','군산':'KRKUV','동해':'KRDHA','요코하마':'JPYOK','나고야':'JPNGO','도쿄':'JPTYO','고베':'JPKOB','오사카':'JPOSA','상하이':'CNSHA','침다오':'CNTAO','홍콩':'HKHKG','싱가포르':'SGSIN','두바이':'AEJEA','로테르담':'NLRTM','함부르크':'DEHAM','암스테르담':'NLAMS','파나마':'PAPCN','더반':'ZADUR','프리맨틀':'AUFRE','시드니':'AUSYD','멜본':'AUMEL'};
 function parseLL(text){
   var out=[], lines=String(text||'').split(/[\r\n;]+/);
   for(var li=0; li<lines.length; li++){
-    var s=lines[li].toUpperCase().replace(/[\u00B0\u00BA\u02DA\u2032\u2033\u2018\u2019\u201C\u201D'\"]/g,' ').trim(); if(!s) continue;
+    var raw0=lines[li].trim(); if(!raw0) continue;
+    var s=raw0.toUpperCase()
+      .replace(/[\u00B0\u00BA\u02DA\u2032\u2033\u2018\u2019\u201C\u201D'\"]/g,' ')
+      .replace(/\uBD81\uC704/g,' N ').replace(/\uB0A8\uC704/g,' S ')
+      .replace(/\uB3D9\uACBD/g,' E ').replace(/\uC11C\uACBD/g,' W ')
+      .replace(/\uB3C4|\uBD84|\uCD08/g,' ')
+      .replace(/LATITUDE|LAT\b/g,' ').replace(/LONGITUDE|LON\b|LNG\b/g,' ')
+      .replace(/POSITION|POSN|\bPOS\b|\uC704\uCE58/g,' ')
+      .replace(/[|\/]/g,' ').trim();
     var got=null;
     if(/[NSEW]/.test(s)){
       var re=/([NSEW])\s*([0-9]{1,7}(?:[^0-9NSEW]+[0-9.]+)*)|([0-9]{1,7}(?:[^0-9NSEW]+[0-9.]+)*)\s*([NSEW])/g, m, vals=[];
@@ -1033,19 +1042,23 @@ function parseLL(text){
         var isLat=(hemi==='N'||hemi==='S');
         var parts=num.split(/[^0-9.]+/).filter(function(x){return x!=='';});
         var deg,min=0,sec=0;
-        if(parts.length===1 && parts[0].indexOf('.')<0){
-          var d=parts[0];
-          if(isLat){
-            if(d.length<=2){deg=+d;}
-            else if(d.length===4){deg=+d.slice(0,2);min=+d.slice(2);}
-            else if(d.length===6){deg=+d.slice(0,2);min=+d.slice(2,4);sec=+d.slice(4);}
-            else {deg=+d;}
+        if(parts.length===1){
+          var d0=parts[0], ip=d0.split('.')[0], hasDot=d0.indexOf('.')>=0;
+          if(hasDot && ((isLat && ip.length===4) || (!isLat && (ip.length===4||ip.length===5)))){
+            var cut = isLat ? 2 : (ip.length===5?3:2);
+            deg=+ip.slice(0,cut); min=parseFloat(d0.slice(cut));
+          } else if(hasDot){ deg=parseFloat(d0); }
+          else if(isLat){
+            if(d0.length<=2) deg=+d0;
+            else if(d0.length===4){ deg=+d0.slice(0,2); min=+d0.slice(2); }
+            else if(d0.length===6){ deg=+d0.slice(0,2); min=+d0.slice(2,4); sec=+d0.slice(4); }
+            else deg=+d0;
           } else {
-            if(d.length<=3){deg=+d;}
-            else if(d.length===4){deg=+d.slice(0,2);min=+d.slice(2);}
-            else if(d.length===5){deg=+d.slice(0,3);min=+d.slice(3);}
-            else if(d.length===7){deg=+d.slice(0,3);min=+d.slice(3,5);sec=+d.slice(5);}
-            else {deg=+d;}
+            if(d0.length<=3) deg=+d0;
+            else if(d0.length===4){ deg=+d0.slice(0,2); min=+d0.slice(2); }
+            else if(d0.length===5){ deg=+d0.slice(0,3); min=+d0.slice(3); }
+            else if(d0.length===7){ deg=+d0.slice(0,3); min=+d0.slice(3,5); sec=+d0.slice(5); }
+            else deg=+d0;
           }
         } else {
           deg=parseFloat(parts[0])||0; min=parts[1]?parseFloat(parts[1]):0; sec=parts[2]?parseFloat(parts[2]):0;
@@ -1056,12 +1069,39 @@ function parseLL(text){
       }
       var la=vals.filter(function(x){return x.isLat;})[0], lo=vals.filter(function(x){return !x.isLat;})[0];
       if(la&&lo) got={lat:la.v, lon:lo.v};
-    } else {
+    }
+    if(!got){
       var nums=s.match(/-?\d+(?:\.\d+)?/g);
-      if(nums&&nums.length>=2) got={lat:parseFloat(nums[0]), lon:parseFloat(nums[1])};
+      if(nums&&nums.length>=2){
+        var a=parseFloat(nums[0]), b2=parseFloat(nums[1]);
+        if(nums.length>=4){
+          var c1=parseFloat(nums[1]), c2=parseFloat(nums[2]), c3=parseFloat(nums[3]);
+          if(c1<60 && c3<60 && Math.abs(a)<=90 && Math.abs(c2)<=180){
+            got={lat:(a<0?-1:1)*(Math.abs(a)+c1/60), lon:(c2<0?-1:1)*(Math.abs(c2)+c3/60)};
+          }
+        }
+        if(!got) got={lat:a, lon:b2};
+      }
+    }
+    if(!got){
+      var t=raw0.trim(), key=null;
+      for(var kk in KOPORT){ if(t.indexOf(kk)>=0){ key=KOPORT[kk]; break; } }
+      if(!key){
+        var u=t.toUpperCase().replace(/[^A-Z0-9 ]/g,'').trim(), uc=u.replace(/ /g,'');
+        if(PORTXY[uc]) key=uc;
+        if(!key) for(var c3 in LOCODE){ if(u && LOCODE[c3].toUpperCase()===u){ key=c3; break; } }
+        if(!key && u.length>3) for(var c4 in LOCODE){ if(LOCODE[c4].toUpperCase().indexOf(u)>=0){ key=c4; break; } }
+      }
+      if(key && PORTXY[key]) got={lat:PORTXY[key][0], lon:PORTXY[key][1],
+        place:LOCODE[key]+(CC[key.slice(0,2)]?', '+CC[key.slice(0,2)]:'')};
+      if(!got && window.portData && portData.ports){
+        var uu=t.toUpperCase();
+        var hit=portData.ports.filter(function(p){ return p.lat!=null && p.port.toUpperCase().indexOf(uu)>=0; })[0];
+        if(hit) got={lat:hit.lat, lon:hit.lon, place:hit.port+', '+hit.country};
+      }
     }
     if(got && isFinite(got.lat) && isFinite(got.lon) && Math.abs(got.lat)<=90 && Math.abs(got.lon)<=180)
-      out.push({lat:got.lat, lon:got.lon, raw:lines[li].trim()});
+      out.push({lat:got.lat, lon:got.lon, raw:raw0, place:got.place||null});
   }
   return out;
 }
@@ -1076,7 +1116,7 @@ function addWP(list){
   var pts=[];
   list.forEach(function(p){
     var mk=L.marker([p.lat,p.lon],{icon:wpIcon(),pane:'shipsPane'}).addTo(wpLayer);
-    mk.bindTooltip(dm(p.lat,true)+'  '+dm(p.lon,false),{permanent:true,direction:'top',offset:[0,-14],className:'wplbl',opacity:1});
+    mk.bindTooltip((p.place? p.place+'  ' : '')+dm(p.lat,true)+'  '+dm(p.lon,false),{permanent:true,direction:'top',offset:[0,-14],className:'wplbl',opacity:1});
     mk.bindPopup('<div class="pop"><b class="t">\uD83D\uDCCD \uC785\uB825 \uC704\uCE58</b><table>'
       +'<tr><td>\uB3C4-\uBD84</td><td>'+dm(p.lat,true)+' / '+dm(p.lon,false)+'</td></tr>'
       +'<tr><td>\uC2ED\uC9C4\uB3C4</td><td>'+p.lat.toFixed(4)+', '+p.lon.toFixed(4)+'</td></tr>'
