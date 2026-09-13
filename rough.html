@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heavy Weather — WSMK Fleet Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--red:#FF5A5A;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;min-height:100vh}
+ header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+ .brand{font-family:var(--cond);font-weight:600;font-size:21px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--amber);font-size:12px;letter-spacing:.18em;margin-left:8px}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ .sum{padding:9px 16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+ .sum b{color:var(--text)}
+ .wrap{padding:12px 16px 40px}
+ .card{background:var(--panel2);border:1px solid var(--line);border-left:5px solid var(--amber);border-radius:7px;padding:12px 14px;margin-bottom:10px}
+ .card.h4{border-left-color:#FF8A3C}
+ .card.h6{border-left-color:var(--red)}
+ .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .hd h3{font-size:16px;font-weight:700;color:#F2F7FC}
+ .hd .fg{font-family:var(--mono);font-size:10px;font-weight:700;background:#24384F;color:#BFD6E8;border-radius:3px;padding:1px 5px}
+ .hd .fg.k{background:#0B4DA2;color:#fff}
+ .hd .w{margin-left:auto;font-family:var(--mono);font-size:17px;font-weight:700;color:var(--amber)}
+ .card.h4 .hd .w{color:#FF8A3C} .card.h6 .hd .w{color:var(--red)}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px 14px;margin-top:9px;font-family:var(--mono);font-size:11.5px}
+ .grid div span{color:var(--muted)}
+ .note{margin-top:8px;padding:7px 9px;background:rgba(240,185,90,.1);border-radius:4px;font-size:11.5px;color:#F5D9A8;line-height:1.6}
+ .empty{padding:36px;text-align:center;color:var(--muted)}
+</style></head><body>
+<header>
+  <div class="brand">HEAVY WEATHER<small>WSM KOREA</small></div>
+  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">황천 조우 선박 — 실시간 유의파고 기준</div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div class="bar">
+  파고 기준 <select id="fmin"><option value="2.5">2.5 m 이상</option><option value="3" selected>3 m 이상</option><option value="4">4 m 이상</option><option value="5">5 m 이상</option><option value="6">6 m 이상</option></select>
+  <select id="fvm"><option value="">Vessel Manager 전체</option></select>
+  <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
+  <span id="upd" style="margin-left:auto"></span>
+</div>
+<div class="sum" id="sum">해황 조회 중…</div>
+<div class="wrap" id="list"></div>
+<script>
+var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR'};
+var FLTR={KOR:'K',MHL:'M',PAN:'P',LBR:'L'};
+function bft(kn){var t=[1,4,7,11,17,22,28,34,41,48,56,64];for(var i=0;i<t.length;i++)if(kn<t[i])return i;return 12;}
+function sea(h){return h<1.25?'약간 넓음':h<2.5?'넓음':h<4?'거침':h<6?'매우 거침':h<9?'높음':'매우 높음';}
+function wd(d){if(d==null)return '';var s=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];return s[Math.round(d/22.5)%16];}
+var DATA=[];
+function draw(){
+  var min=parseFloat(document.getElementById('fmin').value)||3;
+  var fv=document.getElementById('fvm').value||'';
+  var q=(document.getElementById('fq').value||'').toLowerCase();
+  var rows=DATA.filter(function(r){ return r.hs>=min && (!fv||r.vm===fv) && (!q||r.name.toLowerCase().indexOf(q)>=0); });
+  rows.sort(function(a,b){ return b.hs-a.hs; });
+  document.getElementById('sum').innerHTML='황천 조우 <b>'+rows.length+'</b>척 · 최대 파고 <b>'
+    +(rows[0]?rows[0].hs.toFixed(1)+' m':'—')+'</b> · 기준 '+min+' m 이상 · 전 선대 '+DATA.length+'척 조회';
+  document.getElementById('list').innerHTML = rows.length? rows.map(function(r){
+    var cls = r.hs>=6?'h6' : (r.hs>=4?'h4':'');
+    var notes=[];
+    if(r.hs>=6) notes.push('심한 황천 — 감속·침로변경 검토, 화물 고박 재점검');
+    else if(r.hs>=4) notes.push('황천 — 갑판작업 금지, 고박 상태 확인');
+    if(r.kn!=null && r.kn>=34) notes.push('폭풍급 바람 BF'+bft(r.kn));
+    if(r.tp!=null && r.tp<=7 && r.hs>=3) notes.push('단주기 파랑 — 슬래밍 주의');
+    return '<div class="card '+cls+'">'
+      +'<div class="hd"><h3>'+r.name+'</h3><span class="fg'+(r.flag==='KOR'?' k':'')+'">'+(FLTR[r.flag]||'–')+'</span>'
+      +'<span class="w">'+r.hs.toFixed(1)+' m</span></div>'
+      +'<div class="grid">'
+      +'<div><span>해상상태</span> '+sea(r.hs)+'</div>'
+      +'<div><span>파주기/파향</span> '+(r.tp!=null?Math.round(r.tp)+'s':'—')+' · '+wd(r.wdir)+'</div>'
+      +'<div><span>풍속</span> '+(r.kn!=null?Math.round(r.kn)+' kn (BF'+bft(r.kn)+')':'—')+'</div>'
+      +'<div><span>돌풍</span> '+(r.gust!=null?Math.round(r.gust)+' kn':'—')+'</div>'
+      +'<div><span>풍향</span> '+wd(r.wnd)+'</div>'
+      +'<div><span>현재속력</span> '+(r.sog!=null?r.sog.toFixed(1)+' kn':'—')+'</div>'
+      +'<div><span>위치</span> '+r.lat.toFixed(2)+'°, '+r.lon.toFixed(2)+'°</div>'
+      +(r.port?'<div><span>다음 기항</span> '+r.port+' '+r.eta+'</div>':'')
+      +(r.vm?'<div><span>VM</span> '+r.vm+'</div>':'')
+      +(r.hseq?'<div><span>HSEQ</span> '+r.hseq+'</div>':'')
+      +'</div>'
+      + (notes.length? '<div class="note">⚠ '+notes.join(' · ')+'</div>' : '')
+      +'</div>';
+  }).join('') : '<div class="empty">기준 이상 파고를 조우 중인 선박이 없습니다</div>';
+}
+(async function(){
+  try{
+    var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
+    var sc={}; try{ sc=(await (await fetch('schedule.json?t='+Date.now())).json()).v||{}; }catch(e){}
+    var rs={}; try{ rs=(await (await fetch('responsibility.json?t='+Date.now())).json()).vessels||{}; }catch(e){}
+    var list=[];
+    Object.keys(fp).forEach(function(k){ var p=fp[k]; if(p.lat==null) return;
+      list.push({key:k, name:p.name||k, lat:p.lat, lon:((p.lon+540)%360)-180, sog:(p.sog!=null?p.sog:null)}); });
+    if(!list.length){ document.getElementById('sum').textContent='위치 데이터가 없습니다'; return; }
+    var la=list.map(function(v){ return v.lat.toFixed(3); }).join(',');
+    var lo=list.map(function(v){ return v.lon.toFixed(3); }).join(',');
+    var res=await Promise.all([
+      fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la+'&longitude='+lo+'&current=wave_height,wave_period,wave_direction').then(function(r){return r.json();}),
+      fetch('https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn').then(function(r){return r.json();})
+    ]);
+    var M=res[0], W=res[1];
+    if(!Array.isArray(M)) M=[M];
+    if(!Array.isArray(W)) W=[W];
+    if(M[0] && M[0].error){ document.getElementById('sum').textContent='해황 API 오류: '+(M[0].reason||''); return; }
+    var vms=[];
+    list.forEach(function(v,i){
+      var m=(M[i]&&M[i].current)||{}, w=(W[i]&&W[i].current)||{};
+      if(m.wave_height==null) return;
+      var rr=rs[v.key]||rs[v.name]||null;
+      var lg=(sc[v.key]||[])[0];
+      if(rr && rr.vm && vms.indexOf(rr.vm)<0) vms.push(rr.vm);
+      DATA.push({name:v.name, lat:v.lat, lon:v.lon, sog:v.sog,
+        hs:m.wave_height, tp:m.wave_period, wdir:m.wave_direction,
+        kn:w.wind_speed_10m, gust:w.wind_gusts_10m, wnd:w.wind_direction_10m,
+        flag:MIDF[String(v.key).slice(0,3)]||'',
+        vm:(rr?rr.vm:''), hseq:(rr?rr.hseq:''),
+        port:(lg?lg[0]:''), eta:(lg?lg[1]:'')});
+    });
+    var sv=document.getElementById('fvm');
+    sv.innerHTML='<option value="">Vessel Manager 전체 ('+vms.length+')</option>'
+      +vms.sort().map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+    sv.onchange=draw;
+    document.getElementById('upd').textContent='조회 '+new Date().toISOString().slice(11,16)+'Z · NOAA/ECMWF 기반';
+    draw();
+  }catch(e){ document.getElementById('sum').textContent='조회 실패: '+(e.message||e); }
+})();
+document.getElementById('fmin').onchange=draw;
+document.getElementById('fq').oninput=draw;
+</script></body></html>
