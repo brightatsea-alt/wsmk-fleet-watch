@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long Voyage — WSMK Fleet Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--green:#5CE01E;--red:#FF5A5A;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;min-height:100vh}
+ header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+ .brand{font-family:var(--cond);font-weight:600;font-size:21px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--accent);font-size:12px;letter-spacing:.18em;margin-left:8px}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ a.back:hover{border-color:var(--accent)}
+ .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ .sum{padding:9px 16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+ .sum b{color:var(--text)}
+ .wrap{padding:12px 16px 40px}
+ .card{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:7px;padding:12px 14px;margin-bottom:10px}
+ .card.long{border-left-color:var(--amber)}
+ .card.crit{border-left-color:var(--red)}
+ .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .hd h3{font-size:16px;font-weight:700;color:#F2F7FC}
+ .hd .fg{font-family:var(--mono);font-size:10px;font-weight:700;background:#24384F;color:#BFD6E8;border-radius:3px;padding:1px 5px}
+ .hd .fg.k{background:#0B4DA2;color:#fff}
+ .hd .bd{font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 7px;border-radius:3px;background:#B32020;color:#fff}
+ .hd .d{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--amber)}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 14px;margin-top:9px;font-family:var(--mono);font-size:11.5px}
+ .grid div span{color:var(--muted)}
+ .legs{margin-top:9px;padding-top:8px;border-top:1px dashed rgba(90,184,214,.28);font-family:var(--mono);font-size:11px;color:#A7BACE;line-height:1.9}
+ .legs b{color:var(--green)}
+ .note{margin-top:8px;padding:7px 9px;background:rgba(240,185,90,.1);border-radius:4px;font-size:11.5px;color:#F5D9A8;line-height:1.6}
+ .empty{padding:36px;text-align:center;color:var(--muted)}
+</style></head><body>
+<header>
+  <div class="brand">LONG VOYAGE<small>WSM KOREA</small></div>
+  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">대양 황단 · 장기 무기항 항해 선박 — 보선 계획용</div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div class="bar">
+  기준거리 <select id="fmin"><option value="1000">1,000 nm 이상</option><option value="2000" selected>2,000 nm 이상</option><option value="3000">3,000 nm 이상</option><option value="500">500 nm 이상</option></select>
+  정렬 <select id="fsort"><option value="nm">잔여거리 순</option><option value="days">도착일 순</option><option value="name">선명 순</option></select>
+  <input id="fq" type="search" placeholder="선박 검색" style="min-width:130px">
+  <span id="hint" style="margin-left:auto"></span>
+</div>
+<div class="sum" id="sum">불러오는 중…</div>
+<div class="wrap" id="list"></div>
+<script>
+function gc(a,b,c,d){var R=3440.065,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);
+ return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
+var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','353':'PAN','354':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR'};
+var FLTR={KOR:'K',MHL:'M',PAN:'P',LBR:'L'};
+var NOW=Date.now(), YY=new Date().getUTCFullYear();
+function legT(s){ if(!s) return 0; var p=s.split('-'); if(p.length<2) return 0;
+  var t=Date.UTC(YY,parseInt(p[0],10)-1,parseInt(p[1],10),23,59);
+  if(t-NOW < -200*864e5) t=Date.UTC(YY+1,parseInt(p[0],10)-1,parseInt(p[1],10),23,59); return t; }
+function dur(h){ return h<24? h.toFixed(0)+'h' : (h/24).toFixed(1)+'일'; }
+var DATA=[];
+function draw(){
+  var min=parseFloat(document.getElementById('fmin').value)||2000;
+  var srt=document.getElementById('fsort').value;
+  var q=(document.getElementById('fq').value||'').toLowerCase();
+  var rows=DATA.filter(function(r){ return r.nm>=min && (!q || r.name.toLowerCase().indexOf(q)>=0); });
+  rows.sort(function(a,b){ if(srt==='name') return a.name.localeCompare(b.name);
+    if(srt==='days') return a.eta-b.eta; return b.nm-a.nm; });
+  document.getElementById('sum').innerHTML='장기항해 <b>'+rows.length+'</b>척 · 최장 <b>'
+    +(rows[0]?Math.round(rows[0].nm).toLocaleString()+' nm':'—')+'</b> · 기준 '+Math.round(min).toLocaleString()+' nm 이상 · 전 선대 '+DATA.length+'척 분석';
+  document.getElementById('list').innerHTML = rows.length? rows.map(function(r){
+    var cls = r.nm>=5000?'crit' : (r.nm>=3000?'long':'');
+    var k = r.flag==='KOR'?' k':'';
+    return '<div class="card '+cls+'">'
+      +'<div class="hd"><h3>'+r.name+'</h3><span class="fg'+k+'">'+(FLTR[r.flag]||'–')+'</span>'
+      +(r.mou?'<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+r.mou+'</span>':'')
+      +(r.alert?'<span class="bd">PSC ALERT</span>':'')
+      +'<span class="d">'+Math.round(r.nm).toLocaleString()+' nm</span></div>'
+      +'<div class="grid">'
+      +'<div><span>다음 기항</span> '+r.port+'</div>'
+      +'<div><span>ETA</span> '+r.eta0+' (D-'+r.dleft+')</div>'
+      +'<div><span>현재속력</span> '+(r.sog!=null?r.sog.toFixed(1)+' kn':'—')+'</div>'
+      +'<div><span>예상 항해</span> '+dur(r.hrs)+'</div>'
+      +'<div><span>잔여 기항</span> '+r.legs+'구간</div>'
+      +'<div><span>최종 AIS</span> '+r.age+'</div>'
+      +'</div>'
+      +'<div class="legs">'+r.route+'</div>'
+      + (r.note? '<div class="note">⚠ '+r.note+'</div>' : '')
+      +'</div>';
+  }).join('') : '<div class="empty">조건에 맞는 선박이 없습니다</div>';
+}
+(async function(){
+  try{
+    var sc=(await (await fetch('schedule.json?t='+Date.now())).json()).v||{};
+    var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
+    var ps={}; try{ ps=(await (await fetch('psc-alerts.json?t='+Date.now())).json()).v||{}; }catch(e){}
+    Object.keys(sc).forEach(function(k){
+      var pos=fp[k]; if(!pos || pos.lat==null) return;
+      var up=sc[k].filter(function(l){ var t=legT(l[2]||l[1]); return !t || t>=NOW; });
+      if(!up.length) return;
+      var nx=up[0], d=gc(pos.lat,pos.lon,nx[3],nx[4]);
+      var eta=legT(nx[1])||NOW;
+      var spd=(pos.sog && pos.sog>4)? pos.sog : 14;
+      var hrs=d/spd, age='—';
+      if(pos.lastReceived){ var a=(NOW-new Date(pos.lastReceived).getTime())/3600e3;
+        age = a<48? a.toFixed(1)+'h 전' : (a/24).toFixed(1)+'일 전'; }
+      var p=ps[k]||null, notes=[];
+      if(d>=3000) notes.push('대양 황단 — 중간 보선·수리 기회 없음');
+      if(hrs/24>=14) notes.push('14일 이상 연속 항해 — 물자·부품 사전 적재 필요');
+      if(p&&p[0]) notes.push('PSC Alert — 다음 기항지 검사 대비');
+      if(pos.sog!=null && pos.sog<4 && d>1500) notes.push('현재 저속/정지 — 일정 지연 가능성');
+      DATA.push({key:k, name:pos.name||k, nm:d, hrs:hrs, eta:eta, eta0:nx[1],
+        dleft:Math.max(0,Math.round((eta-NOW)/864e5)), port:nx[0], legs:up.length,
+        sog:(pos.sog!=null?pos.sog:null), age:age,
+        flag:MIDF[String(k).slice(0,3)]||'', mou:(p?p[1]:''), alert:(p?p[0]:0),
+        route: up.slice(0,6).map(function(l,i){ return '<b>'+(i+1)+'.</b> '+l[0]+' '+l[1]; }).join('  →  '),
+        note: notes.join(' · ')});
+    });
+    draw();
+  }catch(e){ document.getElementById('sum').textContent='데이터를 불러오지 못했습니다: '+(e.message||e); }
+})();
+['fmin','fsort'].forEach(function(id){ document.getElementById(id).onchange=draw; });
+document.getElementById('fq').oninput=draw;
+</script></body></html>
