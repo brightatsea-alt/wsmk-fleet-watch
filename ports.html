@@ -206,10 +206,21 @@ function sourcesBlock(){
   </div>`;
 }
 
+/* 캐시 우선 로딩 — 세션 캐시 → 브라우저 캐시 → 네트워크 */
+var DVER='v20260913';
+function loadJSON(name, fallback){
+  try{ var c=sessionStorage.getItem('fw_'+name+'_'+DVER); if(c) return Promise.resolve(JSON.parse(c)); }catch(e){}
+  return fetch(name+'?'+DVER, {cache:'force-cache'})
+    .then(function(r){ return r.ok? r.text() : null; })
+    .then(function(t){ if(!t) return fallback;
+      try{ sessionStorage.setItem('fw_'+name+'_'+DVER, t); }catch(e){}
+      return JSON.parse(t); })
+    .catch(function(){ return fallback; });
+}
 Promise.all([
-  fetch('ports-data.json?t='+Date.now()).then(r=>r.json()),
-  fetch('translations-ko.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({})),
-  fetch('translations-ko2.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}))
+  loadJSON('ports-data.json', {ports:[]}),
+  loadJSON('translations-ko.json', {}),
+  loadJSON('translations-ko2.json', {})
 ]).then(([data, koMap, ko2])=>{
   KO = Object.assign({}, koMap||{}, ko2||{});
   let entries = data.ports;
