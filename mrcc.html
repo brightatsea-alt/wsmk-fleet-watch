@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MRCC / SAR — WSMK Fleet Watch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--red:#FF3B3B;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ html,body{height:100%}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;overflow:hidden}
+ header{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .brand{font-family:var(--cond);font-weight:600;font-size:20px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--red);font-size:12px;letter-spacing:.16em;margin-left:7px}
+ .note{font-family:var(--mono);font-size:11px;color:var(--muted)}
+ a.back,a.ext{color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ a.back{margin-left:auto}
+ a.back:hover,a.ext:hover{border-color:var(--accent)}
+ #wrap{display:flex;height:calc(100% - 46px)}
+ aside{width:330px;min-width:330px;background:var(--panel2);border-right:1px solid var(--line);overflow-y:auto}
+ #map{flex:1}
+ .sv{padding:8px 12px;border-bottom:1px solid rgba(34,51,74,.6);cursor:pointer}
+ .sv:hover{background:rgba(90,184,214,.1)}
+ .sv b{font-size:13px}
+ .sv span{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px}
+ .hd{padding:8px 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:#CFE2F2;background:#182839;border-bottom:2px solid var(--red);position:sticky;top:0;z-index:2}
+ .mlbl{background:rgba(40,8,8,.95);border:1px solid var(--red);color:#FFC9C9;font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:3px;white-space:nowrap}
+ .mlbl::before{display:none}
+ .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border-radius:7px;border:1px solid var(--line)}
+ .leaflet-popup-tip{background:var(--panel)}
+ .pop b.t{font-family:var(--cond);font-size:17px;color:#fff;display:block;margin-bottom:5px}
+ .pop table{font-size:12px;border-collapse:collapse}
+ .pop td{padding:2px 0}
+ .pop td:first-child{color:var(--muted);padding-right:10px;white-space:nowrap}
+ .pop a{color:var(--accent)}
+ .pop .tel{font-family:var(--mono);font-size:14px;font-weight:700;color:#7CFF9E}
+</style></head><body>
+<header>
+  <div class="brand">MRCC / SAR<small>EMERGENCY</small></div>
+  <div class="note">선박 클릭 → 가까운 MRCC 3곳 · MRCC 클릭 → 연락처</div>
+  <a class="ext" href="https://sarcontacts.info/" target="_blank">SAR Contacts ↗</a>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div id="wrap"><aside id="side"><div class="hd">불러오는 중…</div></aside><div id="map"></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map=L.map('map',{worldCopyJump:true,zoomControl:false}).setView([20,110],3);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,attribution:'&copy; Esri Ocean'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,opacity:.85}).addTo(map);
+function gc(a,b,c,d){var R=3440.065,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);
+ return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y));}
+function brg(a,b,c,d){var r=Math.PI/180,y=Math.sin((d-b)*r)*Math.cos(c*r),
+ x=Math.cos(a*r)*Math.sin(c*r)-Math.sin(a*r)*Math.cos(c*r)*Math.cos((d-b)*r);
+ return ((Math.atan2(y,x)/r)+360)%360;}
+var MR=[], VES=[], vLayer=L.layerGroup().addTo(map), mLayer=L.layerGroup().addTo(map), lnk=L.layerGroup().addTo(map);
+function mpop(m){
+  return '<div class="pop"><b class="t">'+m[0]+'</b><table>'
+    +'<tr><td>국가</td><td>'+m[1]+'</td></tr>'
+    +(m[4]?'<tr><td>전화</td><td class="tel">'+m[4]+'</td></tr>':'')
+    +(m[5]?'<tr><td>국내번호</td><td class="tel">'+m[5]+'</td></tr>':'')
+    +'<tr><td>위치</td><td>'+m[2].toFixed(2)+'°, '+m[3].toFixed(2)+'°</td></tr>'
+    +'</table><div style="margin-top:7px;font-size:11px;color:#F0B95A">⚠ 통화 전 선박 SMS 비상연락망 대조 권장</div>'
+    +'<div style="margin-top:4px"><a href="https://sarcontacts.info/" target="_blank">SAR Contacts에서 확인 ↗</a></div></div>';
+}
+function pickVessel(i){
+  var v=VES[i]; if(!v) return;
+  lnk.clearLayers();
+  var near=MR.map(function(m){ return {m:m, d:gc(v.lat,v.lon,m[2],m[3]), b:brg(v.lat,v.lon,m[2],m[3])}; })
+    .sort(function(a,b){ return a.d-b.d; }).slice(0,3);
+  near.forEach(function(x,k){
+    var lo=x.m[3]; if(lo-v.lon>180) lo-=360; if(v.lon-lo>180) lo+=360;
+    L.polyline([[v.lat,v.lon],[x.m[2],lo]],{color:k===0?'#FF3B3B':'#8A4B4B',weight:k===0?3:1.8,opacity:.9,dashArray:'5 6'}).addTo(lnk);
+    L.marker([(v.lat+x.m[2])/2,(v.lon+lo)/2],{icon:L.divIcon({className:'',iconSize:[0,0]}),interactive:false})
+      .bindTooltip(Math.round(x.d).toLocaleString()+' nm · '+Math.round(x.b)+'°',{permanent:true,direction:'top',className:'mlbl'}).addTo(lnk);
+  });
+  var pts=[[v.lat,v.lon]].concat(near.map(function(x){ return [x.m[2],x.m[3]]; }));
+  try{ map.fitBounds(pts,{padding:[80,80],maxZoom:6}); }catch(e){}
+  document.getElementById('side').innerHTML='<div class="hd">'+v.name+' — 가까운 MRCC</div>'
+    + near.map(function(x){ return '<div class="sv"><b>'+x.m[0]+'</b><span>'+Math.round(x.d).toLocaleString()+' nm · '+Math.round(x.b)+'° · '+x.m[1]
+        +(x.m[4]?'<br>'+x.m[4]:'')+'</span></div>'; }).join('')
+    + '<div class="sv" onclick="listVessels()"><b>← 전체 선박</b></div>';
+}
+function listVessels(){
+  lnk.clearLayers();
+  document.getElementById('side').innerHTML='<div class="hd">선박 '+VES.length+'척 · MRCC '+MR.length+'곳</div>'
+    + VES.map(function(v,i){ return '<div class="sv" onclick="pickVessel('+i+')"><b>'+v.name+'</b><span>'
+        +v.lat.toFixed(2)+'°, '+v.lon.toFixed(2)+'° · '+(v.sog!=null?v.sog.toFixed(1)+'kn':'—')+'</span></div>'; }).join('');
+}
+(async function(){
+  try{
+    var md=await (await fetch('mrcc-data.json?v1',{cache:'force-cache'})).json();
+    MR=md.v||[];
+    MR.forEach(function(m){
+      L.marker([m[2],m[3]],{icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],
+        html:'<svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="#2A0808" stroke="#FF3B3B" stroke-width="2"/><text x="9" y="12.5" text-anchor="middle" font-family="monospace" font-size="8" font-weight="700" fill="#FF8A8A">R</text></svg>'})})
+        .bindPopup(mpop(m)).bindTooltip(m[0],{direction:'top',className:'mlbl'}).addTo(mLayer);
+    });
+    var fp=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{};
+    Object.keys(fp).forEach(function(k){ var p=fp[k];
+      if(p.lat==null) return;
+      VES.push({name:p.name||k, lat:p.lat, lon:p.lon, sog:(p.sog!=null?p.sog:null)});
+    });
+    VES.sort(function(a,b){ return a.name.localeCompare(b.name); });
+    VES.forEach(function(v,i){
+      L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',iconSize:[16,16],iconAnchor:[8,8],
+        html:'<svg width="16" height="16"><circle cx="8" cy="8" r="5" fill="#3DDC97" stroke="#06101C" stroke-width="1.6"/></svg>'})})
+        .on('click',function(){ pickVessel(i); })
+        .bindTooltip(v.name,{direction:'top',className:'mlbl'}).addTo(vLayer);
+    });
+    listVessels();
+  }catch(e){ document.getElementById('side').innerHTML='<div class="hd">로딩 실패: '+(e.message||e)+'</div>'; }
+})();
+</script></body></html>
