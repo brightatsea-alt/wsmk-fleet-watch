@@ -137,7 +137,7 @@
 
   /* ── Map markers ── */
   .vmark{filter:drop-shadow(0 0 3px rgba(0,0,0,.7))}
-  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:12.5px}
+  .leaflet-popup-content-wrapper{user-select:none;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:12.5px}
   .leaflet-popup-tip{background:var(--panel)}
   .pop b.t{font-size:14px;display:block;margin-bottom:5px}
   .pop table{font-family:var(--mono);font-size:11.5px;border-collapse:collapse}
@@ -391,6 +391,26 @@ function wxRefresh(){
   wxTimer=setTimeout(function(){ drawWxGrid(w.id); }, 900);
 }
 map.on('moveend', wxRefresh);
+/* 팝업 드래그 이동 */
+map.on('popupopen', function(e){
+  try{
+    var el=e.popup && e.popup.getElement && e.popup.getElement(); if(!el || el.__drg) return;
+    el.__drg=1;
+    var head=el.querySelector('.leaflet-popup-content-wrapper')||el;
+    head.style.cursor='move';
+    var sx=0, sy=0, ox=0, oy=0, on=false;
+    function mv(ev){ if(!on) return; el.style.marginLeft=(ox+ev.clientX-sx)+'px'; el.style.marginTop=(oy+ev.clientY-sy)+'px'; }
+    function up(){ on=false; try{ map.dragging.enable(); }catch(e2){} document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
+    head.addEventListener('mousedown', function(ev){
+      if(ev.target.closest && ev.target.closest('button, a, input, select, textarea, .leaflet-popup-close-button')) return;
+      on=true; sx=ev.clientX; sy=ev.clientY;
+      ox=parseFloat(el.style.marginLeft||0)||0; oy=parseFloat(el.style.marginTop||0)||0;
+      try{ map.dragging.disable(); }catch(e3){}
+      ev.preventDefault(); ev.stopPropagation();
+      document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+    });
+  }catch(e){}
+});
 function setWx(i){
   wxIdx=((i%WXLAYERS.length)+WXLAYERS.length)%WXLAYERS.length;
   var w=WXLAYERS[wxIdx]; wxErr=0;
