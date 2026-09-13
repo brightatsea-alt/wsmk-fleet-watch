@@ -1252,6 +1252,11 @@ var portLayer = L.layerGroup().addTo(map);
   ps.innerHTML="<option value=''>⚓ 기항 항구 선택…</option>";
   ps.onchange=function(){ if(ps.value){ window.open("calls.html?port="+encodeURIComponent(ps.value),"_blank"); ps.value=""; } };
   bar.appendChild(ps);
+  var lv=document.createElement('div');
+  lv.className='chip'; lv.id='lvbtn'; lv.title='대양 황단·장기 항해 선박 — 보선 계획';
+  lv.innerHTML='\uD83C\uDF0A 장기항해';
+  lv.onclick=function(){ window.open('ocean.html','_blank'); };
+  bar.appendChild(lv);
   var rbWrap=document.createElement('div');
   rbWrap.id='rulerbar';
   rbWrap.innerHTML='<div class="rb" id="rulerBtn" title="거리 측정 — 여러 지점 연속 클릭">\uD83D\uDCCF</div>'
