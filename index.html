@@ -637,13 +637,14 @@ function build(){
     if(!d || d.lat==null){ v.status='NOSIG'; v.note='수신 이력 없음'; return v; }
     const h=(now-new Date(d.lastReceived).getTime())/3600e3;
     v.elapsed=h;
-    v.status = h<6 ? 'LIVE' : h<24 ? 'DR' : 'STALE';
+    /* Pole Star 위치 폴링 주기 6h — 1주기(8h) 이내 정상, 2~6주기(36h) 추정, 그 이후 미수신 */
+    v.status = h<8 ? 'LIVE' : h<36 ? 'DR' : 'STALE';
     const moving = (d.sog||0)>=0.5 && d.navStatus!==1 && d.navStatus!==5 && d.cog!=null && d.cog<360;
     v.anchored=!moving;
     if(moving && h>0.02){
       const nm=Math.min(d.sog*h, d.sog*72);           // 3일 이상은 투영 중단
       [v.lat,v.lon]=project(d.lat,d.lon,d.cog,nm);
-      v.estimated=h>=0.5;
+      v.estimated=h>=8;   /* 폴링 1주기 경과 후에만 추정으로 표기 */
       v.radiusNm=Math.min(Math.max(3,h*3),180);       // 불확실성 반경
     } else { v.lat=d.lat; v.lon=d.lon; }
     return v;
@@ -829,7 +830,7 @@ function healthFromData(){
   if(!store.updated){ setHealth('err','\uB370\uC774\uD130 \uC5C6\uC74C'); return; }
   var age = Date.now() - new Date(store.updated).getTime();
   if(!isFinite(age)) { setHealth('warn','\uC2DC\uAC01 \uD655\uC778 \uBD88\uAC00'); return; }
-  if(age < 95*60e3) setHealth('ok','\uC815\uC0C1 \u00b7 '+ageTxt(age)+' \uC804 \uC218\uC9D1');
+  if(age < 95*60e3) setHealth('ok','\uC815\uC0C1 \u00b7 '+ageTxt(age)+' \uC804 \uC218\uC9D1');   /* \uC218\uC9D1 \uC8FC\uAE30 1\uC2DC\uAC04 */
   else if(age < 6*3600e3) setHealth('warn','\uC218\uC9D1 \uC9C0\uC5F0 \u00b7 '+ageTxt(age)+' \uACBD\uACFC');
   else setHealth('err','\uC218\uC9D1 \uC911\uB2E8 \uC758\uC2EC \u00b7 '+ageTxt(age)+' \uACBD\uACFC');
 }
