@@ -105,6 +105,8 @@
   .row .nm .fg.k{background:#0B4DA2;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}
   .row .nm .al{color:#FF5A5A;font-weight:700;margin-left:4px}
   .row .nm span+span{color:#6E7E92;margin-left:6px}
+  .row .lt.day b{color:#5CE01E}
+  .row .lt.day{color:#7FBF5A}
   .row .lt{font-family:var(--mono);font-size:11px;text-align:right;color:var(--muted);flex:none;line-height:1.5}
   .row .lt b{display:block;color:var(--text);font-weight:500;font-size:12px}
   .row.dim{opacity:.75}
@@ -685,8 +687,10 @@ function project(lat,lon,cog,nm){
 function tzOf(lon){ return Math.round(lon/15); }
 function localTime(lon){
   const tz=tzOf(lon), d=new Date(Date.now()+tz*3600e3);
-  return {hm:String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'),
-          tz:'UTC'+(tz>=0?'+':'')+tz};
+  const H=d.getUTCHours(), M=d.getUTCMinutes(), mins=H*60+M;
+  return {hm:String(H).padStart(2,'0')+':'+String(M).padStart(2,'0'),
+          tz:'UTC'+(tz>=0?'+':'')+tz,
+          day: mins>=450 && mins<=1110};
 }
 function ago(h){ if(!isFinite(h)) return '\u2014'; return h<1 ? Math.round(h*60)+'분 전' : h<48 ? h.toFixed(1)+'h 전' : Math.floor(h/24)+'일 전'; }
 function fmtEta(e){ return e&&e.Month ? String(e.Month).padStart(2,'0')+'/'+String(e.Day).padStart(2,'0')+' '+String(e.Hour).padStart(2,'0')+':'+String(e.Minute||0).padStart(2,'0'):null; }
@@ -732,7 +736,7 @@ function popup(v){
   const d=v.data, lt=localTime(v.lon);
   const rows=[
     ['상태', ST[v.status].label + (v.anchored?' · 정박/묘박':'') + (v.estimated?' · 위치는 DR 추정':'')],
-    ['현지시간', `${lt.hm} (${lt.tz})`],
+    ['현지시간', lt.day ? `<b style="color:#5CE01E">${lt.hm}</b> (${lt.tz})` : `${lt.hm} (${lt.tz})`],
     ['위치', v.lat.toFixed(3)+'°, '+v.lon.toFixed(3)+'°'],
     ['SOG / COG', (d.sog!=null?d.sog.toFixed(1)+' kn':'—')+' / '+(d.cog!=null&&d.cog<360?Math.round(d.cog)+'°':'—')],
     ['최종 AIS', ago(v.elapsed)],
@@ -856,7 +860,7 @@ function renderList(){
         if(p&&p[0]) s+=' <b class="al">ALERT</b>';
         return s;
       })()}</span><span>${sub}</span></div>
-      <div class="lt">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
+      <div class="lt${lt&&lt.day?' day':''}">${lt?`<b>${lt.hm}</b>${lt.tz}`:'—'}</div></div>`;
   };
   document.getElementById('list').innerHTML =
     (onMap.length?`<div class="sec">항해 · 정박 중 (${onMap.length})<span class="lth">현지시간</span></div>`+onMap.map(row).join(''):'')
@@ -1973,6 +1977,8 @@ const EN_PAIRS = [
  ['검사창','Insp window'],
  ['선령','Age'],
  ['항적 Track','Track'],
+ ['목적지 입력 → 향후 기항 선박 (예: Ulsan)','Destination → vessels scheduled to call (e.g. Ulsan)'],
+ ['자연어 항해 질의 — 예) Asian Trust 현위치에서 New York 기항 후 Bremerhaven까지','Natural-language voyage query — e.g. Asian Trust from present position via New York to Bremerhaven'],
  ['목적지 입력','Destination'],
 ].sort((a,b)=>b[0].length-a[0].length);
 const KOMEM = new WeakMap();
