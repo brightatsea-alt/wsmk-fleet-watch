@@ -2021,13 +2021,23 @@ function toggleLang(){
     LOBS.observe(document.body,{childList:true,subtree:true,characterData:true});
     if(q) q.placeholder='Search vessel · MMSI';
     var ak=document.getElementById('ask'); if(ak) ak.placeholder='Natural-language query — e.g. Asian Trust via New York to Bremerhaven';
-    var pi=document.getElementById('posin'); if(pi) pi.placeholder='e.g. 23-40N 123-40E / 3506.5N 12902.4E / 35.0994, 129.0403 / Busan';
+    var pi=document.getElementById('posin'); if(pi) pi.placeholder='Paste several lines at once (optional)';
+    var de=document.getElementById('dest'); if(de) de.placeholder='Destination → vessels scheduled to call (e.g. Ulsan)';
+    var p1=document.getElementById('pos1'); if(p1) p1.placeholder='1) 23-40N 123-40E / Busan';
+    var p2=document.getElementById('pos2'); if(p2) p2.placeholder='2) next waypoint (optional)';
+    var p3=document.getElementById('pos3'); if(p3) p3.placeholder='3) next waypoint (optional)';
     var ps=document.getElementById('portsel'); if(ps&&ps.options[0]) ps.options[0].text='⚓ Port calls — select';
     ['fteam','fvm','fhseq'].forEach(function(id){ var s=document.getElementById(id);
       if(s&&s.options[0]) s.options[0].text=s.options[0].text.replace('전체','All'); });
   } else {
     LOBS.disconnect();
     unxlate(document.body);
+    var ak2=document.getElementById('ask'); if(ak2) ak2.placeholder='자연어 항해 질의 — 예) Asian Trust 현위치에서 New York 기항 후 Bremerhaven까지';
+    var de2=document.getElementById('dest'); if(de2) de2.placeholder='목적지 입력 → 향후 기항 선박 (예: Ulsan)';
+    var pi2=document.getElementById('posin'); if(pi2) pi2.placeholder='여러 줄 한거번에 붙여넣기 (선택)';
+    var q1=document.getElementById('pos1'); if(q1) q1.placeholder='1) 23-40N 123-40E / 부산';
+    var q2=document.getElementById('pos2'); if(q2) q2.placeholder='2) 다음 지점 (선택)';
+    var q3=document.getElementById('pos3'); if(q3) q3.placeholder='3) 다음 지점 (선택)';
     if(q) q.placeholder='\uc120\ubc15\uba85 \u00b7 MMSI \uac80\uc0c9';
   }
 }
