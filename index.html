@@ -1600,9 +1600,7 @@ function drawSchedNow(fit){
   });
   legs.forEach(function(l){
     pts.push([l[3], wrap(l[4])]);
-    var seg;
-    try{ seg=seaRoute(prevP[0],prevP[1],l[3],l[4]); }catch(e){ seg=[[prevP[0],prevP[1]],[l[3],l[4]]]; }
-    seg.slice(1).forEach(function(p){ line.push([p[0], wrap(p[1])]); });
+    line.push([l[3], wrap(l[4])]);
     prevP=[l[3],l[4]];
   });
   if(line.length<2) line=pts;
