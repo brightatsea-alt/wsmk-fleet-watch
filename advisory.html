@@ -49,6 +49,9 @@
 <div class="bar">
   기간 <select id="fday"><option value="7">최근 7일</option><option value="30" selected>최근 30일</option><option value="90">최근 90일</option><option value="9999">전체</option></select>
   <select id="fmode"><option value="">전체</option><option value="sent">발송 완료</option><option value="fail">실패</option></select>
+  <select id="fteam"><option value="">Team 전체</option></select>
+  <select id="fvm"><option value="">Vessel Manager 전체</option></select>
+  <select id="fhseq"><option value="">HSEQ 전체</option></select>
   <select id="fvs"><option value="">선박 전체</option></select>
   <input id="fq" type="search" placeholder="선박·항구 검색" style="min-width:130px">
   <span id="upd" style="margin-left:auto"></span>
@@ -63,18 +66,24 @@ var MUST={
  'Turkey':{t:'TURKISH PORTS — BUNKER DECLARATION & POLLUTION',l:['벙커 신고 정확성 — 과다신고 시 압류·공탁·형사처벌','오염 벌금은 GT 기준 (유출량 아님)','2025.1.1부터 약 44% 인상']}};
 var ALIAS={'United States':'USA','Turkiye':'Turkey'};
 function mustFor(c){ return MUST[ALIAS[c]||c]||null; }
-var DATA=[], NOW=Date.now();
+var DATA=[], NOW=Date.now(), CT={};
+function norm(s){ return String(s||"").toUpperCase().split("(")[0].replace(/[^A-Z0-9]/g,""); }
 function fmt(ts){ var d=new Date(ts); if(isNaN(d)) return ts; return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 function draw(){
   var days=parseFloat(document.getElementById("fday").value)||30;
   var mode=document.getElementById("fmode").value;
   var fvs=document.getElementById("fvs").value;
+  var fteam=document.getElementById("fteam").value, fvm=document.getElementById("fvm").value, fhseq=document.getElementById("fhseq").value;
   var q=(document.getElementById("fq").value||"").toLowerCase();
   var rows=DATA.filter(function(r){
     if(r.mode==="test") return false;
     if((NOW-new Date(r.ts).getTime())/864e5 > days) return false;
     if(mode && r.mode!==mode) return false;
     if(fvs && r.vessel!==fvs) return false;
+    var c=CT[norm(r.vessel)]||[];
+    if(fteam && c[3]!==fteam) return false;
+    if(fvm && c[4]!==fvm) return false;
+    if(fhseq && c[5]!==fhseq) return false;
     if(q && (r.vessel+" "+r.port).toLowerCase().indexOf(q)<0) return false;
     return true;
   });
@@ -92,6 +101,7 @@ function draw(){
       +"<div><span>ETA</span> "+(r.eta||"—")+"</div>"
       +"<div><span>항구 정보</span> "+(r.items!=null?r.items+"건":"—")+"</div>"
       +"<div><span>첨부</span> "+(r.attach||"—")+"</div>"
+      +(function(){ var c=CT[norm(r.vessel)]; return c ? "<div><span>Team</span> "+(c[3]||"—")+"</div><div><span>VM</span> "+(c[4]||"—")+"</div><div><span>HSEQ</span> "+(c[5]||"—")+"</div>" : ""; })()
       +"</div>";
     if(r.subject) h+="<div class=\"rcpt\"><span>제목</span>"+r.subject+"</div>";
     if(r.to) h+="<div class=\"rcpt\"><span>수신</span>"+r.to+"<br><span>참조</span>"+(r.cc||"—")+"</div>";
@@ -102,6 +112,12 @@ function draw(){
 }
 (async function(){
   try{
+    var ct={}; try{ ct=(await (await fetch("vessel-contacts.json?t="+Date.now())).json()).v||{}; }catch(e){}
+    Object.keys(ct).forEach(function(k){ CT[norm(k)]=ct[k]; });
+    var teams=[], vmsL=[], hsqL=[];
+    Object.keys(ct).forEach(function(k){ var c=ct[k]; if(c[3]&&teams.indexOf(c[3])<0) teams.push(c[3]); if(c[4]&&vmsL.indexOf(c[4])<0) vmsL.push(c[4]); if(c[5]&&hsqL.indexOf(c[5])<0) hsqL.push(c[5]); });
+    function fill(id,label,arr){ var s=document.getElementById(id); s.innerHTML="<option value=\"\">"+label+" 전체 ("+arr.length+")</option>"+arr.sort().map(function(v){return "<option value=\""+v+"\">"+v+"</option>";}).join(""); s.onchange=draw; }
+    fill("fteam","Team",teams); fill("fvm","Vessel Manager",vmsL); fill("fhseq","HSEQ",hsqL);
     var d=await (await fetch("sent-log.json?t="+Date.now())).json();
     DATA=(d.v||[]).filter(function(r){ return r && r.ts; });
     var vs=[]; DATA.forEach(function(r){ if(r.mode!=="test" && vs.indexOf(r.vessel)<0) vs.push(r.vessel); });
