@@ -1406,9 +1406,9 @@ var portLayer = L.layerGroup().addTo(map);
   ps.onchange=function(){ if(ps.value){ window.open("calls.html?port="+encodeURIComponent(ps.value),"_blank"); ps.value=""; } };
   bar.appendChild(ps);
   var ad=document.createElement('div');
-  ad.className='chip'; ad.id='advbtn'; ad.title='기항 통보 대상 — 도착 4일 전 자동 발송';
+  ad.className='chip'; ad.id='advbtn'; ad.title='선박에 실제 발송된 기항 통보 이력';
   ad.style.cssText='border-color:rgba(124,255,208,.5)';
-  ad.innerHTML='\uD83D\uDCE7 기항 통보';
+  ad.innerHTML='\u2709\uFE0F 보낸 통보';
   ad.onclick=function(){ window.open('advisory.html','_blank'); };
   bar.appendChild(ad);
   var hw=document.createElement('div');
@@ -2035,6 +2035,7 @@ const EN_PAIRS = [
  ['항적 Track','Track'],
  ['목적지 입력 → 향후 기항 선박 (예: Ulsan)','Destination → vessels scheduled to call (e.g. Ulsan)'],
  ['자연어 항해 질의 — 예) Asian Trust 현위치에서 New York 기항 후 Bremerhaven까지','Natural-language voyage query — e.g. Asian Trust from present position via New York to Bremerhaven'],
+ ['보낸 통보','Sent Log'],
  ['목적지 입력','Destination'],
 ].sort((a,b)=>b[0].length-a[0].length);
 const KOMEM = new WeakMap();
