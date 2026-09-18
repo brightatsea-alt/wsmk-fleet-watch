@@ -35,8 +35,15 @@
   .rulerlbl{background:rgba(11,20,32,.95);border:1px solid #B24BF3;color:#E8CFFB;font-family:var(--mono);
     font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap}
   .rulerlbl::before{display:none}
-  #rtabs{position:absolute;right:0;top:128px;z-index:840;display:flex;flex-direction:column;gap:5px;
-    max-height:calc(100% - 150px);overflow-y:auto;scrollbar-width:none}
+  #rtabs{position:absolute;right:0;top:128px;z-index:840;display:flex;flex-direction:column;
+    gap:var(--tgap,5px);max-height:calc(100% - 140px);overflow-y:auto;scrollbar-width:none}
+  /* \uD654\uBA74 \uB192\uC774\uC5D0 \uB530\uB978 \uC790\uB3D9 \uCD95\uC18C */
+  @media(max-height:900px){ #rtabs{top:118px} .rtab{padding:13px 8px;font-size:15.5px}
+    .rtab.ext{padding:12px 8px;font-size:14px} }
+  @media(max-height:780px){ #rtabs{top:112px;--tgap:4px} .rtab{padding:10px 7px;font-size:14px;letter-spacing:.1em}
+    .rtab.ext{padding:9px 7px;font-size:12.5px} }
+  @media(max-height:680px){ #rtabs{top:106px;--tgap:3px} .rtab{padding:8px 6px;font-size:12.5px;letter-spacing:.07em}
+    .rtab.ext{padding:7px 6px;font-size:11.5px} }
   #rtabs::-webkit-scrollbar{display:none}
   .rtab{writing-mode:vertical-rl;background:#18273A;border:1px solid var(--line);border-right:none;font-weight:600;
     border-radius:7px 0 0 7px;padding:17px 9px;font-family:var(--cond);font-size:17px;
@@ -624,6 +631,33 @@ setTimeout(function(){
   }, true);
   try{ map.on('click', function(){ if(window.innerWidth<=760) close(); }); }catch(e){}
 })();
+/* \uC0AC\uC774\uB4DC \uD0ED \uC790\uB3D9 \uB9DE\uCDA4 \u2014 \uBAA8\uB4E0 \uD0ED\uC774 \uD654\uBA74\uC5D0 \uB4E4\uC5B4\uAC00\uB3C4\uB85D \uCD95\uC18C */
+function fitTabs(){
+  var box = document.getElementById('rtabs');
+  if(!box || window.innerWidth<=760) { if(box) box.style.removeProperty('--tscale'); return; }
+  var tabs = box.querySelectorAll('.rtab');
+  if(!tabs.length) return;
+  /* \uAE30\uC900\uAC12\uC73C\uB85C \uBA3C\uC800 \uBCF5\uC6D0 */
+  box.style.removeProperty('--tpad'); box.style.removeProperty('--tfont'); box.style.removeProperty('--tgap');
+  tabs.forEach(function(t){ t.style.removeProperty('padding'); t.style.removeProperty('font-size'); });
+  var avail = window.innerHeight - box.getBoundingClientRect().top - 16;
+  var need = box.scrollHeight;
+  if(need <= avail) return;                       /* \uC5EC\uC720 \uC788\uC73C\uBA74 \uADF8\uB300\uB85C */
+  var k = Math.max(0.42, avail / need);           /* \uCD95\uC18C \uBE44\uC728 */
+  box.style.setProperty('--tgap', Math.max(2, Math.round(5*k)) + 'px');
+  tabs.forEach(function(t){
+    var ext = t.classList.contains('ext');
+    var basePad = ext ? 15 : 17, baseFont = ext ? 15 : 17;
+    var pad = Math.max(5, Math.round(basePad*k));
+    var fs  = Math.max(10, Math.round(baseFont*k*10)/10);
+    t.style.padding = pad + 'px ' + Math.max(5, Math.round(9*k)) + 'px';
+    t.style.fontSize = fs + 'px';
+    t.style.letterSpacing = (k<0.75 ? '.05em' : '.11em');
+  });
+}
+window.addEventListener('resize', function(){ clearTimeout(window.__ft); window.__ft=setTimeout(fitTabs, 120); });
+setTimeout(fitTabs, 600);
+setTimeout(fitTabs, 1800);
 map.on('popupopen', function(e){
   try{
     var el=e.popup && e.popup.getElement && e.popup.getElement(); if(!el || el.__drg) return;
