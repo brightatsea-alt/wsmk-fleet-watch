@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSC Risk Watch — WSMK Fleet Watch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%23FF3B3B'/%3E%3Ctext x='32' y='46' font-family='Arial' font-size='34' font-weight='700' fill='%23fff' text-anchor='middle'%3E!%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--red:#FF5A5A;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+ header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .brand{font-family:var(--cond);font-weight:600;font-size:21px;letter-spacing:.06em;color:#fff}
+ .brand b{color:var(--red)}
+ .brand small{color:var(--amber);font-size:12px;letter-spacing:.18em;margin-left:8px}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ .bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:9px 16px;background:var(--panel2);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:5px 12px;cursor:pointer;color:var(--muted);font-size:11.5px;user-select:none}
+ .chip.on{background:#2B1216;border-color:var(--red);color:#FFB3B3}
+ .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ .wrap{flex:1;display:flex;min-height:0}
+ #list{width:410px;min-width:410px;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel2)}
+ #map{flex:1}
+ .card{border-bottom:1px solid var(--line);border-left:4px solid var(--red);padding:10px 13px;cursor:pointer}
+ .card:hover{background:#16243A}
+ .card.sel{background:#1B2E48}
+ .hd{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+ .hd h3{font-size:15px;font-weight:700;color:#F2F7FC}
+ .fg{font-family:var(--mono);font-size:10px;font-weight:700;background:#24384F;color:#BFD6E8;border-radius:3px;padding:1px 5px}
+ .fg.k{background:#0B4DA2;color:#fff}
+ .tag{font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:3px;padding:1px 6px}
+ .tag.al{background:#7A1420;color:#FFC4C4}
+ .tag.rg{background:#1E3A52;color:#9FD4EE}
+ .meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8}
+ .meta b{color:#BFD6E8;font-weight:500}
+ .empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
+ .sum{padding:8px 16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+ .sum b{color:var(--red)}
+ .leaflet-popup-content-wrapper{background:#132033;color:var(--text);border:1px solid var(--line)}
+ .leaflet-popup-tip{background:#132033}
+ .leaflet-popup-content{font-family:var(--mono);font-size:11.5px;line-height:1.8}
+ .vlab{font-family:var(--mono);font-size:10px;color:#fff;text-shadow:0 0 4px #000,0 0 3px #000;white-space:nowrap;font-weight:600}
+ @media(max-width:860px){ .wrap{flex-direction:column} #list{width:100%;min-width:0;max-height:46%;border-right:none;border-bottom:1px solid var(--line)} }
+</style></head><body>
+<header>
+  <div class="brand">PSC <b>RISK</b> WATCH<small>WSM KOREA</small></div>
+  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">PSC Alert × 한국기국 / AMSA / Paris MOU / USCG</div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div class="bar">
+  <span class="chip on" data-r="KFLAG">🇰🇷 한국기국</span>
+  <span class="chip on" data-r="AMSA">AMSA</span>
+  <span class="chip on" data-r="PARIS">Paris MOU</span>
+  <span class="chip on" data-r="USCG">USCG</span>
+  <select id="fvm"><option value="">VM 전체</option></select>
+  <select id="fteam"><option value="">Team 전체</option></select>
+  <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
+  <span id="upd" style="margin-left:auto"></span>
+</div>
+<div class="sum" id="sum">불러오는 중…</div>
+<div class="wrap">
+  <div id="list"></div>
+  <div id="map"></div>
+</div>
+<script>
+var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR'};
+var FLTR={KOR:'K',MHL:'M',PAN:'P',LBR:'L'};
+var USCG="Brunswick,Baltimore,Philadelphia,Houston,Galveston,Long Beach,Port Hueneme,Tacoma,San Diego,New York,Jacksonville,Savannah,Charleston,Newark,Oakland,Seattle,Portland,Everglades,Freeport,Mobile,New Orleans,Honolulu,Anchorage".split(',');
+var AMSA="Melbourne,Brisbane,Port Kembla,Fremantle,Adelaide,Sydney,Newcastle,Townsville,Darwin,Geelong,Bell Bay,Portland AU,Gladstone,Hedland,Dampier,Esperance,Bunbury".split(',');
+var PARIS="Bremerhaven,Zeebrugge,Southampton,Antwerp,Rotterdam,Hamburg,Le Havre,Valencia,Barcelona,Gothenburg,Oslo,Piraeus,Bristol,Immingham,Tyne,Sheerness,Cuxhaven,Emden,Vlissingen,Gdansk,Gdynia,Amsterdam,Dublin,Liverpool,Santander,Bilbao,Vigo,Setubal,Leixoes,Livorno,Genoa,Koper,Trieste,Malta,Constanta,Helsinki,Copenhagen,Drammen,Malmo,Esbjerg,Hanko,Kotka,Riga,Tallinn,Klaipeda,St Petersburg".split(',');
+function inReg(p,arr){ var u=String(p).split('(')[0].trim().toUpperCase();
+  return arr.some(function(x){ var b=x.trim().toUpperCase(); return u===b || u.indexOf(b)>=0 || b.indexOf(u)>=0; }); }
+var NOW=Date.now(), YY=new Date().getUTCFullYear();
+function legT(s){ if(!s) return 0; var p=String(s).split('-'); if(p.length<2) return 0;
+  var t=Date.UTC(YY,parseInt(p[0],10)-1,parseInt(p[1],10)); if(t-NOW<-200*864e5) t=Date.UTC(YY+1,parseInt(p[0],10)-1,parseInt(p[1],10)); return t; }
+function fmtAge(ms){ var h=ms/3600e3; return h<48? h.toFixed(1)+'h 전' : (h/24).toFixed(1)+'일 전'; }
+function norm(s){ return String(s||'').toUpperCase().split('(')[0].replace(/[^A-Z0-9]/g,''); }
+var map=L.map('map',{worldCopyJump:true,zoomControl:true}).setView([20,60],2);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,attribution:'&copy; OSM &copy; CARTO'}).addTo(map);
+var layer=L.layerGroup().addTo(map), MK={}, DATA=[], SEL=null;
+function shipIcon(cog){ return L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],
+  html:'<svg width="26" height="26" viewBox="0 0 26 26" style="transform:rotate('+(cog||0)+'deg)"><path d="M13 2 L18 20 L13 17 L8 20 Z" fill="#FF3B3B" stroke="#fff" stroke-width="1.3"/></svg>'}); }
+function draw(){
+  var regs=[].slice.call(document.querySelectorAll('.chip.on')).map(function(c){return c.dataset.r;});
+  var fvm=document.getElementById('fvm').value, fteam=document.getElementById('fteam').value;
+  var q=(document.getElementById('fq').value||'').toLowerCase();
+  var rows=DATA.filter(function(r){
+    if(!r.regs.some(function(x){ return regs.indexOf(x)>=0; })) return false;
+    if(fvm && r.vm!==fvm) return false;
+    if(fteam && r.team!==fteam) return false;
+    if(q && r.name.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  rows.sort(function(a,b){ return (a.nextT||9e15)-(b.nextT||9e15); });
+  document.getElementById('sum').innerHTML='위험 선박 <b>'+rows.length+'</b>척 · PSC Alert 보유 + 선택 지역 기항 · 지도에 현재 위치 표시';
+  document.getElementById('list').innerHTML = rows.length ? rows.map(function(r,i){
+    return '<div class="card" data-i="'+r.i+'">'
+      +'<div class="hd"><h3>'+r.name+'</h3>'
+      +'<span class="fg'+(r.flag==='KOR'?' k':'')+'">'+(FLTR[r.flag]||'–')+'</span>'
+      +'<span class="tag al">PSC ALERT</span>'
+      + r.regs.map(function(x){ return '<span class="tag rg">'+({KFLAG:'KOREA FLAG',AMSA:'AMSA',PARIS:'PARIS MOU',USCG:'USCG'}[x])+'</span>'; }).join('')
+      +'</div><div class="meta">'
+      + (r.lat!=null ? '<b>현위치</b> '+r.lat.toFixed(2)+'°, '+r.lon.toFixed(2)+'° · '+(r.sog!=null?r.sog.toFixed(1)+'kn':'—')+' · '+r.age+'<br>' : '<b>현위치</b> 위치 미수신<br>')
+      + (r.nextPort ? '<b>다음 기항</b> '+r.nextPort+' ('+r.nextEta+')'+(r.nextReg?' ← '+r.nextReg:'')+'<br>' : '')
+      + (r.regPorts.length ? '<b>대상 기항</b> '+r.regPorts.slice(0,3).join(' · ')+'<br>' : '')
+      +'<b>MOU</b> '+(r.mou||'—')+' · <b>최근검사</b> '+(r.last||'—')+' · <b>검사창</b> '+(r.win||'—')+'<br>'
+      +'<b>선령</b> '+(r.age0||'—')+' · <b>VM</b> '+(r.vm||'—')+' · <b>HSEQ</b> '+(r.hseq||'—')+' · '+(r.team||'—')
+      +'</div></div>';
+  }).join('') : '<div class="empty">해당 조건의 위험 선박이 없습니다</div>';
+  layer.clearLayers(); MK={};
+  var pts=[];
+  rows.forEach(function(r){
+    if(r.lat==null) return;
+    var mk=L.marker([r.lat,r.lon],{icon:shipIcon(r.cog)}).addTo(layer);
+    mk.bindTooltip(r.name,{permanent:true,direction:'right',offset:[10,0],className:'vlab'});
+    mk.bindPopup('<b style="font-size:13px;color:#FF8A8A">'+r.name+'</b><br>'
+      +'PSC ALERT · '+r.regs.join(' / ')+'<br>'
+      +(r.sog!=null?r.sog.toFixed(1)+'kn · ':'')+r.age+'<br>'
+      +(r.nextPort?'다음 기항 '+r.nextPort+' ('+r.nextEta+')<br>':'')
+      +'MOU '+(r.mou||'—')+' · 최근검사 '+(r.last||'—')+'<br>'
+      +'VM '+(r.vm||'—')+' · HSEQ '+(r.hseq||'—'));
+    mk.on('click',function(){ sel(r.i); });
+    MK[r.i]=mk; pts.push([r.lat,r.lon]);
+  });
+  if(pts.length) { try{ map.fitBounds(L.latLngBounds(pts).pad(0.25)); }catch(e){} }
+  [].slice.call(document.querySelectorAll('.card')).forEach(function(c){
+    c.onclick=function(){ sel(parseInt(c.dataset.i,10)); };
+  });
+}
+function sel(i){
+  SEL=i;
+  [].slice.call(document.querySelectorAll('.card')).forEach(function(c){ c.classList.toggle('sel', parseInt(c.dataset.i,10)===i); });
+  var mk=MK[i]; if(mk){ map.flyTo(mk.getLatLng(), Math.max(map.getZoom(),5), {duration:.7}); mk.openPopup(); }
+  var c=document.querySelector('.card.sel'); if(c) c.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+(async function(){
+  try{
+    var psc=(await (await fetch('psc-alerts.json?t='+Date.now())).json()).v||{};
+    var sc =(await (await fetch('schedule.json?t='+Date.now())).json()).v||{};
+    var fl =(await (await fetch('fleet.json?t='+Date.now())).json()).vessels||[];
+    var pos={}; try{ pos=(await (await fetch('fleet-positions.json?t='+Date.now())).json()).vessels||{}; }catch(e){}
+    var rs ={}; try{ rs=(await (await fetch('responsibility.json?t='+Date.now())).json()).vessels||{}; }catch(e){}
+    var keyName={}; fl.forEach(function(v){ keyName[v.mmsi||v.name]=v.name; });
+    var vms=[], teams=[], idx=0;
+    Object.keys(psc).forEach(function(k){
+      var p=psc[k]; if(!p || !p[0]) return;               /* PSC Alert 없는 선박 제외 */
+      var name=keyName[k]|| (rs[k]&&rs[k].name) || k;
+      var flag=MIDF[String(k).slice(0,3)]||'';
+      var legs=sc[k]||[];
+      var regs=[], regPorts=[];
+      if(flag==='KOR') regs.push('KFLAG');
+      legs.forEach(function(l){
+        var hit='';
+        if(inReg(l[0],USCG)) hit='USCG';
+        else if(inReg(l[0],AMSA)) hit='AMSA';
+        else if(inReg(l[0],PARIS)) hit='PARIS';
+        if(hit){ if(regs.indexOf(hit)<0) regs.push(hit); regPorts.push(l[0]+' '+l[1]+' ('+hit+')'); }
+      });
+      if(!regs.length) return;
+      var up=legs.filter(function(l){ return legT(l[1])>=NOW-12*3600e3; }).sort(function(a,b){ return legT(a[1])-legT(b[1]); });
+      var nx=up[0]||null;
+      var nxReg=''; if(nx){ if(inReg(nx[0],USCG)) nxReg='USCG'; else if(inReg(nx[0],AMSA)) nxReg='AMSA'; else if(inReg(nx[0],PARIS)) nxReg='PARIS MOU'; }
+      var pd=pos[k]||null, r0=rs[k]||{};
+      if(r0.vm && vms.indexOf(r0.vm)<0) vms.push(r0.vm);
+      if(r0.team && teams.indexOf(r0.team)<0) teams.push(r0.team);
+      DATA.push({ i:idx++, name:name, flag:flag, regs:regs, regPorts:regPorts,
+        mou:p[1], last:p[2], win:p[3], age0:p[4]? p[4]+'년':'',
+        lat:pd&&pd.lat!=null?pd.lat:null, lon:pd?pd.lon:null, sog:pd?pd.sog:null, cog:pd?pd.cog:0,
+        age: pd&&pd.lastReceived ? fmtAge(NOW-new Date(pd.lastReceived).getTime()) : '미수신',
+        nextPort:nx?nx[0]:'', nextEta:nx?nx[1]:'', nextT:nx?legT(nx[1]):null, nextReg:nxReg,
+        vm:r0.vm||'', hseq:r0.hseq||'', team:r0.team||'' });
+    });
+    function fill(id,label,arr){ var s=document.getElementById(id);
+      s.innerHTML='<option value="">'+label+' 전체 ('+arr.length+')</option>'+arr.sort().map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
+      s.onchange=draw; }
+    fill('fvm','VM',vms); fill('fteam','Team',teams);
+    document.getElementById('upd').textContent='PSC 기준 '+((await (await fetch('psc-alerts.json?t='+Date.now())).json()).u||'')+' · 대상 '+DATA.length+'척';
+    draw();
+  }catch(e){ document.getElementById('sum').textContent='불러오기 실패: '+(e.message||e); }
+})();
+[].slice.call(document.querySelectorAll('.chip')).forEach(function(c){ c.onclick=function(){ c.classList.toggle('on'); draw(); }; });
+document.getElementById('fq').oninput=draw;
+</script></body></html>
