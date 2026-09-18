@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%237ED321'/%3E%3Ctext x='32' y='45' font-family='Arial' font-size='31' font-weight='700' fill='%23111111' text-anchor='middle'%3EFW%3C/text%3E%3C/svg%3E">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Port Call Advisory — WSMK Fleet Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0D1522;--panel:#131F30;--panel2:#0F1928;--line:#22334A;--text:#DCE6F2;--muted:#8CA0B8;--accent:#5AB8D6;--amber:#F0B95A;--red:#FF5A5A;--green:#5CE01E;--mono:'IBM Plex Mono',monospace;--cond:'Barlow Condensed',sans-serif}
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Malgun Gothic',sans-serif;font-size:14px;min-height:100vh}
+ header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+ .brand{font-family:var(--cond);font-weight:600;font-size:21px;letter-spacing:.06em;color:#fff}
+ .brand small{color:var(--amber);font-size:12px;letter-spacing:.18em;margin-left:8px}
+ a.back{margin-left:auto;color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+ .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);outline:none}
+ .sum{padding:9px 16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+ .sum b{color:var(--text)}
+ .wrap{padding:12px 16px 40px}
+ .card{background:var(--panel2);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:7px;padding:12px 14px;margin-bottom:10px}
+ .card.must{border-left-color:var(--red)}
+ .card.soon{border-left-color:var(--amber)}
+ .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .hd h3{font-size:16px;font-weight:700;color:#F2F7FC}
+ .hd .fg{font-family:var(--mono);font-size:10px;font-weight:700;background:#24384F;color:#BFD6E8;border-radius:3px;padding:1px 5px}
+ .hd .fg.k{background:#0B4DA2;color:#fff}
+ .hd .d{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--amber)}
+ .hd .d.now{color:var(--red)}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 14px;margin-top:9px;font-family:var(--mono);font-size:11.5px}
+ .grid div span{color:var(--muted)}
+ .must-box{margin-top:10px;border:1px solid var(--red);background:rgba(255,90,90,.08);border-radius:5px;padding:9px 11px}
+ .must-box b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#FF8A8A;margin-bottom:5px}
+ .must-box ul{margin:0 0 0 17px;font-size:12px;line-height:1.7;color:#FFD9D9}
+ .items{margin-top:9px;padding-top:8px;border-top:1px dashed rgba(90,184,214,.28);font-family:var(--mono);font-size:11px;color:#A7BACE;line-height:1.75}
+ .items b{color:var(--accent)}
+ .empty{padding:36px;text-align:center;color:var(--muted)}
+</style></head><body>
+<header>
+  <div class="brand">PORT CALL ADVISORY<small>WSM KOREA</small></div>
+  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">기항 통보 대상 — 도착 4일 전 자동 발송</div>
+  <a class="back" href="index.html">← Fleet Watch</a>
+</header>
+<div class="bar">
+  기간 <select id="fday"><option value="7">7일 이내</option><option value="14" selected>14일 이내</option><option value="30">30일 이내</option><option value="999">전체</option></select>
+  <select id="fkind"><option value="">전체</option><option value="must">필수조치 국가만</option><option value="info">정보 있는 항구만</option></select>
+  <select id="fvm"><option value="">Vessel Manager 전체</option></select>
+  <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
+  <span id="upd" style="margin-left:auto"></span>
+</div>
+<div class="sum" id="sum">불러오는 중…</div>
+<div class="wrap" id="list"></div>
+<script>
+var MIDF={'440':'KOR','441':'KOR','538':'MHL','351':'PAN','352':'PAN','370':'PAN','371':'PAN','372':'PAN','373':'PAN','636':'LBR','637':'LBR'};
+var FLTR={KOR:'K',MHL:'M',PAN:'P',LBR:'L'};
+var NOW=Date.now(), YY=new Date().getUTCFullYear(), SENDD=4;
+function legT(s){ if(!s) return 0; var p=String(s).split('-'); if(p.length<2) return 0;
+  var t=Date.UTC(YY,parseInt(p[0],10)-1,parseInt(p[1],10),0,0);
+  if(t-NOW < -200*864e5) t=Date.UTC(YY+1,parseInt(p[0],10)-1,parseInt(p[1],10),0,0); return t; }
+var MUST={
+ 'USA':{t:'U.S. PORT CALL — MANDATORY ACTION',l:['Docmap › US & Americas Documentation 체크리스트 이행','California: Marine Invasive Species 보고','쓰레기 분리 — 음식물 혼입 시 CBP 벌금 사례']},
+ 'Argentina':{t:'ARGENTINE PORTS — CUSTOMS',l:['세관 규정 엄격 — 불완전·부정확·미신고 시 고액 벌금','페인트·화학품·면세품 중점 점검']},
+ 'Panama':{t:'PANAMA CANAL — PCSOPEP',l:['PCSOPEP 승인 필수 — 통항 96시간 전 제출','승인서 유효성 및 선내 비치 확인']},
+ 'Turkey':{t:'TURKISH PORTS — BUNKER DECLARATION & POLLUTION',l:['벤커 신고 정확성 — 과다신고 시 압류·공탁·형사처벌','오염 벌금은 GT 기준 (유출량 아님)','2025.1.1부터 약 44% 인상']}};
+var ALIAS={'United States':'USA','Turkiye':'Turkey'};
+function mustFor(c){ return MUST[ALIAS[c]||c]||null; }
+var PORT2C={"Brunswick":"USA","Baltimore":"USA","Philadelphia":"USA","Houston":"USA","Galveston":"USA","Long Beach":"USA","Port Hueneme":"USA","Tacoma":"USA","San Diego":"USA","New York":"USA","Zarate":"Argentina","Buenos Aires":"Argentina","Panama Canal":"Panama","Balboa":"Panama","Izmir":"Turkey","Derince":"Turkey","Ulsan":"South Korea","Pyeongtaek":"South Korea","Gunsan":"South Korea","Mokpo":"South Korea","Singapore":"Singapore","Shanghai":"China","Huangpu":"China","Taicang":"China","Qingdao":"China","Tianjin":"China","Zhenjiang":"China","Paranagua":"Brazil","Rio Grande":"Brazil","Vitoria":"Brazil","Santos":"Brazil","Melbourne":"Australia","Brisbane":"Australia","Port Kembla":"Australia","Fremantle":"Australia","Callao":"Peru","Iquique":"Chile","San Antonio":"Chile","Buenaventura":"Colombia","Manta":"Ecuador","Montevideo":"Uruguay","Bremerhaven":"Germany","Zeebrugge":"Belgium","Southampton":"United Kingdom","Auckland":"New Zealand","Yokohama":"Japan","Toyohashi":"Japan","Nagoya":"Japan","Kobe":"Japan","Hong Kong":"Hong Kong","Keelung":"Taiwan"};
+var DATA=[];
+function draw(){
+  var days=parseFloat(document.getElementById('fday').value)||14;
+  var kind=document.getElementById('fkind').value;
+  var fv=document.getElementById('fvm').value||'';
+  var q=(document.getElementById('fq').value||'').toLowerCase();
+  var rows=DATA.filter(function(r){
+    if(r.dleft>days || r.dleft<0) return false;
+    if(kind==='must' && !r.must) return false;
+    if(kind==='info' && !r.items.length && !r.must) return false;
+    if(fv && r.vm!==fv) return false;
+    if(q && r.vessel.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  rows.sort(function(a,b){ return a.eta-b.eta; });
+  var nMust=rows.filter(function(r){return r.must;}).length;
+  document.getElementById('sum').innerHTML='통보 대상 <b>'+rows.length+'</b>건 · 필수조치 국가 <b>'+nMust+'</b>건 · 기준 '+(days>900?'전체':days+'일 이내')+' · 도착 '+SENDD+'일 전 발송';
+  document.getElementById('list').innerHTML = rows.length? rows.map(function(r){
+    var cls = r.must ? 'must' : (r.dleft<=SENDD ? 'soon':'');
+    var dcls = r.dleft<=SENDD ? ' now' : '';
+    var h='<div class="card '+cls+'">'
+      +'<div class="hd"><h3>'+r.vessel+'</h3><span class="fg'+(r.flag==='KOR'?' k':'')+'">'+(FLTR[r.flag]||'–')+'</span>'
+      +'<span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">'+r.port+' · '+(r.country||'—')+'</span>'
+      +'<span class="d'+dcls+'">D-'+r.dleft+'</span></div>'
+      +'<div class="grid">'
+      +'<div><span>ETA</span> '+r.etaTxt+'</div>'
+      +(r.etd?'<div><span>ETD</span> '+r.etd+'</div>':'')
+      +'<div><span>발송 예정</span> '+r.sendTxt+'</div>'
+      +'<div><span>VM</span> '+(r.vm||'—')+'</div>'
+      +'<div><span>HSEQ</span> '+(r.hseq||'—')+'</div>'
+      +'<div><span>선박 메일</span> '+(r.mail||'—')+'</div>'
+      +'</div>';
+    if(r.must){
+      h+='<div class="must-box"><b>⚠ '+r.must.t+'</b><ul>'+r.must.l.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul></div>';
+    }
+    if(r.items.length){
+      h+='<div class="items"><b>항구 정보 '+r.items.length+'건</b><br>'
+        +r.items.slice(0,5).map(function(it){ return '· '+(it.date?'['+it.date+'] ':'')+String(it.txt).slice(0,110); }).join('<br>')
+        +(r.items.length>5?'<br><span style="color:#6E7E92">… 외 '+(r.items.length-5)+'건 (메일 첨부에 전체 포함)</span>':'')
+        +'</div>';
+    }
+    return h+'</div>';
+  }).join('') : '<div class="empty">해당 조건의 기항 예정이 없습니다</div>';
+}
+(async function(){
+  try{
+    var sc=(await (await fetch('schedule.json?t='+Date.now())).json()).v||{};
+    var ct=(await (await fetch('vessel-contacts.json?t='+Date.now())).json()).v||{};
+    var fl=(await (await fetch('fleet.json?t='+Date.now())).json()).vessels||[];
+    var pd=[]; try{ pd=(await (await fetch('ports-data.json?t='+Date.now())).json()).ports||[]; }catch(e){}
+    var keyName={}; fl.forEach(function(v){ keyName[v.mmsi||v.name]=v.name; });
+    function norm(s){ return String(s||'').toUpperCase().split('(')[0].replace(/[^A-Z0-9]/g,''); }
+    var byName={}; Object.keys(ct).forEach(function(n){ byName[norm(n)]=ct[n]; });
+    function pinfo(port){
+      var u=String(port).split('(')[0].trim().toUpperCase();
+      var ex=pd.filter(function(p){ return p.port.split('(')[0].trim().toUpperCase()===u; });
+      var fz=ex.length?ex:pd.filter(function(p){ var b=p.port.split('(')[0].trim().toUpperCase();
+        return b===u+' PORTS'||(u.length>3&&(b.indexOf(u)>=0||u.indexOf(b)>=0)); });
+      var country=fz.length?fz[0].country:(PORT2C[port]||PORT2C[u]||'');
+      var cw=country?pd.filter(function(p){ return p.isCountry&&p.country===country&&fz.indexOf(p)<0; }):[];
+      var items=[];
+      fz.concat(cw).forEach(function(p){ (p.items||[]).forEach(function(it){
+        items.push({date:it.date||it.ym||'', txt:it.text||it.t||String(it)}); }); });
+      return {country:country, items:items};
+    }
+    var vms=[];
+    Object.keys(sc).forEach(function(k){
+      var vname=keyName[k]||k, c=byName[norm(vname)];
+      sc[k].forEach(function(l){
+        var t=legT(l[1]); if(!t) return;
+        var dleft=Math.round((t-NOW)/864e5);
+        var pi=pinfo(l[0]);
+        var send=new Date(t-SENDD*864e5);
+        if(c&&c[4]&&vms.indexOf(c[4])<0) vms.push(c[4]);
+        DATA.push({vessel:vname, port:l[0], etaTxt:l[1], etd:l[2], eta:t, dleft:dleft,
+          sendTxt:(send.getUTCMonth()+1)+'-'+String(send.getUTCDate()).padStart(2,'0'),
+          country:pi.country, items:pi.items, must:mustFor(pi.country),
+          flag:MIDF[String(k).slice(0,3)]||'',
+          vm:(c?c[4]:''), hseq:(c?c[5]:''), mail:(c?c[0]:'')});
+      });
+    });
+    var sv=document.getElementById('fvm');
+    sv.innerHTML='<option value="">Vessel Manager 전체 ('+vms.length+')</option>'+vms.sort().map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+    sv.onchange=draw;
+    document.getElementById('upd').textContent='선박 '+Object.keys(sc).length+'척 · 구간 '+DATA.length;
+    draw();
+  }catch(e){ document.getElementById('sum').textContent='불러오기 실패: '+(e.message||e); }
+})();
+['fday','fkind'].forEach(function(id){ document.getElementById(id).onchange=draw; });
+document.getElementById('fq').oninput=draw;
+</script></body></html>
