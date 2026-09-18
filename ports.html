@@ -69,6 +69,10 @@
     <button id="bcsv" onclick="dlCSV()">⬇ CSV 다운로드</button>
     <button id="bdoc" onclick="dlDOC()">⬇ Word(.doc) 다운로드</button>
     <button class="alt" id="bprn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    <span style="width:100%;height:0"></span>
+    <select id="rvsel" style="padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);font-size:12.5px;min-width:200px"><option value="">선박 선택 — 이 항구 정보 재발송</option></select>
+    <button id="brem" onclick="remindAgain()" style="background:#0E7A5A;border-color:#12A87A" disabled>📨 Remind again</button>
+    <span id="rstat" style="font-family:monospace;font-size:11.5px;color:var(--muted);align-self:center"></span>
   </div>
 </header>
 <main id="main"></main>
@@ -398,6 +402,33 @@ function dlDOC(){
     <table><tr><th>Port</th><th>Country</th><th>Y-M</th><th>Cat.</th><th>Description</th><th>Source</th></tr>${rows}</table>
     </body></html>`;
   _save(new Blob([html], {type:'application/msword'}), _fname('doc'));
+}
+
+/* ── Remind again: 선택 선박에 이 항구 정보 재발송 ── */
+var REMIND_API = "";   /* Apps Script 웹앱 URL — 배포 후 채움 */
+var REMIND_KEY = "wsmk-fw-2026";
+(async function(){
+  try{
+    var ct=(await (await fetch("vessel-contacts.json?t="+Date.now())).json()).v||{};
+    var sel=document.getElementById("rvsel"); if(!sel) return;
+    Object.keys(ct).sort().forEach(function(k){ var o=document.createElement("option"); o.value=k; o.textContent=k+"  ·  "+(ct[k][3]||"")+" · "+(ct[k][4]||""); sel.appendChild(o); });
+    sel.onchange=function(){ document.getElementById("brem").disabled=!sel.value; };
+  }catch(e){}
+})();
+async function remindAgain(){
+  var v=document.getElementById("rvsel").value; if(!v) return;
+  var st=document.getElementById("rstat"), b=document.getElementById("brem");
+  var ports=(new URLSearchParams(location.search).get("wantPorts")||new URLSearchParams(location.search).get("port")||"").split("|").filter(Boolean);
+  if(!ports.length){ st.textContent="항구를 특정할 수 없습니다"; return; }
+  if(!REMIND_API){ st.textContent="발송 API 미설정 — HSEQ에 문의"; return; }
+  if(!confirm(v+" 에게 "+ports.join(", ")+" 항구 정보를 지금 재발송합니다. 계속할까요?")) return;
+  b.disabled=true; st.textContent="발송 중…";
+  try{
+    var u=REMIND_API+"?key="+encodeURIComponent(REMIND_KEY)+"&vessel="+encodeURIComponent(v)+"&port="+encodeURIComponent(ports[0]);
+    var res=await fetch(u); var t=await res.text();
+    st.textContent = /^OK/.test(t) ? "✅ "+t.replace(/^OK\s*/,"") : "❌ "+t.slice(0,120);
+  }catch(e){ st.textContent="❌ "+(e.message||e); }
+  b.disabled=false;
 }
 </script>
 </body>
