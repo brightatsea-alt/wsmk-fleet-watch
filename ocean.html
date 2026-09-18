@@ -115,12 +115,17 @@ function draw(){
       if(!up.length) return;
       var nx=up[0], d=gc(pos.lat,pos.lon,nx[3],nx[4]);
       var eta=legT(nx[1])||NOW;
-      var spd=(pos.sog && pos.sog>4)? pos.sog : 14;
+      var rr1=rs[k]||rs[pos.name]||null, vt1=(rr1&&rr1.type)||'';
+      var svc1 = /PCTC/i.test(vt1) ? 16.5 : /Bulk/i.test(vt1) ? 12.5 : /Gas|LNG/i.test(vt1) ? 17 : 14;
+      var spd=(pos.sog && pos.sog>8)? pos.sog : svc1;   /* 8kn 미만(접안·감속)은 항해속력으로 대체 */
       var hrs=d/spd, age='—';
       /* 구간별 거리·일수 */
       var segs=[], py=pos.lat, px=pos.lon, pn='현위치', maxD=0, maxS=null;
       var cursor=NOW, prevETD=null;
-      var SVC=14;   /* 항해 기준 속력 (kn) — 날짜 없을 때만 사용 */
+      /* 선종별 실제 평균 항해속력 (kn) — 스케줄 날짜 없을 때만 사용 */
+      var rr0=rs[k]||rs[pos.name]||null;
+      var vtype=(rr0&&rr0.type)||'';
+      var SVC = /PCTC/i.test(vtype) ? 16.5 : /Bulk/i.test(vtype) ? 12.5 : /Gas|LNG/i.test(vtype) ? 17 : 14;
       up.forEach(function(l,ix){
         var dd=gc(py,px,l[3],l[4]);
         var dep = (ix===0)? NOW : (prevETD||cursor);
@@ -128,7 +133,7 @@ function draw(){
         /* 1) 스케줄 날짜가 있으면 날짜 차이로, 2) 없으면 거리÷항해속력 */
         var days = (arrS && arrS>dep) ? (arrS-dep)/864e5 : dd/SVC/24;
         /* 날짜 기반 일수가 거리상 불가능하게 짧으면(20kn 초과) 거리 기준으로 보정 */
-        if(arrS && dd/(days*24) > 20) days = dd/SVC/24;
+        if(arrS && dd/(days*24) > SVC*1.25) days = dd/SVC/24;   /* 최대속력 초과 = 날짜 오류로 간주 */
         var arr = arrS || (dep + days*864e5);
         var s={from:pn, to:l[0], nm:dd, days:days, eta:l[1], etd:l[2], dep:dep, arr:arr,
                depTxt:(ix===0?'지금':fmtD(dep)), arrTxt:fmtD(arr)};
