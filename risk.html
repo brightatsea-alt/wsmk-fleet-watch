@@ -40,7 +40,7 @@
  .leaflet-popup-content-wrapper{background:#132033;color:var(--text);border:1px solid var(--line)}
  .leaflet-popup-tip{background:#132033}
  .leaflet-popup-content{font-family:var(--mono);font-size:11.5px;line-height:1.8}
- .vlab{font-family:var(--mono);font-size:10px;color:#fff;text-shadow:0 0 4px #000,0 0 3px #000;white-space:nowrap;font-weight:600}
+ .vlab{font-family:var(--mono);font-size:10.5px;color:#111;background:rgba(255,255,255,.88);border:1px solid #C33;border-radius:3px;padding:1px 5px;white-space:nowrap;font-weight:700;text-shadow:none}
  @media(max-width:860px){ .wrap{flex-direction:column} #list{width:100%;min-width:0;max-height:46%;border-right:none;border-bottom:1px solid var(--line)} }
 </style></head><body>
 <header>
@@ -56,7 +56,7 @@
   <select id="fvm"><option value="">VM 전체</option></select>
   <select id="fteam"><option value="">Team 전체</option></select>
   <input id="fq" type="search" placeholder="선박 검색" style="min-width:120px">
-  <span class="chip" id="basebtn" onclick="setBase((baseIdx+1)%BASEMAPS.length)" style="border-color:rgba(90,184,214,.5);color:#7FD8F5">🗺 다크</span>
+  <span class="chip" id="basebtn" onclick="setBase((baseIdx+1)%BASEMAPS.length)" style="border-color:rgba(90,184,214,.5);color:#7FD8F5">🗺 해도</span>
   <span id="upd" style="margin-left:auto"></span>
 </div>
 <div class="sum" id="sum">불러오는 중…</div>
@@ -90,7 +90,7 @@ var BASEMAPS=[
 var map=L.map('map',{worldCopyJump:true,zoomControl:true}).setView([20,60],2);
 map.createPane('geoLabels'); map.getPane('geoLabels').style.zIndex=450;
 map.getPane('geoLabels').style.pointerEvents='none';
-var baseIdx=1, baseL=null, refL=null, seaL=null;
+var baseIdx=0, baseL=null, refL=null, seaL=null;
 function setBase(i){
   baseIdx=i; var b=BASEMAPS[i];
   if(baseL) map.removeLayer(baseL);
@@ -101,7 +101,7 @@ function setBase(i){
   if(b.sea) seaL=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{pane:'geoLabels',maxZoom:b.max,opacity:.95,attribution:'&copy; OpenSeaMap'}).addTo(map);
   var btn=document.getElementById('basebtn'); if(btn) btn.textContent='\uD83D\uDDFA '+b.name;
 }
-setBase(1);
+setBase(0);
 var layer=L.layerGroup().addTo(map), MK={}, DATA=[], SEL=null;
 function shipIcon(cog){ return L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],
   html:'<svg width="26" height="26" viewBox="0 0 26 26" style="transform:rotate('+(cog||0)+'deg)"><path d="M13 2 L18 20 L13 17 L8 20 Z" fill="#FF3B3B" stroke="#fff" stroke-width="1.3"/></svg>'}); }
