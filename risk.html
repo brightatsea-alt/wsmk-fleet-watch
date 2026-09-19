@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PSC Risk Watch — WSMK Fleet Watch</title>
+<title>한국기국 고위험 MOU 검사창 — WSMK Fleet Watch</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%23FF3B3B'/%3E%3Ctext x='32' y='46' font-family='Arial' font-size='34' font-weight='700' fill='%23fff' text-anchor='middle'%3E!%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -44,12 +44,11 @@
  @media(max-width:860px){ .wrap{flex-direction:column} #list{width:100%;min-width:0;max-height:46%;border-right:none;border-bottom:1px solid var(--line)} }
 </style></head><body>
 <header>
-  <div class="brand">PSC <b>RISK</b> WATCH<small>WSM KOREA</small></div>
-  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">검사창 진입(In window) — 한국기국 / AMSA / Paris MOU / USCG</div>
+  <div class="brand">KR FLAG <b>RISK</b> WATCH<small>WSM KOREA</small></div>
+  <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">한국기국 선박 중 AMSA · Paris MOU · USCG 검사창에 진입한 선박</div>
   <a class="back" href="index.html">← Fleet Watch</a>
 </header>
 <div class="bar">
-  <span class="chip on" data-r="KFLAG">🇰🇷 한국기국</span>
   <span class="chip on" data-r="AMSA">AMSA</span>
   <span class="chip on" data-r="PARIS">Paris MOU</span>
   <span class="chip on" data-r="USCG">USCG</span>
@@ -117,13 +116,13 @@ function draw(){
     return true;
   });
   rows.sort(function(a,b){ return (a.nextT||9e15)-(b.nextT||9e15); });
-  document.getElementById('sum').innerHTML='위험 선박 <b>'+rows.length+'</b>척 · PSC 프로파일링 검사창 진입 · 지도에 현재 위치 표시';
+  document.getElementById('sum').innerHTML='한국기국 <b>'+rows.length+'</b>척 · 고위험 MOU 검사창 진입 · 선박 클릭 시 지도 이동';
   document.getElementById('list').innerHTML = rows.length ? rows.map(function(r,i){
     return '<div class="card" data-i="'+r.i+'">'
       +'<div class="hd"><h3>'+r.name+'</h3>'
       +'<span class="fg'+(r.flag==='KOR'?' k':'')+'">'+(FLTR[r.flag]||'–')+'</span>'
       +'<span class="tag al">PSC ALERT</span>'
-      + r.regs.map(function(x){ return '<span class="tag rg">'+({KFLAG:'KOREA FLAG',AMSA:'AMSA',PARIS:'PARIS MOU',USCG:'USCG'}[x])+'</span>'; }).join('')
+      + r.regs.map(function(x){ return '<span class="tag rg">'+({AMSA:'AMSA 검사창',PARIS:'PARIS MOU 검사창',USCG:'USCG 검사창'}[x])+'</span>'; }).join('')
       +'</div><div class="meta">'
       + (r.lat!=null ? '<b>현위치</b> '+r.lat.toFixed(2)+'°, '+r.lon.toFixed(2)+'° · '+(r.sog!=null?r.sog.toFixed(1)+'kn':'—')+' · '+r.age+'<br>' : '<b>현위치</b> 위치 미수신<br>')
       + (r.nextPort ? '<b>다음 기항</b> '+r.nextPort+' ('+r.nextEta+')'+(r.nextReg?' ← '+r.nextReg:'')+'<br>' : '')
@@ -137,7 +136,7 @@ function draw(){
       +'<b>IMO</b> '+(r.imo||'—')+' · <b>선령</b> '+(r.age0||'—')+' · <b>기국</b> '+(r.mo.flag||'—')+'<br>'
       +'<b>VM</b> '+(r.vm||'—')+' · <b>HSEQ</b> '+(r.hseq||'—')+' · '+(r.team||'—')
       +'</div></div>';
-  }).join('') : '<div class="empty">해당 조건의 위험 선박이 없습니다</div>';
+  }).join('') : '<div class="empty">해당 검사창에 진입한 한국기국 선박이 없습니다</div>';
   layer.clearLayers(); MK={};
   var pts=[];
   rows.forEach(function(r){
@@ -183,8 +182,8 @@ function sel(i){
       var flag=MIDF[String(k).slice(0,3)]||'';
       var legs=sc[k]||[];
       var regs=[], regPorts=[];
-      /* 판정 기준 = PSC 프로파일링의 MOU별 Alert (검사창 진입) */
-      if(mo.flag==='K') regs.push('KFLAG');
+      /* 판정 = 한국기국 AND (AMSA | Paris MOU | USCG 검사창) */
+      if(mo.flag!=='K') return;
       if(mo.amsa && mo.amsa[1])  regs.push('AMSA');
       if(mo.paris && mo.paris[1]) regs.push('PARIS');
       if(mo.uscg && mo.uscg[1])  regs.push('USCG');
