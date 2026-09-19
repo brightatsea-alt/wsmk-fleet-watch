@@ -1264,8 +1264,9 @@ function paintPortIssues(){
 }
 setTimeout(function(){
   var a=document.getElementById('tabPsc'), c=document.getElementById('tabPort');
-  if(a) a.onclick=function(){ RTAB==='psc'? closeR() : openR('psc'); };
-  if(c) c.onclick=function(){ RTAB==='port'? closeR() : openR('port'); };
+  var MOB=function(){ return window.innerWidth<=760; };
+  if(a) a.onclick=function(){ if(MOB()){ window.open('risk.html','_blank'); return; } RTAB==='psc'? closeR() : openR('psc'); };
+  if(c) c.onclick=function(){ if(MOB()){ window.open('ports.html','_blank'); return; } RTAB==='port'? closeR() : openR('port'); };
 }, 500);
 function bft(kn){ var t=[1,4,7,11,17,22,28,34,41,48,56,64];
   for(var i=0;i<t.length;i++) if(kn<t[i]) return i; return 12; }
